@@ -41,12 +41,11 @@ int main() {
   window->createContext("rendering", 450);
   mainLoop->addWindow("mainWindow", window);
 
-
   ge::gl::init(SDL_GL_GetProcAddress);
   ge::gl::setHighDebugMessage();
   ge::gl::glClearColor(0, 0, 0, 1);
 
-  ui::UI ui {*window, *mainLoop, "450"};
+  ui::UI ui{*window, *mainLoop, "450"};
 
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

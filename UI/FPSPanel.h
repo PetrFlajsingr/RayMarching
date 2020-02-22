@@ -4,8 +4,8 @@
 
 #ifndef RAYMARCHING_FPSPANEL_H
 #define RAYMARCHING_FPSPANEL_H
-#include <time/FPSCounter.h>
 #include "Panel.h"
+#include <time/FPSCounter.h>
 
 namespace ui {
 class FPSPanel : public Panel {
@@ -18,9 +18,10 @@ public:
 
   void onFrame() override;
   void reset();
+
 private:
   bool visible = true;
   FPSCounter fpsCounter;
 };
-}
+} // namespace ui
 #endif // RAYMARCHING_FPSPANEL_H

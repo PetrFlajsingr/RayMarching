@@ -5,7 +5,6 @@
 #include "FPSPanel.h"
 #include <imgui/imgui.h>
 
-
 void ui::FPSPanel::onFrame() {
   fpsCounter.frame();
   if (isVisible()) {

@@ -13,9 +13,10 @@ public:
 
   void setVisible(bool visible) noexcept;
   [[nodiscard]] bool isVisible() const noexcept;
+
 private:
   bool visible = true;
 };
-}
+} // namespace ui
 
 #endif // RAYMARCHING_PANEL_H

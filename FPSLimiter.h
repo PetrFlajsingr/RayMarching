@@ -17,6 +17,7 @@ public:
 
   void setEnabled(bool enabled);
   [[nodiscard]] bool isEnabled() const;
+
 private:
   bool enabled = false;
   float fpsLimit;

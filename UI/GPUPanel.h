@@ -4,9 +4,9 @@
 
 #ifndef RAYMARCHING_GPUPANEL_H
 #define RAYMARCHING_GPUPANEL_H
+#include "../common/gl_utils.h"
 #include "Panel.h"
 #include <imgui/imgui.h>
-#include "../common/gl_utils.h"
 
 namespace ui {
 class GPUPanel : public Panel {
@@ -21,5 +21,5 @@ public:
 
 private:
 };
-}
+} // namespace ui
 #endif // RAYMARCHING_GPUPANEL_H

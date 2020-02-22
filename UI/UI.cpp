@@ -3,9 +3,9 @@
 //
 
 #include "UI.h"
+#include <fmt/format.h>
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_sdl.h>
-#include <fmt/format.h>
 
 ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion)
     : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), window(window) {

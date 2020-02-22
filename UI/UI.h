@@ -34,7 +34,7 @@ private:
   FPSPanel fpsPanel;
   GPUPanel gpuPanel;
 
-  std::vector<Panel*> panels;
+  std::vector<Panel *> panels;
   sdl2cpp::Window &window;
 
   void render();
