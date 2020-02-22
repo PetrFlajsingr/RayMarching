@@ -38,6 +38,8 @@ download_project(PROJ           utilities
 include_directories(${utilities_SOURCE_DIR})
 file(GLOB_RECURSE utilities_SRC_LIST "${utilities_SOURCE_DIR}/*.cpp")
 
+
+set(SDL2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/SDL2/lib/cmake/SDL2)
 find_package(SDL2 CONFIG REQUIRED)
 FetchContent_Declare(SDL2CPP GIT_REPOSITORY https://github.com/dormon/SDL2CPP.git)
 FetchContent_Declare(geGL GIT_REPOSITORY https://github.com/dormon/geGL.git)

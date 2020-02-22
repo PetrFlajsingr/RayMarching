@@ -34,7 +34,11 @@ std::pair<MainLoop, Window> prepareWindow() {
 }
 
 int main() {
-  auto [mainLoop, window] = prepareWindow();
+  auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
+  const auto [screenWidth, screenHeight] = getDisplaySize();
+  auto window = std::make_shared<sdl2cpp::Window>(screenWidth * 0.8, screenHeight * 0.8);
+  window->createContext("rendering", 450);
+  mainLoop->addWindow("mainWindow", window);
 
   ge::gl::init(SDL_GL_GetProcAddress);
   ge::gl::setHighDebugMessage();
@@ -45,5 +49,6 @@ int main() {
 
     window->swap();
   });
+  (*mainLoop)();
   return 0;
 }
