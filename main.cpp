@@ -3,6 +3,7 @@
 //
 #include "io/print.h"
 
+
 int main() {
   print("test");
   return 0;
