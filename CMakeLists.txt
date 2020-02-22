@@ -24,6 +24,7 @@ hunter_add_package(tinyxml2)
 find_package(tinyxml2 CONFIG REQUIRED)
 hunter_add_package(imgui)
 find_package(imgui CONFIG REQUIRED)
+include_directories(include/)
 
 download_project(PROJ           observable
         GIT_REPOSITORY https://github.com/ddinu/observable.git
@@ -37,6 +38,7 @@ download_project(PROJ           utilities
         )
 include_directories(${utilities_SOURCE_DIR})
 file(GLOB_RECURSE utilities_SRC_LIST "${utilities_SOURCE_DIR}/*.cpp")
+file(GLOB_RECURSE imgui_SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/*.cpp")
 
 
 set(SDL2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/SDL2/lib/cmake/SDL2)
@@ -55,5 +57,11 @@ if (NOT geGL_POPULATED)
     add_subdirectory(${gegl_SOURCE_DIR} ${gegl_BINARY_DIR})
 endif ()
 
-add_executable(RayMarching main.cpp ${utilities_SRC_LIST})
-target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2)
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
+add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST} UI/FPSPanel.cpp UI/UI.cpp)
+target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2 fmt::fmt-header-only -pthread nlohmann_json::nlohmann_json)
