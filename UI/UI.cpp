@@ -8,18 +8,23 @@
 #include <fmt/format.h>
 
 ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion)
-    : window(window), ctx(ImGui::CreateContext()), io(ImGui::GetIO()) {
+    : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), window(window) {
   IMGUI_CHECKVERSION();
   ImGui::StyleColorsDark();
   ImGui_ImplSDL2_InitForOpenGL(window.getWindow(), window.getContext("rendering"));
   ImGui_ImplOpenGL3_Init(fmt::format("#version {}", glslVersion).c_str());
+
+  panels.emplace_back(&gpuPanel);
+  panels.emplace_back(&fpsPanel);
 }
 
 void ui::UI::onFrame() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplSDL2_NewFrame(window.getWindow());
   ImGui::NewFrame();
-  fpsPanel.onFrame();
+  for (auto panel : panels) {
+    panel->onFrame();
+  }
   ImGui::EndFrame();
   render();
 }
@@ -34,3 +39,5 @@ void ui::UI::render() {
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+const ui::GPUPanel &ui::UI::getGpuPanel() const { return gpuPanel; }
+ui::GPUPanel &ui::UI::getGpuPanel() { return gpuPanel; }

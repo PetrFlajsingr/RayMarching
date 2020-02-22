@@ -4,9 +4,10 @@
 
 #ifndef RAYMARCHING_UI_H
 #define RAYMARCHING_UI_H
-#include <imconfig.h>
 #include "FPSPanel.h"
+#include "GPUPanel.h"
 #include <SDL2CPP/Window.h>
+#include <imconfig.h>
 #include <imgui/imgui.h>
 
 namespace ui {
@@ -24,10 +25,16 @@ public:
   [[nodiscard]] FPSPanel &getFPSPanel() noexcept;
   [[nodiscard]] const FPSPanel &getFPSPanel() const noexcept;
 
+  [[nodiscard]] const GPUPanel &getGpuPanel() const;
+  [[nodiscard]] GPUPanel &getGpuPanel();
+
 private:
   ImGuiContext *ctx;
   ImGuiIO &io;
   FPSPanel fpsPanel;
+  GPUPanel gpuPanel;
+
+  std::vector<Panel*> panels;
   sdl2cpp::Window &window;
 
   void render();

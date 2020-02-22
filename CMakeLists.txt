@@ -63,5 +63,5 @@ foreach (_variableName ${_variableNames})
     message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()
 
-add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST} UI/FPSPanel.cpp UI/UI.cpp)
+add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST} UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp common/gl_utils.cpp)
 target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2 fmt::fmt-header-only -pthread nlohmann_json::nlohmann_json)
