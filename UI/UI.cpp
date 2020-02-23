@@ -16,6 +16,7 @@ ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::stri
 
   panels.emplace_back(&gpuPanel);
   panels.emplace_back(&fpsPanel);
+  panels.emplace_back(&renderSettingsPanel);
 }
 
 void ui::UI::onFrame() {

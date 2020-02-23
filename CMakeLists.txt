@@ -32,6 +32,12 @@ download_project(PROJ           observable
         )
 include_directories(${observable_SOURCE_DIR}/observable/include)
 
+download_project(PROJ           magic_enum
+        GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+        GIT_TAG        master
+        )
+include_directories(${magic_enum_SOURCE_DIR}/include)
+
 download_project(PROJ           utilities
         GIT_REPOSITORY https://github.com/PetrFlajsingr/Utilities.git
         GIT_TAG        master
@@ -63,5 +69,8 @@ foreach (_variableName ${_variableNames})
     message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()
 
-add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST} UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp common/gl_utils.cpp)
+add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST}
+        UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp
+        common/gl_utils.cpp common/GlslShaderLoader.cpp common/gl_utils.cpp
+        ray_marching/RayMarcher.cpp)
 target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2 fmt::fmt-header-only -pthread nlohmann_json::nlohmann_json)

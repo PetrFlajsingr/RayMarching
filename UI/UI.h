@@ -6,6 +6,7 @@
 #define RAYMARCHING_UI_H
 #include "FPSPanel.h"
 #include "GPUPanel.h"
+#include "RenderSettingsPanel.h"
 #include <SDL2CPP/Window.h>
 #include <imconfig.h>
 #include <imgui/imgui.h>
@@ -33,6 +34,7 @@ private:
   ImGuiIO &io;
   FPSPanel fpsPanel;
   GPUPanel gpuPanel;
+  RenderSettingsPanel renderSettingsPanel;
 
   std::vector<Panel *> panels;
   sdl2cpp::Window &window;

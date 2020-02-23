@@ -20,7 +20,6 @@ public:
   void reset();
 
 private:
-  bool visible = true;
   FPSCounter fpsCounter;
 };
 } // namespace ui

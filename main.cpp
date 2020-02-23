@@ -12,6 +12,7 @@
 #include <geGL/geGL.h>
 #include <memory>
 #include <utility>
+#include <magic_enum.hpp>
 
 std::pair<unsigned int, unsigned int> getDisplaySize() {
   SDL_DisplayMode displayMode;
@@ -33,6 +34,10 @@ std::pair<MainLoop, Window> prepareWindow() {
   mainLoop->addWindow("mainWindow", window);
   return {mainLoop, window};
 }
+
+enum class M {
+  A, B, C
+};
 
 int main() {
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
