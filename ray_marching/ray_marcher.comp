@@ -1,0 +1,12 @@
+#version 450
+
+layout (local_size_x = 1, local_size_y = 1) in;
+layout (rgba32f, binding = 0) uniform image2D renderTexture;
+layout (r32ui, binding = 1) uniform image2D stepCountTexture;
+layout (r32f, binding = 2) uniform image2D depthTexture;
+
+
+
+void main() {
+
+}
