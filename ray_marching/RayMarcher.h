@@ -33,6 +33,9 @@ private:
 
   void setTextureInterpolation();
   void bindTextures();
+  void unBindTextures();
+
+  std::pair<unsigned int, unsigned int> getComputeDispatchSize();
 };
 } // namespace ray_march
 

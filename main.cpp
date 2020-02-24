@@ -2,7 +2,6 @@
 // Created by petr on 2/12/20.
 //
 #include "UI/UI.h"
-#include "io/print.h"
 #include <SDL2CPP/MainLoop.h>
 #include <SDL2CPP/Window.h>
 #include <SDL_video.h>
@@ -12,8 +11,9 @@
 #include <geGL/geGL.h>
 #include <memory>
 #include <utility>
-#include <magic_enum.hpp>
-
+#include <spdlog/spdlog.h>
+#include "ray_marching/RayMarcher.h"
+#include "common/GlslShaderLoader.h"
 std::pair<unsigned int, unsigned int> getDisplaySize() {
   SDL_DisplayMode displayMode;
   if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
@@ -23,26 +23,13 @@ std::pair<unsigned int, unsigned int> getDisplaySize() {
   const auto h = static_cast<unsigned int>(displayMode.h * 0.8);
   return {w, h};
 }
-using MainLoop = std::shared_ptr<sdl2cpp::MainLoop>;
-using Window = std::shared_ptr<sdl2cpp::Window>;
-
-std::pair<MainLoop, Window> prepareWindow() {
-  auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
-  const auto [screenWidth, screenHeight] = getDisplaySize();
-  auto window = std::make_shared<sdl2cpp::Window>(screenWidth * 0.8, screenHeight * 0.8);
-  window->createContext("rendering", 450);
-  mainLoop->addWindow("mainWindow", window);
-  return {mainLoop, window};
-}
-
-enum class M {
-  A, B, C
-};
 
 int main() {
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
   const auto [screenWidth, screenHeight] = getDisplaySize();
+  spdlog::info("Window size: {}x{}", static_cast<int>(screenWidth * 0.8), static_cast<int>(screenHeight * 0.8));
   auto window = std::make_shared<sdl2cpp::Window>(screenWidth * 0.8, screenHeight * 0.8);
+  spdlog::info("OpenGL context version {}", 450);
   window->createContext("rendering", 450);
   mainLoop->addWindow("mainWindow", window);
 
@@ -52,12 +39,18 @@ int main() {
 
   ui::UI ui{*window, *mainLoop, "450"};
 
+  setShaderLocation("/home/petr/CLionProjects/RayMarching");
+  ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
+
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    rayMarcher.render();
+    rayMarcher.show();
     ui.onFrame();
     window->swap();
   });
+  spdlog::info("Starting main loop");
   (*mainLoop)();
   return 0;
 }

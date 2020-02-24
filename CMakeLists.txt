@@ -24,23 +24,26 @@ hunter_add_package(tinyxml2)
 find_package(tinyxml2 CONFIG REQUIRED)
 hunter_add_package(imgui)
 find_package(imgui CONFIG REQUIRED)
+hunter_add_package(spdlog)
+find_package(spdlog CONFIG REQUIRED)
+
 include_directories(include/)
 
-download_project(PROJ           observable
+download_project(PROJ observable
         GIT_REPOSITORY https://github.com/ddinu/observable.git
-        GIT_TAG        master
+        GIT_TAG master
         )
 include_directories(${observable_SOURCE_DIR}/observable/include)
 
-download_project(PROJ           magic_enum
+download_project(PROJ magic_enum
         GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-        GIT_TAG        master
+        GIT_TAG master
         )
 include_directories(${magic_enum_SOURCE_DIR}/include)
 
-download_project(PROJ           utilities
+download_project(PROJ utilities
         GIT_REPOSITORY https://github.com/PetrFlajsingr/Utilities.git
-        GIT_TAG        master
+        GIT_TAG master
         )
 include_directories(${utilities_SOURCE_DIR})
 file(GLOB_RECURSE utilities_SRC_LIST "${utilities_SOURCE_DIR}/*.cpp")
@@ -63,14 +66,9 @@ if (NOT geGL_POPULATED)
     add_subdirectory(${gegl_SOURCE_DIR} ${gegl_BINARY_DIR})
 endif ()
 
-get_cmake_property(_variableNames VARIABLES)
-list (SORT _variableNames)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
 
 add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST}
         UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp
         common/gl_utils.cpp common/GlslShaderLoader.cpp common/gl_utils.cpp
         ray_marching/RayMarcher.cpp)
-target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2 fmt::fmt-header-only -pthread nlohmann_json::nlohmann_json)
+target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2 fmt::fmt-header-only -pthread nlohmann_json::nlohmann_json spdlog::spdlog)

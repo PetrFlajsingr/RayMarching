@@ -16,6 +16,9 @@ class ScopedShaderProgramUsage {
 public:
   explicit ScopedShaderProgramUsage(ge::gl::Program &program);
 
+  ge::gl::Program &operator*();
+  ge::gl::Program *operator->();
+
   ~ScopedShaderProgramUsage();
 
 private:

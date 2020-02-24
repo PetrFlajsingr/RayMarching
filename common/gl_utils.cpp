@@ -39,3 +39,11 @@ ScopedShaderProgramUsage::~ScopedShaderProgramUsage() {
     ge::gl::glUseProgram(0);
   }
 }
+
+ge::gl::Program &ScopedShaderProgramUsage::operator*() {
+  return program;
+}
+
+ge::gl::Program *ScopedShaderProgramUsage::operator->() {
+  return &program;
+}
