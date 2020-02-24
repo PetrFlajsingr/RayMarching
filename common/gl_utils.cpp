@@ -30,9 +30,7 @@ std::pair<uint, uint> getGPUMemoryUsage() {
   return {cur_avail_mem_kb, total_mem_kb};
 }
 
-ScopedShaderProgramUsage::ScopedShaderProgramUsage(ge::gl::Program &program) : program(program) {
-  program.use();
-}
+ScopedShaderProgramUsage::ScopedShaderProgramUsage(ge::gl::Program &program) : program(program) { program.use(); }
 
 ScopedShaderProgramUsage::~ScopedShaderProgramUsage() {
   GLint id;

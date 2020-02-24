@@ -42,9 +42,6 @@ void RayMarcher::bindTextures() {
 void RayMarcher::render() {
   bindTextures();
   ScopedShaderProgramUsage scopedProgram{csProgram};
-
 }
 
-void RayMarcher::show() {
-  ScopedShaderProgramUsage scopedProgram{renderProgram};
-}
+void RayMarcher::show() { ScopedShaderProgramUsage scopedProgram{renderProgram}; }

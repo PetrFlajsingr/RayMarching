@@ -18,6 +18,7 @@ public:
 
   void render();
   void show();
+
 private:
   ge::gl::Program csProgram;
   ge::gl::Program renderProgram;
@@ -33,6 +34,6 @@ private:
   void setTextureInterpolation();
   void bindTextures();
 };
-}
+} // namespace ray_march
 
 #endif // RAYMARCHING_RAYMARCHER_H
