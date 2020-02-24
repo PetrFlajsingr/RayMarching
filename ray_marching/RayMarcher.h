@@ -16,6 +16,8 @@ public:
 
   void changeRenderSize(const TextureSize &textureSize);
 
+  void render();
+  void show();
 private:
   ge::gl::Program csProgram;
   ge::gl::Program renderProgram;
@@ -23,6 +25,13 @@ private:
   ge::gl::Texture renderTexture;
   ge::gl::Texture stepCountTexture;
   ge::gl::Texture depthTexture;
+
+  static constexpr int renderTextureBinding = 0;
+  static constexpr int stepCountTextureBinding = 1;
+  static constexpr int depthTextureBinding = 2;
+
+  void setTextureInterpolation();
+  void bindTextures();
 };
 }
 
