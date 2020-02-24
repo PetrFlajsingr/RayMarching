@@ -12,4 +12,14 @@ bool checkProgramLinkStatus(GLuint program);
 
 std::pair<uint, uint> getGPUMemoryUsage();
 
+class ScopedShaderProgramUsage {
+public:
+  explicit ScopedShaderProgramUsage(ge::gl::Program &program);
+
+  ~ScopedShaderProgramUsage();
+
+private:
+  ge::gl::Program &program;
+};
+
 #endif // TERRAINGENERATION_GL_UTILS_H

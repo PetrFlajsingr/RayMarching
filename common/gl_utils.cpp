@@ -29,3 +29,15 @@ std::pair<uint, uint> getGPUMemoryUsage() {
   ge::gl::glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &cur_avail_mem_kb);
   return {cur_avail_mem_kb, total_mem_kb};
 }
+
+ScopedShaderProgramUsage::ScopedShaderProgramUsage(ge::gl::Program &program) : program(program) {
+  program.use();
+}
+
+ScopedShaderProgramUsage::~ScopedShaderProgramUsage() {
+  GLint id;
+  ge::gl::glGetIntegerv(GL_CURRENT_PROGRAM, &id);
+  if (id == program.getId()) {
+    ge::gl::glUseProgram(0);
+  }
+}
