@@ -93,3 +93,9 @@ float sdEllipsoid(vec3 cameraPos, vec3 position, vec3 radius) {
     const float k1 = length(position / (radius * radius));
     return k0 * (k0 - 1.0) / k1;
 }
+
+float sdTorus(vec3 cameraPos, vec3 position, float radius, float thickness) {
+    position = distance(cameraPos, position);
+    const vec2 q = vec2(length(position.xz) - radius, position.y);
+    return length(q) - thickness;
+}
