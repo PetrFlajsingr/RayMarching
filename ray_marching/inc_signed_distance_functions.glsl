@@ -170,7 +170,7 @@ float sdLink(vec3 cameraPos, vec3 position, float len, float radius1, float radi
 }
 
 float sdOctahedron(vec3 cameraPos, vec3 position, float roundness) {
-    position = abs(position);
+    position = abs(distance(cameraPos, position));
     const float m = position.x + position.y + position.z - roundness;
     vec3 q = vec3(0);
     if (3.0*position.x < m) q = position.xyz;
@@ -180,4 +180,25 @@ float sdOctahedron(vec3 cameraPos, vec3 position, float roundness) {
 
     const float k = clamp(0.5 * (q.z - q.y + roundness), 0.0, roundness);
     return length(vec3(q.x, q.y - roundness + k, q.z - k));
+}
+
+float sdPyramid(vec3 cameraPos, vec3 position, float h) {
+    position = distance(cameraPos, position);
+    float m2 = h*h + 0.25;
+
+    position.xz = abs(position.xz);
+    position.xz = (position.z>position.x) ? position.zx : position.xz;
+    position.xz -= 0.5;
+
+    vec3 q = vec3(position.z, h*position.y - 0.5*position.x, h*position.x + 0.5*position.y);
+
+    float s = max(-q.x, 0.0);
+    float t = clamp((q.y-0.5*position.z)/(m2+0.25), 0.0, 1.0);
+
+    float a = m2*(q.x+s)*(q.x+s) + q.y*q.y;
+    float b = m2*(q.x+0.5*t)*(q.x+0.5*t) + (q.y-m2*t)*(q.y-m2*t);
+
+    float d2 = min(q.y, -q.x*m2-q.y*0.5) > 0.0 ? 0.0 : min(a, b);
+
+    return sqrt((d2+q.z*q.z)/m2) * sign(max(q.z, -position.y));
 }
