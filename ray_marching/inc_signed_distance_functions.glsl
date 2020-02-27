@@ -168,3 +168,16 @@ float sdLink(vec3 cameraPos, vec3 position, float len, float radius1, float radi
     vec3 q = vec3(position.x, max(abs(position.y) - len, 0.0), position.z);
     return length(vec2(length(q.xy) - radius1, q.z)) - radius2;
 }
+
+float sdOctahedron(vec3 cameraPos, vec3 position, float roundness) {
+    position = abs(position);
+    const float m = position.x + position.y + position.z - roundness;
+    vec3 q = vec3(0);
+    if (3.0*position.x < m) q = position.xyz;
+    else if (3.0*position.y < m) q = position.yzx;
+    else if (3.0*position.z < m) q = position.zxy;
+    else return m*0.57735027;
+
+    const float k = clamp(0.5 * (q.z - q.y + roundness), 0.0, roundness);
+    return length(vec3(q.x, q.y - roundness + k, q.z - k));
+}
