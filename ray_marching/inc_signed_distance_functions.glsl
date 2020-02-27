@@ -77,3 +77,19 @@ float sdCappedCone(vec3 cameraPos, vec3 position, float h, float r1, float r2) {
     const float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
     return s * sqrt(min(dot2(ca), dot2(cb)));
 }
+
+float sdSolidAngle(vec3 cameraPos, vec3 position, vec2 c, float ra) {
+    position = distance(cameraPos, position);
+    // c is the sin/cos of the angle
+    const vec2 q = vec2(length(position.xz), position.y);
+    const float l = length(q) - ra;
+    const float m = length(q - c * clamp(dot(q, c), 0.0, ra));
+    return max(l, m * sign(c.y * q.x - c.x * q.y));
+}
+
+float sdEllipsoid(vec3 cameraPos, vec3 position, vec3 radius) {
+    position = distance(cameraPos, position);
+    const float k0 = length(position / radius);
+    const float k1 = length(position / (radius * radius));
+    return k0 * (k0 - 1.0) / k1;
+}
