@@ -102,6 +102,7 @@ float sdTorus(vec3 cameraPos, vec3 position, float radius, float thickness) {
 
 vec4 sdJointSphere(vec3 cameraPos, vec3 position, float len, float bend, float width)
 {
+    position = distance(cameraPos, position);
     // if perfectly straight
     if (abs(bend) < 0.001) return vec4(length(position - vec3(0, clamp(position.y, 0.0, len), 0)) - width, position);
 
@@ -126,6 +127,7 @@ vec4 sdJointSphere(vec3 cameraPos, vec3 position, float len, float bend, float w
 
 vec4 sdJointFlat(vec3 cameraPos, vec3 position, float len, float bend, float width)
 {
+    position = distance(cameraPos, position);
     // if perfectly straight
     if (abs(bend) < 0.001)
     {
@@ -160,4 +162,9 @@ vec4 sdJointFlat(vec3 cameraPos, vec3 position, float len, float bend, float wid
 
 
     return vec4(d, u, v, position.z);
+}
+
+float sdLink(vec3 cameraPos, vec3 position, float len, float radius1, float radius2) {
+    vec3 q = vec3(position.x, max(abs(position.y) - len, 0.0), position.z);
+    return length(vec2(length(q.xy) - radius1, q.z)) - radius2;
 }
