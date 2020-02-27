@@ -1,3 +1,4 @@
-float sdSphere(vec3 p, float s) {
-    return length(p) - s;
+float sdSphere(vec3 pos, vec3 center, float radius) {
+    return length(pos - center) - radius;
 }
+
