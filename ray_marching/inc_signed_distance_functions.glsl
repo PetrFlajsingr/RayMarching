@@ -55,14 +55,25 @@ float sdCapsule(vec3 cameraPos, vec3 position, vec3 a, vec3 b, float radius) {
 
 float sdCylinder(vec3 cameraPos, vec3 position, float h, float radius) {
     position = distance(cameraPos, position);
-    vec2 d = abs(vec2(length(position.xz), position.y)) - vec2(h, radius);
+    const vec2 d = abs(vec2(length(position.xz), position.y)) - vec2(h, radius);
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
 
 float sdCone(vec3 cameraPos, vec3 position, vec3 c){
     position = distance(cameraPos, position);
-    vec2 q = vec2(length(position.xz), position.y);
-    float d1 = -q.y - c.z;
-    float d2 = max(dot(q, c.xy), q.y);
+    const vec2 q = vec2(length(position.xz), position.y);
+    const float d1 = -q.y - c.z;
+    const float d2 = max(dot(q, c.xy), q.y);
     return length(max(vec2(d1, d2), 0.0)) + min(max(d1, d2), 0.);
+}
+
+float sdCappedCone(vec3 cameraPos, vec3 position, float h, float r1, float r2) {
+    position = distance(cameraPos, position);
+    const vec2 q = vec2(length(position.xz), position.y);
+    const vec2 k1 = vec2(r2, h);
+    const vec2 k2 = vec2(r2 - r1, 2.0 * h);
+    const vec2 ca = vec2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
+    const vec2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot2(k2), 0.0, 1.0);
+    const float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+    return s * sqrt(min(dot2(ca), dot2(cb)));
 }
