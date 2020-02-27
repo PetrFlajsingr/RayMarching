@@ -58,3 +58,11 @@ float sdCylinder(vec3 cameraPos, vec3 position, float h, float radius) {
     vec2 d = abs(vec2(length(position.xz), position.y)) - vec2(h, radius);
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
+
+float sdCone(vec3 cameraPos, vec3 position, vec3 c){
+    position = distance(cameraPos, position);
+    vec2 q = vec2(length(position.xz), position.y);
+    float d1 = -q.y - c.z;
+    float d2 = max(dot(q, c.xy), q.y);
+    return length(max(vec2(d1, d2), 0.0)) + min(max(d1, d2), 0.);
+}
