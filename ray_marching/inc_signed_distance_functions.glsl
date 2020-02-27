@@ -13,7 +13,7 @@ float sdBox(vec3 cameraPos, vec3 start, vec3 dimensions) {
 float sdRoundBox(vec3 cameraPos, vec3 start, vec3 dimensions, float radius) {
     const vec3 dist = distance(cameraPos, start);
     const vec3 q = abs(dist) - dimensions;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y,q.z)), 0.0) - radius;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - radius;
 }
 
 float sdPlane(vec3 cameraPos, vec3 position, vec4 normal) {
@@ -26,7 +26,7 @@ float sdHexPrism(vec3 cameraPos, vec3 position, vec2 dimensions) {
     position.xy -= 2.0 * min(dot(k.xy, position.xy), 0.0) * k.xy;
     const vec2 d = vec2(
     length(position.xy - vec2(clamp(position.x, -k.z*dimensions.x, k.z * dimensions.x), dimensions.x)) * sign(position.y - dimensions.x),
-    position.z-dimensions.y );
+    position.z-dimensions.y);
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
 
@@ -37,7 +37,7 @@ float sdTriPrism(vec3 cameraPos, vec3 position, vec2 dimensions) {
     position.xy /= dimensions.x;
     position.x = abs(position.x) - 1.0;
     position.y = position.y + 1.0 / k;
-    if(position.x + k * position.y > 0.0){
+    if (position.x + k * position.y > 0.0){
         position.xy=vec2(position.x - k * position.y, -k * position.x - position.y) / 2.0;
     }
     position.x -= clamp(position.x, -2.0, 0.0);
@@ -98,4 +98,66 @@ float sdTorus(vec3 cameraPos, vec3 position, float radius, float thickness) {
     position = distance(cameraPos, position);
     const vec2 q = vec2(length(position.xz) - radius, position.y);
     return length(q) - thickness;
+}
+
+vec4 sdJointSphere(vec3 cameraPos, vec3 position, float len, float bend, float width)
+{
+    // if perfectly straight
+    if (abs(bend) < 0.001) return vec4(length(position - vec3(0, clamp(position.y, 0.0, len), 0)) - width, position);
+
+    // parameters
+    vec2  sc = vec2(sin(bend), cos(bend));
+    float ra = 0.5 * len / bend;
+
+    // recenter
+    position.x -= ra;
+
+    // reflect
+    vec2 q = position.xy - 2.0 * sc * max(0.0, dot(sc, position.xy));
+
+    float u = abs(ra) - length(q);
+    float d2 = (q.y < 0.0) ? dot(q + vec2(ra, 0.0)) : u * u;
+    float s = sign(bend);
+    return vec4(sqrt(d2 + position.z * position.z) - width,
+    (position.y > 0.0) ? s * u : s * sign(-position.x) * (q.x+ra),
+    (position.y > 0.0) ? atan(s * position.y, -s * position.x) * ra : (s * position.x < 0.0) ? position.y : len - position.y,
+    position.z);
+}
+
+vec4 sdJointFlat(vec3 cameraPos, vec3 position, float len, float bend, float width)
+{
+    // if perfectly straight
+    if (abs(bend) < 0.001)
+    {
+        vec3 q = position; q.y -= 0.5 * len;
+        q = abs(q) - vec3(width, len * 0.5, width);
+        return vec4(min(max(q.x, max(q.y, q.z)), 0.0) + length(max(q, 0.0)), position);
+    }
+
+    // parameters
+    vec2  sc = vec2(sin(bend), cos(bend));
+    float ra = 0.5*len/bend;
+
+    // recenter
+    position.x -= ra;
+
+    // reflect
+    vec2 q = position.xy - 2.0 * sc * max(0.0, dot(sc, position.xy));
+
+    // distance
+    float u = abs(ra) - length(q);
+    float d = max(length(vec2(q.x + ra - clamp(q.x + ra, -width, width), q.y)) * sign(-q.y), abs(u) - width);
+
+    // parametrization (optional)
+    float s = sign(bend);
+    float v = ra * atan(s * position.y, -s * position.x);
+    u = u * s;
+
+    // square profile
+    q = vec2(d, abs(position.z) - width);
+
+    d = min(max(q.x, q.y), 0.0) + length(max(q, 0.0));
+
+
+    return vec4(d, u, v, position.z);
 }
