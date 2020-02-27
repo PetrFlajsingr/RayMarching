@@ -1,5 +1,7 @@
 // https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 
+float dot2(vec3 v) { return dot(v, v); }
+
 float sdSphere(vec3 cameraPos, vec3 center, float radius) {
     return distance(cameraPos, center) - radius;
 }
@@ -69,13 +71,13 @@ float sdCone(vec3 cameraPos, vec3 position, vec3 c){
 
 float sdCappedCone(vec3 cameraPos, vec3 position, float h, float r1, float r2) {
     position = distance(cameraPos, position);
-    const vec2 q = vec2(length(position.xz), position.y);
+    const vec2 q = vec2(length(p.xz), p.y);
     const vec2 k1 = vec2(r2, h);
-    const vec2 k2 = vec2(r2 - r1, 2.0 * h);
-    const vec2 ca = vec2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
-    const vec2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot2(k2), 0.0, 1.0);
-    const float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
-    return s * sqrt(min(dot2(ca), dot2(cb)));
+    const vec2 k2 = vec2(r2-r1, 2.0*h);
+    const vec2 ca = vec2(q.x-min(q.x, (q.y<0.0)?r1:r2), abs(q.y)-h);
+    const vec2 cb = q - k1 + k2*clamp(dot(k1-q, k2)/dot2(k2), 0.0, 1.0);
+    const float s = (cb.x<0.0 && ca.y<0.0) ? -1.0 : 1.0;
+    return s*sqrt(min(dot2(ca), dot2(cb)));
 }
 
 float sdSolidAngle(vec3 cameraPos, vec3 position, vec2 c, float ra) {
@@ -117,7 +119,7 @@ vec4 sdJointSphere(vec3 cameraPos, vec3 position, float len, float bend, float w
     vec2 q = position.xy - 2.0 * sc * max(0.0, dot(sc, position.xy));
 
     float u = abs(ra) - length(q);
-    float d2 = (q.y < 0.0) ? dot(q + vec2(ra, 0.0)) : u * u;
+    float d2 = (q.y < 0.0) ? dot2(q + vec2(ra, 0.0)) : u * u;
     float s = sign(bend);
     return vec4(sqrt(d2 + position.z * position.z) - width,
     (position.y > 0.0) ? s * u : s * sign(-position.x) * (q.x+ra),
@@ -216,33 +218,33 @@ float sdTriangle(vec3 cameraPos, vec3 position, vec3 a, vec3 b, vec3 c) {
     sign(dot(cross(ac, nor), pc))<2.0)
     ?
     min(min(
-    dot(ba*clamp(dot(ba, pa)/dot(ba), 0.0, 1.0)-pa),
-    dot(cb*clamp(dot(cb, pb)/dot(cb), 0.0, 1.0)-pb)),
-    dot(ac*clamp(dot(ac, pc)/dot(ac), 0.0, 1.0)-pc))
+    dot2(ba*clamp(dot(ba, pa)/dot2(ba), 0.0, 1.0)-pa),
+    dot2(cb*clamp(dot(cb, pb)/dot2(cb), 0.0, 1.0)-pb)),
+    dot2(ac*clamp(dot(ac, pc)/dot2(ac), 0.0, 1.0)-pc))
     :
-    dot(nor, pa)*dot(nor, pa)/dot(nor));
+    dot(nor, pa)*dot(nor, pa)/dot2(nor));
 }
 
-float sdQuad(vec3 cameraPos, vec3 position, vec3 a, vec3 b, vec3 c, vec3 d )
+float sdQuad(vec3 cameraPos, vec3 position, vec3 a, vec3 b, vec3 c, vec3 d)
 {
     position = distance(cameraPos, position);
     vec3 ba = b - a; vec3 pa = position - a;
     vec3 cb = c - b; vec3 pb = position - b;
     vec3 dc = d - c; vec3 pc = position - c;
     vec3 ad = a - d; vec3 pd = position - d;
-    vec3 nor = cross( ba, ad );
+    vec3 nor = cross(ba, ad);
 
     return sqrt(
-    (sign(dot(cross(ba,nor),pa)) +
-    sign(dot(cross(cb,nor),pb)) +
-    sign(dot(cross(dc,nor),pc)) +
-    sign(dot(cross(ad,nor),pd))<3.0)
+    (sign(dot(cross(ba, nor), pa)) +
+    sign(dot(cross(cb, nor), pb)) +
+    sign(dot(cross(dc, nor), pc)) +
+    sign(dot(cross(ad, nor), pd))<3.0)
     ?
-    min( min( min(
-    dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
-    dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
-    dot2(dc*clamp(dot(dc,pc)/dot2(dc),0.0,1.0)-pc) ),
-    dot2(ad*clamp(dot(ad,pd)/dot2(ad),0.0,1.0)-pd) )
+    min(min(min(
+    dot2(ba*clamp(dot(ba, pa)/dot2(ba), 0.0, 1.0)-pa),
+    dot2(cb*clamp(dot(cb, pb)/dot2(cb), 0.0, 1.0)-pb)),
+    dot2(dc*clamp(dot(dc, pc)/dot2(dc), 0.0, 1.0)-pc)),
+    dot2(ad*clamp(dot(ad, pd)/dot2(ad), 0.0, 1.0)-pd))
     :
-    dot(nor,pa)*dot(nor,pa)/dot2(nor) );
+    dot(nor, pa)*dot(nor, pa)/dot2(nor));
 }
