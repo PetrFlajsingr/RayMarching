@@ -52,3 +52,9 @@ float sdCapsule(vec3 cameraPos, vec3 position, vec3 a, vec3 b, float radius) {
     const float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     return length(pa - ba * h) - radius;
 }
+
+float sdCylinder(vec3 cameraPos, vec3 position, float h, float radius) {
+    position = distance(cameraPos, position);
+    vec2 d = abs(vec2(length(position.xz), position.y)) - vec2(h, radius);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
