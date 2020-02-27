@@ -7,7 +7,9 @@ layout (r32f, binding = 2) uniform image2D depthTexture;
 
 void main() {
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
-    imageStore(renderTexture, texCoord, vec4(1, 0, 0, 1));
+    vec4 col = vec4(1, 0, 0, 1);
+    col += vec4(0, float(gl_GlobalInvocationID.x) / gl_GlobalInvocationID.y, 0, 0);
+    imageStore(renderTexture, texCoord, col);
     imageStore(stepCountTexture, texCoord, vec4(gl_GlobalInvocationID.x, 0, 0, 0));
-    imageStore(depthTexture, texCoord, vec4(gl_GlobalInvocationID.x / gl_GlobalInvocationID.y, 0, 0, 0));
+    imageStore(depthTexture, texCoord, vec4(float(gl_GlobalInvocationID.x) / gl_GlobalInvocationID.y, 0, 0, 0));
 }

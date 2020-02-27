@@ -42,3 +42,7 @@ void ui::UI::render() {
 }
 const ui::GPUPanel &ui::UI::getGpuPanel() const { return gpuPanel; }
 ui::GPUPanel &ui::UI::getGpuPanel() { return gpuPanel; }
+
+const ui::RenderSettingsPanel &ui::UI::getRenderSettingsPanel() const { return renderSettingsPanel; }
+
+ui::RenderSettingsPanel &ui::UI::getRenderSettingsPanel() { return renderSettingsPanel; }

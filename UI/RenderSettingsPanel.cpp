@@ -31,3 +31,7 @@ void ui::RenderSettingsPanel::onFrame() {
     ImGui::End();
   }
 }
+
+ui::TextureChoice ui::RenderSettingsPanel::getSelectedTextureType() const {
+  return magic_enum::enum_cast<TextureChoice>(currentItem).value();
+}

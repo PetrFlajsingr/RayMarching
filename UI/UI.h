@@ -29,6 +29,9 @@ public:
   [[nodiscard]] const GPUPanel &getGpuPanel() const;
   [[nodiscard]] GPUPanel &getGpuPanel();
 
+  [[nodiscard]] const RenderSettingsPanel &getRenderSettingsPanel() const;
+  [[nodiscard]] RenderSettingsPanel &getRenderSettingsPanel();
+
 private:
   ImGuiContext *ctx;
   ImGuiIO &io;

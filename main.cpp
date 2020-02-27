@@ -46,7 +46,7 @@ int main() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     rayMarcher.render();
-    rayMarcher.show();
+    rayMarcher.show(static_cast<ray_march::Tex>(static_cast<int>(ui.getRenderSettingsPanel().getSelectedTextureType())));
     ui.onFrame();
     window->swap();
   });

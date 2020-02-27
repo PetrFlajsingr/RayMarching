@@ -6,9 +6,15 @@
 #define RAYMARCHING_RAYMARCHER_H
 #include <geGL/Program.h>
 #include <geGL/Texture.h>
+#include <geGL/VertexArray.h>
+#include <geGL/Buffer.h>
 #include <utility>
 
 namespace ray_march {
+enum class Tex{
+  Render, Depth, StepCount
+};
+
 using TextureSize = std::pair<int, int>;
 class RayMarcher {
 public:
@@ -17,8 +23,7 @@ public:
   void changeRenderSize(const TextureSize &textureSize);
 
   void render();
-  void show();
-
+  void show(Tex tex);
 private:
   ge::gl::Program csProgram;
   ge::gl::Program renderProgram;
@@ -36,6 +41,10 @@ private:
   void unBindTextures();
 
   std::pair<unsigned int, unsigned int> getComputeDispatchSize();
+
+  std::vector<float> quadVertices;
+  ge::gl::VertexArray quadVAO;
+  ge::gl::Buffer quadVBO;
 };
 } // namespace ray_march
 

@@ -18,6 +18,8 @@ public:
 
   void onFrame() override;
 
+  [[nodiscard]] TextureChoice getSelectedTextureType() const;
+
 private:
   const char *currentItem;
   std::vector<std::string> textureChoiceItems;
