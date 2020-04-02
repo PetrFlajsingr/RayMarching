@@ -11,13 +11,15 @@ using namespace ShaderLiterals;
 using namespace ray_march;
 
 RayMarcher::RayMarcher(const TextureSize &textureSize)
-    : csProgram("ray_marching/ray_marcher"_comp), renderProgram("ray_marching/render"_vert, "ray_marching/render"_frag),
+    : csProgram(loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_signed_distance_functions", "inc_CSG_operations")),
+      renderProgram("render"_vert, "render"_frag),
       renderTexture(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second),
       stepCountTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
-      depthTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),  quadVertices({
-                                                                                                        -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-                                                                                                        1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
-                                                                                                    }),
+      depthTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
+      quadVertices({
+          -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+          1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
+      }),
       quadVBO(sizeof(float) * quadVertices.size(), quadVertices.data()) {
   quadVAO.addAttrib(&quadVBO, 0, 3, GL_FLOAT, 5 * sizeof(float), 0);
   quadVAO.addAttrib(&quadVBO, 1, 2, GL_FLOAT, 5 * sizeof(float), (3 * sizeof(float)));
@@ -77,7 +79,6 @@ void RayMarcher::show(Tex tex) {
   }
 
   ge::gl::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
 }
 
 std::pair<unsigned int, unsigned int> RayMarcher::getComputeDispatchSize() {

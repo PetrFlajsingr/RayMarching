@@ -33,6 +33,9 @@ std::string loadShaderFile(std::string_view name, ShaderType type) {
   case ShaderType::Compute:
     extension = ".comp";
     break;
+  case ShaderType::Include:
+    extension = ".glsl";
+    break;
   }
   const auto pathToFile = shaderLocation + "/" + std::string(name) + extension;
   std::ifstream inStream(pathToFile);
@@ -52,6 +55,23 @@ LocationResetter setTempShaderLocation(std::string_view newShaderLocation) {
   LocationResetter result(shaderLocation);
   setShaderLocation(newShaderLocation);
   return result;
+}
+ShaderType glEnumToShaderType(GLenum type) {
+  switch (type) {
+    case GL_VERTEX_SHADER:
+      return ShaderType::Vertex;
+    case GL_FRAGMENT_SHADER:
+      return ShaderType::Fragment;
+    case GL_GEOMETRY_SHADER:
+      return ShaderType::Geometry;
+    case GL_COMPUTE_SHADER:
+      return ShaderType::Compute;
+    case GL_TESS_CONTROL_SHADER:
+      return ShaderType::TesselationControl;
+    case GL_TESS_EVALUATION_SHADER:
+      return ShaderType::TesselationEvaluation;
+  }
+  throw exc::ProgrammingError("Invalid GLenum for shader type.");
 }
 LocationResetter::LocationResetter(std::string oldLocation) : oldLocation(std::move(oldLocation)) {}
 LocationResetter::LocationResetter(LocationResetter &&other) noexcept {

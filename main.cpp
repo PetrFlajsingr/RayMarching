@@ -39,7 +39,7 @@ int main() {
 
   ui::UI ui{*window, *mainLoop, "450"};
 
-  setShaderLocation("/home/petr/CLionProjects/RayMarching");
+  setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
 
   mainLoop->setIdleCallback([&]() {
