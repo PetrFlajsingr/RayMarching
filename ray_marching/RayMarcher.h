@@ -26,6 +26,8 @@ public:
   auto show(Tex tex) -> void;
 
   auto setRayStepLimit(int limit) -> void;
+  auto setTime(float time) -> void;
+  auto setMaxDrawDistance(float distance) -> void;
 
 private:
   ge::gl::Program csProgram;
@@ -50,6 +52,8 @@ private:
   ge::gl::Buffer quadVBO;
 
   int rayStepLimit = 64;
+  float time = 0;
+  float maxDrawDistance = 10.0f;
 };
 } // namespace ray_march
 

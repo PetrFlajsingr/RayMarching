@@ -42,14 +42,18 @@ auto main() -> int {
   setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
 
+  float time = 0;
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
+    rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
+    rayMarcher.setTime(time);
     rayMarcher.render();
     rayMarcher.show(static_cast<ray_march::Tex>(static_cast<int>(ui.getRenderSettingsPanel().getSelectedTextureType())));
     ui.onFrame();
     window->swap();
+    time += 1 / 60.0f;
   });
   spdlog::info("Starting main loop");
   (*mainLoop)();

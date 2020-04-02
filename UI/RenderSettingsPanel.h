@@ -18,11 +18,13 @@ public:
 
   [[nodiscard]] auto getSelectedTextureType() const -> TextureChoice;
   [[nodiscard]] auto getRayStepLimit() const -> int;
+  [[nodiscard]] auto getMaxDrawDistance() const -> float;
 
 private:
   const char *currentItem;
   std::vector<std::string> textureChoiceItems;
   int rayStepLimit = 64;
+  float maxDrawDistance = 100.0f;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

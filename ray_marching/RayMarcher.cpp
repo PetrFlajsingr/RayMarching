@@ -11,7 +11,7 @@ using namespace ShaderLiterals;
 using namespace ray_march;
 
 RayMarcher::RayMarcher(const TextureSize &textureSize)
-    : csProgram(loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_signed_distance_functions", "inc_CSG_operations")),
+    : csProgram(loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils")),
       renderProgram("render"_vert, "render"_frag),
       renderTexture(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second),
       stepCountTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
@@ -60,6 +60,8 @@ auto RayMarcher::render() -> void {
   ScopedShaderProgramUsage scopedProgram{csProgram};
   bindTextures();
   scopedProgram->set("stepLimit", rayStepLimit);
+  scopedProgram->set("time", time);
+  scopedProgram->set("maxDrawDistance", maxDrawDistance);
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
   scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
@@ -86,3 +88,5 @@ auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned in
   return {renderTexture.getWidth(0), renderTexture.getHeight(0)};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
+auto RayMarcher::setTime(float time) -> void { RayMarcher::time = time; }
+auto RayMarcher::setMaxDrawDistance(float distance) -> void { maxDrawDistance = distance; }
