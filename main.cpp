@@ -2,6 +2,8 @@
 // Created by petr on 2/12/20.
 //
 #include "UI/UI.h"
+#include "common/GlslShaderLoader.h"
+#include "ray_marching/RayMarcher.h"
 #include <SDL2CPP/MainLoop.h>
 #include <SDL2CPP/Window.h>
 #include <SDL_video.h>
@@ -10,11 +12,9 @@
 #include <geGL/StaticCalls.h>
 #include <geGL/geGL.h>
 #include <memory>
-#include <utility>
 #include <spdlog/spdlog.h>
-#include "ray_marching/RayMarcher.h"
-#include "common/GlslShaderLoader.h"
-std::pair<unsigned int, unsigned int> getDisplaySize() {
+#include <utility>
+auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   SDL_DisplayMode displayMode;
   if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
     throw exc::Error("SDL_GetDesktopDisplayMode failed");
@@ -24,7 +24,7 @@ std::pair<unsigned int, unsigned int> getDisplaySize() {
   return {w, h};
 }
 
-int main() {
+auto main() -> int {
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
   const auto [screenWidth, screenHeight] = getDisplaySize();
   spdlog::info("Window size: {}x{}", static_cast<int>(screenWidth * 0.8), static_cast<int>(screenHeight * 0.8));
@@ -45,6 +45,7 @@ int main() {
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
     rayMarcher.render();
     rayMarcher.show(static_cast<ray_march::Tex>(static_cast<int>(ui.getRenderSettingsPanel().getSelectedTextureType())));
     ui.onFrame();

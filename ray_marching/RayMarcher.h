@@ -25,6 +25,8 @@ public:
   auto render() -> void;
   auto show(Tex tex) -> void;
 
+  auto setRayStepLimit(int limit) -> void;
+
 private:
   ge::gl::Program csProgram;
   ge::gl::Program renderProgram;
@@ -46,6 +48,8 @@ private:
   std::vector<float> quadVertices;
   ge::gl::VertexArray quadVAO;
   ge::gl::Buffer quadVBO;
+
+  int rayStepLimit = 64;
 };
 } // namespace ray_march
 

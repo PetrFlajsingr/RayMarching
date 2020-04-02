@@ -11,7 +11,7 @@
 #include <utility>
 
 enum class ShaderType { Vertex, TesselationControl, TesselationEvaluation, Geometry, Fragment, Compute, Include };
-ShaderType glEnumToShaderType(GLenum type);
+auto glEnumToShaderType(GLenum type) -> ShaderType;
 using ShaderPtr = std::shared_ptr<ge::gl::Shader>;
 
 namespace {

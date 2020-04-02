@@ -5,5 +5,5 @@
 #include "FPSLimiter.h"
 
 FPSLimiter::FPSLimiter(float limit) : fpsLimit(limit) {}
-void FPSLimiter::setEnabled(bool enabled) { FPSLimiter::enabled = enabled; }
-bool FPSLimiter::isEnabled() const { return enabled; }
+auto FPSLimiter::setEnabled(bool enabled) -> void { FPSLimiter::enabled = enabled; }
+auto FPSLimiter::isEnabled() const -> bool { return enabled; }

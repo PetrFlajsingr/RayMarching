@@ -28,6 +28,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       }
       ImGui::EndCombo();
     }
+    ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 512);
     ImGui::End();
   }
 }
@@ -35,3 +36,5 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
 auto ui::RenderSettingsPanel::getSelectedTextureType() const -> ui::TextureChoice {
   return magic_enum::enum_cast<TextureChoice>(currentItem).value();
 }
+
+auto ui::RenderSettingsPanel::getRayStepLimit() const -> int { return rayStepLimit; }

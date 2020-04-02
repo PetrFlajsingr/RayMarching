@@ -10,13 +10,13 @@ public:
   explicit FPSLimiter(float limit = 60.f);
   FPSLimiter(FPSLimiter &&other) = delete;
   FPSLimiter(const FPSLimiter &other) = delete;
-  FPSLimiter &operator=(FPSLimiter &&other) = delete;
-  FPSLimiter &operator=(const FPSLimiter &other) = delete;
+  auto operator=(FPSLimiter &&other) -> FPSLimiter & = delete;
+  auto operator=(const FPSLimiter &other) -> FPSLimiter & = delete;
 
   // TODO: implement limit -- onFrame(...) function
 
-  void setEnabled(bool enabled);
-  [[nodiscard]] bool isEnabled() const;
+  auto setEnabled(bool enabled) -> void;
+  [[nodiscard]] auto isEnabled() const -> bool;
 
 private:
   bool enabled = false;

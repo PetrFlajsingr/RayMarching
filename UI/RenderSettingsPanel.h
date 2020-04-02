@@ -17,10 +17,12 @@ public:
   auto onFrame() -> void override;
 
   [[nodiscard]] auto getSelectedTextureType() const -> TextureChoice;
+  [[nodiscard]] auto getRayStepLimit() const -> int;
 
 private:
   const char *currentItem;
   std::vector<std::string> textureChoiceItems;
+  int rayStepLimit = 64;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

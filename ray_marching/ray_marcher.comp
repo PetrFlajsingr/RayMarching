@@ -5,6 +5,7 @@ layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
 
+uniform int stepLimit;
 uniform vec3 cameraPosition;
 uniform vec3 cameraTarget;
 
@@ -25,14 +26,14 @@ float distToObjects(vec3 camPos) {
     return d;
 }
 
-#define RAY_STEP_LIMIT 64
+
 #define FLT_MAX 3.402823466e+38
 vec2 castRay(vec3 rayOrigin, vec3 rayDir)
 {
     float t = 0.0; // Stores current distance along ray
 
     float lastDist = FLT_MAX;
-    for (int i = 0; i < RAY_STEP_LIMIT; i++)
+    for (int i = 0; i < stepLimit; i++)
     {
         float res = distToObjects(rayOrigin + rayDir * t);
         if (res < (0.0001*t))
@@ -45,7 +46,16 @@ vec2 castRay(vec3 rayOrigin, vec3 rayDir)
         t += res;
     }
 
-    return vec2(-1.0, RAY_STEP_LIMIT);
+    return vec2(-1.0, stepLimit);
+}
+
+vec3 calcNormal(vec3 pos)
+{
+    // Center sample
+    float c = distToObjects(pos);
+    // Use offset samples to compute gradient / normal
+    vec2 eps_zero = vec2(0.001, 0.0);
+    return normalize(vec3(distToObjects(pos + eps_zero.xyy), distToObjects(pos + eps_zero.yxy), distToObjects(pos + eps_zero.yyx)) - c);
 }
 
 vec3 render(vec3 rayOrigin, vec3 rayDir)
@@ -53,12 +63,30 @@ vec3 render(vec3 rayOrigin, vec3 rayDir)
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
     vec2 t = castRay(rayOrigin, rayDir);
 
+    float depth = t.x;
+    float stepCount = t.y;
+    vec3 col;
+    if (depth == -1.0)
+    {
+        // Skybox colour
+        col = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
+    }
+    else
+    {
+        vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
+        vec3 ambient = vec3(0.02, 0.021, 0.02);
+        col = ambient * objectSurfaceColour;
+        vec3 pos = rayOrigin + rayDir * depth;
+        vec3 normal = calcNormal(pos);
+        col = normal * vec3(0.5) + vec3(0.5);
+    }
+
     // Visualize depth
-    vec3 col = vec3(1.0-t.x*0.075);
-    float stepCount = t.y / RAY_STEP_LIMIT;
-    imageStore(stepCountTexture, texCoord, vec4(stepCount, 0, 0, 0));
+
+    float stepColor = stepCount / stepLimit;
+    imageStore(stepCountTexture, texCoord, vec4(stepColor, 0, 0, 0));
     imageStore(renderTexture, texCoord, vec4(col, 1));
-    imageStore(depthTexture, texCoord, vec4(col, 1));
+    imageStore(depthTexture, texCoord, vec4(depth, 0, 0, 0));
     return col;
 }
 

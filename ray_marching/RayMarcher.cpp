@@ -59,6 +59,7 @@ auto RayMarcher::unBindTextures() -> void {
 auto RayMarcher::render() -> void {
   ScopedShaderProgramUsage scopedProgram{csProgram};
   bindTextures();
+  scopedProgram->set("stepLimit", rayStepLimit);
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
   scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
@@ -84,3 +85,4 @@ auto RayMarcher::show(Tex tex) -> void {
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
   return {renderTexture.getWidth(0), renderTexture.getHeight(0)};
 }
+auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
