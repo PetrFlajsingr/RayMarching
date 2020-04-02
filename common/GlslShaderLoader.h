@@ -29,16 +29,15 @@ private:
   std::string oldLocation;
 };
 
-std::string_view getShaderLocation();
+auto getShaderLocation() -> std::string_view;
+auto setShaderLocation(std::string_view newShaderLocation) -> void;
 
-void setShaderLocation(std::string_view newShaderLocation);
+auto setTempShaderLocation(std::string_view newShaderLocation) -> LocationResetter;
 
-LocationResetter setTempShaderLocation(std::string_view newShaderLocation);
+auto loadShaderFile(std::string_view name, ShaderType type) -> std::string;
 
-std::string loadShaderFile(std::string_view name, ShaderType type);
-
-template <typename... IncPaths>
-inline ShaderPtr loadShader(GLenum type, const std::string &shaderPath, const IncPaths &... incPaths) {
+template <typename... IncPaths> inline auto loadShader(GLenum type, const std::string &shaderPath, const IncPaths &... incPaths)
+    -> ShaderPtr {
   using namespace std::string_literals;
   const auto shaderType = glEnumToShaderType(type);
   auto mainShaderSrc = loadShaderFile(shaderPath, shaderType);

@@ -3,7 +3,7 @@
 //
 
 #include "gl_utils.h"
-bool checkProgramLinkStatus(GLuint program) {
+auto checkProgramLinkStatus(GLuint program) -> bool {
   GLint isLinked;
   ge::gl::glGetProgramiv(program, GL_LINK_STATUS, &isLinked);
   if (isLinked == GL_FALSE) {
@@ -19,7 +19,7 @@ bool checkProgramLinkStatus(GLuint program) {
   }
   return true;
 }
-std::pair<uint, uint> getGPUMemoryUsage() {
+auto getGPUMemoryUsage() -> std::pair<uint, uint> {
 #define GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX 0x9048
 #define GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX 0x9049
   GLint total_mem_kb = 0;
@@ -40,10 +40,6 @@ ScopedShaderProgramUsage::~ScopedShaderProgramUsage() {
   }
 }
 
-ge::gl::Program &ScopedShaderProgramUsage::operator*() {
-  return program;
-}
+auto ScopedShaderProgramUsage::operator*() -> ge::gl::Program & { return program; }
 
-ge::gl::Program *ScopedShaderProgramUsage::operator->() {
-  return &program;
-}
+auto ScopedShaderProgramUsage::operator-> () -> ge::gl::Program * { return &program; }

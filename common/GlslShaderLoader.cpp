@@ -9,7 +9,7 @@
 #define SHADER_FOLDER std::string("/home/petr/CLionProjects/TerrainGeneration/marching_cubes/shaders")
 
 using namespace std::string_literals;
-std::string loadShaderFile(std::string_view name, ShaderType type) {
+auto loadShaderFile(std::string_view name, ShaderType type) -> std::string {
   if (shaderLocation.empty()) {
     throw exc::ProgrammingError("Shader location for loadShaderFile has not been set");
   }
@@ -44,32 +44,32 @@ std::string loadShaderFile(std::string_view name, ShaderType type) {
   }
   return std::string(std::istreambuf_iterator<char>(inStream), std::istreambuf_iterator<char>());
 }
-void setShaderLocation(std::string_view newShaderLocation) {
+auto setShaderLocation(std::string_view newShaderLocation) -> void {
   shaderLocation = std::string(newShaderLocation);
   if (shaderLocation.back() == '/') {
     shaderLocation = shaderLocation.substr(0, shaderLocation.length() - 1);
   }
 }
-std::string_view getShaderLocation() { return shaderLocation; }
-LocationResetter setTempShaderLocation(std::string_view newShaderLocation) {
+auto getShaderLocation() -> std::string_view { return shaderLocation; }
+auto setTempShaderLocation(std::string_view newShaderLocation) -> LocationResetter {
   LocationResetter result(shaderLocation);
   setShaderLocation(newShaderLocation);
   return result;
 }
-ShaderType glEnumToShaderType(GLenum type) {
+auto glEnumToShaderType(GLenum type) -> ShaderType {
   switch (type) {
-    case GL_VERTEX_SHADER:
-      return ShaderType::Vertex;
-    case GL_FRAGMENT_SHADER:
-      return ShaderType::Fragment;
-    case GL_GEOMETRY_SHADER:
-      return ShaderType::Geometry;
-    case GL_COMPUTE_SHADER:
-      return ShaderType::Compute;
-    case GL_TESS_CONTROL_SHADER:
-      return ShaderType::TesselationControl;
-    case GL_TESS_EVALUATION_SHADER:
-      return ShaderType::TesselationEvaluation;
+  case GL_VERTEX_SHADER:
+    return ShaderType::Vertex;
+  case GL_FRAGMENT_SHADER:
+    return ShaderType::Fragment;
+  case GL_GEOMETRY_SHADER:
+    return ShaderType::Geometry;
+  case GL_COMPUTE_SHADER:
+    return ShaderType::Compute;
+  case GL_TESS_CONTROL_SHADER:
+    return ShaderType::TesselationControl;
+  case GL_TESS_EVALUATION_SHADER:
+    return ShaderType::TesselationEvaluation;
   }
   throw exc::ProgrammingError("Invalid GLenum for shader type.");
 }

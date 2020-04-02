@@ -14,10 +14,10 @@ public:
   GPUPanel() = default;
   GPUPanel(GPUPanel &&other) = delete;
   GPUPanel(const GPUPanel &other) = delete;
-  GPUPanel &operator=(GPUPanel &&other) = delete;
-  GPUPanel &operator=(const GPUPanel &other) = delete;
+  auto operator=(GPUPanel &&other) -> GPUPanel & = delete;
+  auto operator=(const GPUPanel &other) -> GPUPanel & = delete;
 
-  void onFrame() override;
+  auto onFrame() -> void override;
 
 private:
 };

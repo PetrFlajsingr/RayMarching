@@ -18,19 +18,19 @@ public:
   ~UI();
   UI(UI &&other) = delete;
   UI(const UI &other) = delete;
-  UI &operator=(UI &&other) = delete;
-  UI &operator=(const UI &other) = delete;
+  auto operator=(UI &&other) -> UI & = delete;
+  auto operator=(const UI &other) -> UI & = delete;
 
-  void onFrame();
+  auto onFrame() -> void;
 
-  [[nodiscard]] FPSPanel &getFPSPanel() noexcept;
-  [[nodiscard]] const FPSPanel &getFPSPanel() const noexcept;
+  [[nodiscard]] auto getFPSPanel() noexcept -> FPSPanel &;
+  [[nodiscard]] auto getFPSPanel() const noexcept -> const FPSPanel &;
 
-  [[nodiscard]] const GPUPanel &getGpuPanel() const;
-  [[nodiscard]] GPUPanel &getGpuPanel();
+  [[nodiscard]] auto getGpuPanel() const -> const GPUPanel &;
+  [[nodiscard]] auto getGpuPanel() -> GPUPanel &;
 
-  [[nodiscard]] const RenderSettingsPanel &getRenderSettingsPanel() const;
-  [[nodiscard]] RenderSettingsPanel &getRenderSettingsPanel();
+  [[nodiscard]] auto getRenderSettingsPanel() const -> const RenderSettingsPanel &;
+  [[nodiscard]] auto getRenderSettingsPanel() -> RenderSettingsPanel &;
 
 private:
   ImGuiContext *ctx;
@@ -42,7 +42,7 @@ private:
   std::vector<Panel *> panels;
   sdl2cpp::Window &window;
 
-  void render();
+  auto render() -> void;
 };
 } // namespace ui
 

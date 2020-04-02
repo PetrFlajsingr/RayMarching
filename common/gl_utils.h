@@ -8,16 +8,16 @@
 #include <geGL/StaticCalls.h>
 #include <geGL/geGL.h>
 
-bool checkProgramLinkStatus(GLuint program);
+auto checkProgramLinkStatus(GLuint program) -> bool;
 
-std::pair<uint, uint> getGPUMemoryUsage();
+auto getGPUMemoryUsage() -> std::pair<uint, uint>;
 
 class ScopedShaderProgramUsage {
 public:
   explicit ScopedShaderProgramUsage(ge::gl::Program &program);
 
-  ge::gl::Program &operator*();
-  ge::gl::Program *operator->();
+  auto operator*() -> ge::gl::Program &;
+  auto operator-> () -> ge::gl::Program *;
 
   ~ScopedShaderProgramUsage();
 

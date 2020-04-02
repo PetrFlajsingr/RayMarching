@@ -5,7 +5,7 @@
 #include "FPSPanel.h"
 #include <imgui/imgui.h>
 
-void ui::FPSPanel::onFrame() {
+auto ui::FPSPanel::onFrame() -> void {
   fpsCounter.frame();
   if (isVisible()) {
     ImGui::Begin("FPS");
@@ -17,4 +17,4 @@ void ui::FPSPanel::onFrame() {
   }
 }
 
-void ui::FPSPanel::reset() { fpsCounter.restart(); }
+auto ui::FPSPanel::reset() -> void { fpsCounter.restart(); }

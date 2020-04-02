@@ -13,11 +13,11 @@ public:
   FPSPanel() = default;
   FPSPanel(FPSPanel &&other) = delete;
   FPSPanel(const FPSPanel &other) = delete;
-  FPSPanel &operator=(FPSPanel &&other) = delete;
-  FPSPanel &operator=(const FPSPanel &other) = delete;
+  auto operator=(FPSPanel &&other) -> FPSPanel & = delete;
+  auto operator=(const FPSPanel &other) -> FPSPanel & = delete;
 
-  void onFrame() override;
-  void reset();
+  auto onFrame() -> void override;
+  auto reset() -> void;
 
 private:
   FPSCounter fpsCounter;

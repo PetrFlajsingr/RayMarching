@@ -5,24 +5,22 @@
 #ifndef RAYMARCHING_RENDERSETTINGSPANEL_H
 #define RAYMARCHING_RENDERSETTINGSPANEL_H
 #include "Panel.h"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace ui {
-enum class TextureChoice {
-  Render, StepCount, Depth
-};
+enum class TextureChoice { Render, StepCount, Depth };
 class RenderSettingsPanel : public Panel {
 public:
   RenderSettingsPanel();
 
-  void onFrame() override;
+  auto onFrame() -> void override;
 
-  [[nodiscard]] TextureChoice getSelectedTextureType() const;
+  [[nodiscard]] auto getSelectedTextureType() const -> TextureChoice;
 
 private:
   const char *currentItem;
   std::vector<std::string> textureChoiceItems;
 };
-}
+} // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

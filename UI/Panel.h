@@ -11,8 +11,8 @@ public:
   virtual void onFrame() = 0;
   virtual ~Panel() = default;
 
-  void setVisible(bool visible) noexcept;
-  [[nodiscard]] bool isVisible() const noexcept;
+  auto setVisible(bool visible) noexcept -> void;
+  [[nodiscard]] auto isVisible() const noexcept -> bool;
 
 private:
   bool visible = true;

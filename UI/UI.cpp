@@ -19,7 +19,7 @@ ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::stri
   panels.emplace_back(&renderSettingsPanel);
 }
 
-void ui::UI::onFrame() {
+auto ui::UI::onFrame() -> void {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplSDL2_NewFrame(window.getWindow());
   ImGui::NewFrame();
@@ -30,19 +30,19 @@ void ui::UI::onFrame() {
   render();
 }
 
-ui::FPSPanel &ui::UI::getFPSPanel() noexcept { return fpsPanel; }
+auto ui::UI::getFPSPanel() noexcept -> ui::FPSPanel & { return fpsPanel; }
 
-const ui::FPSPanel &ui::UI::getFPSPanel() const noexcept { return fpsPanel; }
+auto ui::UI::getFPSPanel() const noexcept -> const ui::FPSPanel & { return fpsPanel; }
 
 ui::UI::~UI() { ImGui::DestroyContext(ctx); }
 
-void ui::UI::render() {
+auto ui::UI::render() -> void {
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-const ui::GPUPanel &ui::UI::getGpuPanel() const { return gpuPanel; }
-ui::GPUPanel &ui::UI::getGpuPanel() { return gpuPanel; }
+auto ui::UI::getGpuPanel() const -> const ui::GPUPanel & { return gpuPanel; }
+auto ui::UI::getGpuPanel() -> ui::GPUPanel & { return gpuPanel; }
 
-const ui::RenderSettingsPanel &ui::UI::getRenderSettingsPanel() const { return renderSettingsPanel; }
+auto ui::UI::getRenderSettingsPanel() const -> const ui::RenderSettingsPanel & { return renderSettingsPanel; }
 
-ui::RenderSettingsPanel &ui::UI::getRenderSettingsPanel() { return renderSettingsPanel; }
+auto ui::UI::getRenderSettingsPanel() -> ui::RenderSettingsPanel & { return renderSettingsPanel; }

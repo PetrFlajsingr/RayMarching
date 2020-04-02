@@ -3,6 +3,6 @@
 //
 #include "Panel.h"
 
-void ui::Panel::setVisible(bool visible) noexcept { Panel::visible = visible; }
+auto ui::Panel::setVisible(bool visible) noexcept -> void { Panel::visible = visible; }
 
-bool ui::Panel::isVisible() const noexcept { return visible; }
+auto ui::Panel::isVisible() const noexcept -> bool { return visible; }

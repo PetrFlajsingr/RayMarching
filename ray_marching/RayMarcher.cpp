@@ -27,7 +27,7 @@ RayMarcher::RayMarcher(const TextureSize &textureSize)
   setTextureInterpolation();
 }
 
-void RayMarcher::changeRenderSize(const TextureSize &textureSize) {
+auto RayMarcher::changeRenderSize(const TextureSize &textureSize) -> void {
   spdlog::debug("[Ray_marcher]Changing texture size to {}x{}", textureSize.first, textureSize.second);
   renderTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second};
   stepCountTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second};
@@ -35,7 +35,7 @@ void RayMarcher::changeRenderSize(const TextureSize &textureSize) {
   setTextureInterpolation();
 }
 
-void RayMarcher::setTextureInterpolation() {
+auto RayMarcher::setTextureInterpolation() -> void {
   renderTexture.texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   renderTexture.texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   stepCountTexture.texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -44,26 +44,26 @@ void RayMarcher::setTextureInterpolation() {
   depthTexture.texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
-void RayMarcher::bindTextures() {
+auto RayMarcher::bindTextures() -> void {
   renderTexture.bindImage(renderTextureBinding);
   stepCountTexture.bindImage(stepCountTextureBinding);
   depthTexture.bindImage(depthTextureBinding);
 }
 
-void RayMarcher::unBindTextures() {
+auto RayMarcher::unBindTextures() -> void {
   renderTexture.unbind(renderTextureBinding);
   stepCountTexture.unbind(stepCountTextureBinding);
   depthTexture.unbind(depthTextureBinding);
 }
 
-void RayMarcher::render() {
+auto RayMarcher::render() -> void {
   ScopedShaderProgramUsage scopedProgram{csProgram};
   bindTextures();
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
   scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
 }
-void RayMarcher::show(Tex tex) {
+auto RayMarcher::show(Tex tex) -> void {
   ScopedShaderProgramUsage scopedProgram{renderProgram};
   quadVAO.bind();
   switch (tex) {
@@ -81,6 +81,6 @@ void RayMarcher::show(Tex tex) {
   ge::gl::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-std::pair<unsigned int, unsigned int> RayMarcher::getComputeDispatchSize() {
+auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
   return {renderTexture.getWidth(0), renderTexture.getHeight(0)};
 }

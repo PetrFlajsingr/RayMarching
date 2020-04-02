@@ -20,10 +20,11 @@ class RayMarcher {
 public:
   explicit RayMarcher(const TextureSize &textureSize);
 
-  void changeRenderSize(const TextureSize &textureSize);
+  auto changeRenderSize(const TextureSize &textureSize) -> void;
 
-  void render();
-  void show(Tex tex);
+  auto render() -> void;
+  auto show(Tex tex) -> void;
+
 private:
   ge::gl::Program csProgram;
   ge::gl::Program renderProgram;
@@ -36,11 +37,11 @@ private:
   static constexpr int stepCountTextureBinding = 1;
   static constexpr int depthTextureBinding = 2;
 
-  void setTextureInterpolation();
-  void bindTextures();
-  void unBindTextures();
+  auto setTextureInterpolation() -> void;
+  auto bindTextures() -> void;
+  auto unBindTextures() -> void;
 
-  std::pair<unsigned int, unsigned int> getComputeDispatchSize();
+  auto getComputeDispatchSize() -> std::pair<unsigned int, unsigned int>;
 
   std::vector<float> quadVertices;
   ge::gl::VertexArray quadVAO;

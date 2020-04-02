@@ -13,7 +13,7 @@ ui::RenderSettingsPanel::RenderSettingsPanel() {
   currentItem = textureChoiceItems[0].data();
 }
 
-void ui::RenderSettingsPanel::onFrame() {
+auto ui::RenderSettingsPanel::onFrame() -> void {
   if (isVisible()) {
     ImGui::Begin("Render settings");
     if (ImGui::BeginCombo("Texture", currentItem)) {
@@ -32,6 +32,6 @@ void ui::RenderSettingsPanel::onFrame() {
   }
 }
 
-ui::TextureChoice ui::RenderSettingsPanel::getSelectedTextureType() const {
+auto ui::RenderSettingsPanel::getSelectedTextureType() const -> ui::TextureChoice {
   return magic_enum::enum_cast<TextureChoice>(currentItem).value();
 }

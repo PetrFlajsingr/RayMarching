@@ -4,7 +4,7 @@
 
 #include "GPUPanel.h"
 
-void ui::GPUPanel::onFrame() {
+auto ui::GPUPanel::onFrame() -> void {
   if (isVisible()) {
     ImGui::Begin("GPU usage");
     const auto [usedMemory, availableMemory] = getGPUMemoryUsage();
