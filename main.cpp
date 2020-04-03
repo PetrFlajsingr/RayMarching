@@ -28,9 +28,11 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 auto main() -> int {
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
-  const auto [screenWidth, screenHeight] = getDisplaySize();
-  spdlog::info("Window size: {}x{}", static_cast<int>(screenWidth * 0.8), static_cast<int>(screenHeight * 0.8));
-  auto window = std::make_shared<sdl2cpp::Window>(screenWidth * 0.8, screenHeight * 0.8);
+  auto [screenWidth, screenHeight] = getDisplaySize();
+  screenWidth *= 0.8;
+  screenHeight *= 0.8;
+  spdlog::info("Window size: {}x{}", static_cast<int>(screenWidth), static_cast<int>(screenHeight));
+  auto window = std::make_shared<sdl2cpp::Window>(screenWidth, screenHeight);
   spdlog::info("OpenGL context version {}", 450);
   window->createContext("rendering", 450);
   mainLoop->addWindow("mainWindow", window);
@@ -68,19 +70,20 @@ auto main() -> int {
   });
   window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera] (const SDL_Event &event) {
     if (isCameraControlled) {
+      constexpr auto movementSpeed = 0.5f;
       const auto pressedKey = event.key.keysym.sym;
       switch (pressedKey) {
       case SDLK_w:
-        camera.ProcessKeyboard(Camera_Movement::FORWARD, 0.1f);
+        camera.ProcessKeyboard(Camera_Movement::FORWARD, movementSpeed);
         break;
       case SDLK_a:
-        camera.ProcessKeyboard(Camera_Movement::RIGHT, 0.1f);
+        camera.ProcessKeyboard(Camera_Movement::RIGHT, movementSpeed);
         break;
       case SDLK_s:
-        camera.ProcessKeyboard(Camera_Movement::BACKWARD, 0.1f);
+        camera.ProcessKeyboard(Camera_Movement::BACKWARD, movementSpeed);
         break;
       case SDLK_d:
-        camera.ProcessKeyboard(Camera_Movement::LEFT, 0.1f);
+        camera.ProcessKeyboard(Camera_Movement::LEFT, movementSpeed);
         break;
       }
 
@@ -98,8 +101,9 @@ auto main() -> int {
     rayMarcher.setCameraVec(camera.Position, camera.Front);
     rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
     rayMarcher.setAntiAliasingEnabled(ui.getRenderSettingsPanel().isAntiAliasingEnabled());
+    rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
     rayMarcher.render();
-    rayMarcher.show(static_cast<ray_march::Tex>(static_cast<int>(ui.getRenderSettingsPanel().getSelectedTextureType())));
+    rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();
     window->swap();
     time += 1 / 60.0f * ui.getRenderSettingsPanel().getTimeScale();

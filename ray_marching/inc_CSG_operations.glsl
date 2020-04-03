@@ -27,8 +27,3 @@ float opRepeat(float d, float domain)
     return mod(d, domain)-domain/2.0;
 }
 
-vec2 repeatingSphere(vec3 p, vec3 c)
-{
-    vec3 q = mod(p, c)-0.5*c;
-    return vec2(sdSphere(q, .1));
-}

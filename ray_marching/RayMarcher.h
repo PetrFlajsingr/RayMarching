@@ -4,17 +4,17 @@
 
 #ifndef RAYMARCHING_RAYMARCHER_H
 #define RAYMARCHING_RAYMARCHER_H
+#include <geGL/Buffer.h>
 #include <geGL/Program.h>
 #include <geGL/Texture.h>
 #include <geGL/VertexArray.h>
-#include <geGL/Buffer.h>
-#include <utility>
 #include <glm/glm.hpp>
+#include <utility>
 
 namespace ray_march {
-enum class Tex{
-  Render, Depth, StepCount
-};
+enum class Tex { Render = 0, Depth, StepCount };
+
+enum class Shadows : int { None = 0, RayTraced, Soft, Hard };
 
 using TextureSize = std::pair<int, int>;
 class RayMarcher {
@@ -32,6 +32,7 @@ public:
   auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
   auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
   auto setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void;
+  auto setShadowType(Shadows shadowType) -> void;
 
 private:
   ge::gl::Program csProgram;
@@ -64,6 +65,10 @@ private:
 
   glm::vec3 cameraPosition;
   glm::vec3 cameraFront;
+
+  TextureSize textureSize;
+
+  Shadows shadowType;
 };
 } // namespace ray_march
 

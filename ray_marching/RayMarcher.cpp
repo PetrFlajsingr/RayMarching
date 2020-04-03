@@ -21,7 +21,7 @@ RayMarcher::RayMarcher(const TextureSize &textureSize)
           -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
           1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
       }),
-      quadVBO(sizeof(float) * quadVertices.size(), quadVertices.data()) {
+      quadVBO(sizeof(float) * quadVertices.size(), quadVertices.data()), textureSize(textureSize) {
   quadVAO.addAttrib(&quadVBO, 0, 3, GL_FLOAT, 5 * sizeof(float), 0);
   quadVAO.addAttrib(&quadVBO, 1, 2, GL_FLOAT, 5 * sizeof(float), (3 * sizeof(float)));
   spdlog::debug("[Ray_marcher]Creating with texture size {}x{}", textureSize.first, textureSize.second);
@@ -34,6 +34,7 @@ auto RayMarcher::changeRenderSize(const TextureSize &textureSize) -> void {
   stepCountTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second};
   depthTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second};
   setTextureInterpolation();
+  RayMarcher::textureSize = textureSize;
 }
 
 auto RayMarcher::setTextureInterpolation() -> void {
@@ -65,6 +66,8 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
   scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
   scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
+  scopedProgram->set("shadowType", static_cast<int>(shadowType));
+  scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
@@ -102,6 +105,5 @@ auto RayMarcher::setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &
 auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void {
   ambientOcclusionEnabled = isAmbientOcclusionEnabled;
 }
-auto RayMarcher::setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void {
-  antiAliasingEnabled = isAntiAliasingEnabled;
-}
+auto RayMarcher::setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void { antiAliasingEnabled = isAntiAliasingEnabled; }
+auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowType = shadowType; }

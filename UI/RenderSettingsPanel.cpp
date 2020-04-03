@@ -7,10 +7,14 @@
 #include <magic_enum.hpp>
 
 ui::RenderSettingsPanel::RenderSettingsPanel() {
-  for (auto val : magic_enum::enum_values<TextureChoice>()) {
+  for (auto val : magic_enum::enum_values<ray_march::Tex>()) {
     textureChoiceItems.emplace_back(magic_enum::enum_name(val));
   }
   currentItem = textureChoiceItems[0].data();
+  for (auto val : magic_enum::enum_values<ray_march::Shadows>()) {
+    shadowChoiceItems.emplace_back(magic_enum::enum_name(val));
+  }
+  currentShadowItem = shadowChoiceItems[0].data();
 }
 
 auto ui::RenderSettingsPanel::onFrame() -> void {
@@ -28,6 +32,18 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       }
       ImGui::EndCombo();
     }
+    if (ImGui::BeginCombo("Shadows", currentShadowItem)) {
+      for (auto &choice : shadowChoiceItems) {
+        bool isSelected = (currentShadowItem == choice.data());
+        if (ImGui::Selectable(choice.data(), isSelected)) {
+          currentShadowItem = choice.data();
+        }
+        if (isSelected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+      ImGui::EndCombo();
+    }
     ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
     ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 0.1f, 1000.f);
     ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
@@ -37,8 +53,8 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
   }
 }
 
-auto ui::RenderSettingsPanel::getSelectedTextureType() const -> ui::TextureChoice {
-  return magic_enum::enum_cast<TextureChoice>(currentItem).value();
+auto ui::RenderSettingsPanel::getSelectedTextureType() const -> ray_march::Tex {
+  return magic_enum::enum_cast<ray_march::Tex>(currentItem).value();
 }
 
 auto ui::RenderSettingsPanel::getRayStepLimit() const -> int { return rayStepLimit; }
@@ -46,3 +62,6 @@ auto ui::RenderSettingsPanel::getMaxDrawDistance() const -> float { return maxDr
 auto ui::RenderSettingsPanel::getTimeScale() const -> float { return timeScale; }
 auto ui::RenderSettingsPanel::isAmbientOcclusionEnabled() const -> bool { return ambientOcclusionEnabled; }
 auto ui::RenderSettingsPanel::isAntiAliasingEnabled() const -> bool { return antiAliasingEnabled; }
+auto ui::RenderSettingsPanel::getShadowType() const -> ray_march::Shadows {
+  return magic_enum::enum_cast<ray_march::Shadows>(currentShadowItem).value();
+}

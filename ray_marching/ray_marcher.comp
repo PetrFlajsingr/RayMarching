@@ -5,6 +5,9 @@ layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
 
+uniform int shadowType;
+
+uniform ivec2 resolution;
 uniform int stepLimit;
 
 uniform float time;
@@ -108,7 +111,7 @@ float softshadow(vec3 rayOrigin, vec3 rayDirection, float minTravel, float maxTr
         ph = h;
         t += h;
     }
-    return res;
+    return clamp(res, 0.0, 1.0);
 }
 
 float getShadowMultiplier(vec3 rayEnd, vec3 lightDir, vec3 normal){
@@ -138,25 +141,25 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         vec3 pos = rayOrigin + rayDir * intersectionResult.minDist;
         vec3 lightDir = normalize(lightPos-pos);
         vec3 normal = calcNormal(pos);
-        #if SHADOW_TYPE == 1
+
+
         float shadow = 0.0;
         float shadowRayCount = 2.0;
-        for (float s = 0.0; s < shadowRayCount; s++)
-        {
-            vec3 shadowRayOrigin = pos + normal * 0.01;
-            float r = rand(vec2(rayDir.xy)) * 2.0 - 1.0;
-            vec3 shadowRayDir = lightDir + vec3(1.0 * SHADOW_FALLOFF) * r;
-            IntersectionResult shadowRayIntersection = castRay(shadowRayOrigin, shadowRayDir);
-            if (shadowRayIntersection.mat != -1.0)
+        if (shadowType == 1) {
+            for (float s = 0.0; s < shadowRayCount; s++)
             {
-                shadow += 1.0;
+                vec3 shadowRayOrigin = pos + normal * 0.01;
+                float r = rand(vec2(rayDir.xy)) * 2.0 - 1.0;
+                vec3 shadowRayDir = lightDir + vec3(1.0 * SHADOW_FALLOFF) * r;
+                IntersectionResult shadowRayIntersection = castRay(shadowRayOrigin, shadowRayDir);
+                if (shadowRayIntersection.mat != -1.0)
+                {
+                    shadow += 1.0;
+                }
             }
+        } else if (shadowType == 2) {
+            shadow = getShadowMultiplier(pos, lightDir, normal);
         }
-
-            #elif SHADOW_TYPE == 2
-
-        const float shadow = getShadowMultiplier(pos, lightDir, normal);
-        #endif
 
 
         vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
@@ -166,19 +169,18 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         vec3 diffuse = (LDirectional + LAmbient);
         float specular = dot(normalize(lightPos-pos), reflect(normalize(pos-cameraPosition), normal));
 
-        #if SHADOW_TYPE != 0
-        col = objectSurfaceColour * diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
-        #else
-        col = objectSurfaceColour * diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
-        #endif
+        if (shadowType != 0) {
+            col = objectSurfaceColour * diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+        } else {
+            col = objectSurfaceColour * diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+        }
 
-        #if SHADOW_TYPE == 1
-        vec3 cshadow = pow(vec3(shadow), vec3(1.0, 1.2, 1.5));
-        col = mix(col, col*cshadow*(1.0-SHADOW_OPACITY), shadow/shadowRayCount);
-
-        #elif SHADOW_TYPE == 2
-        col *= shadow;
-        #endif
+        if (shadowType == 1) {
+            vec3 cshadow = pow(vec3(shadow), vec3(1.0, 1.2, 1.5));
+            col = mix(col, col*cshadow*(1.0-SHADOW_OPACITY), shadow/shadowRayCount);
+        } else if (shadowType == 2) {
+            col *= shadow;
+        }
 
 
         //col = normal;
@@ -197,14 +199,12 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
 }
 
 vec2 normalizeScreenCoords(vec2 screenCoord) {
-    ivec2 resolution = imageSize(renderTexture);
     vec2 result = 2.0 * (screenCoord/resolution.xy - 0.5);
-    result.x *= resolution.x/resolution.y; // Correct for aspect ratio
+    result.x *= resolution.x/float(resolution.y);// Correct for aspect ratio
     return result;
 }
 
 void main() {
-    ivec2 resolution = imageSize(renderTexture);
     if (gl_GlobalInvocationID.x >= resolution.x || gl_GlobalInvocationID.y >= resolution.y) {
         return;
     }
