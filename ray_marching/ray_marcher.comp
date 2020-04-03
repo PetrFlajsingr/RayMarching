@@ -63,6 +63,7 @@ vec2 distToObjects(vec3 camPos) {
     d = opUnion(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)));
     d = opUnion(d, vec2(sdSphere(camPos-vec3(0, 2, 10), 2.5)));
     d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
+    d = opBlend(d, vec2(sdPlane(camPos - vec3(5, 0, 0), vec4(1.4, 0, 0, 10))));
 
     vec3 repeatC = repeatCoord(camPos, vec3(100, 10, 100));
     vec2 a = vec2(sdBox(repeatC, vec3(5, 10, 5)));
@@ -123,7 +124,7 @@ IntersectionResult castReflRay(vec3 rayOrigin, vec3 rayDir) {
 
 vec3 calcNormal(vec3 pos) {
     const float c = distToObjects(pos).x;
-    const vec2 delta = vec2(0.0001, 0.0);
+    const vec2 delta = vec2(0.001, 0.0);
     const float xDist = distToObjects(pos + delta.xyy).x;
     const float yDist = distToObjects(pos + delta.yxy).x;
     const float zDist = distToObjects(pos + delta.yyx).x;
@@ -243,7 +244,59 @@ vec3 shading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, bool checkShadow
     return col;
 }
 
+RenderResult renderRefraction(vec3 rayOrigin, vec3 rayDir) {
+    float refractionRatio = 1.0 / 1.6;
+    const int refractLimit = 100;
+
+    vec3 col = vec3(0);
+    vec3 lightDir = normalize(lightPos);
+    float distanceFactor = 1.0;
+    int stepCount = 0;
+    for (int rayIndex = 0; rayIndex < refractLimit; rayIndex++) {
+        IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
+        intersectionResult.minDist *= distanceFactor;
+        stepCount += intersectionResult.steps;
+        if (intersectionResult.minDist <= -1.0) {
+            vec3 localCol = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
+            col += localCol * 0.6;
+            break;
+        } else {
+            vec3 pos = rayOrigin + rayDir * intersectionResult.minDist;
+            vec3 normal = distanceFactor * calcNormal(pos);
+
+            vec3 localCol;
+            if (distanceFactor > 0) {
+                localCol = shading(pos, normal, lightDir, rayDir, true);
+                localCol *= 0.6;
+            }
+
+            rayOrigin = pos;
+
+            vec3 refraction = refract(rayDir, normal, refractionRatio);
+            if (dot(refraction, refraction) < 0.00001) {
+                vec3 reflection = reflect (rayDir, normal);
+                rayDir = reflection;
+                rayOrigin += rayDir * 0.6;
+            }
+            else {
+                rayDir = refraction;
+                rayOrigin += rayDir * -0.001;
+                distanceFactor = -distanceFactor;
+                refractionRatio = 1.0 / refractionRatio;
+            }
+
+            col += localCol;
+
+        }
+    }
+    RenderResult result;
+    result.color = vec4(col, 1);
+    result.stepCount = stepCount;
+    return result;
+}
+
 RenderResult render(vec3 rayOrigin, vec3 rayDir) {
+    return renderRefraction(rayOrigin, rayDir);
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
     vec3 col;
     if (intersectionResult.minDist <= -1.0) {
@@ -256,19 +309,23 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         col = shading(pos, normal, lightDir, rayDir, true);
 
 
+
+
         if (enableReflections) {
+            vec3 reflColor = vec3(0);
             for (int i = 0; i < maxReflections; i++) {
                 rayDir = reflect(rayDir, normal);
                 IntersectionResult reflIntersectionResult = castReflRay(pos + rayDir * 0.001, rayDir);
                 if (reflIntersectionResult.minDist > -1.0) {
                     pos = pos + rayDir * reflIntersectionResult.minDist;
                     normal = calcNormal(pos);
-                    vec3 reflColor = shading(pos, normal, lightDir, rayDir, true);
-                    col += reflColor * 0.2;
+                    vec3 targetColor = shading(pos, normal, lightDir, rayDir, true);
+                    reflColor += targetColor * 0.2;
                 } else {
-                    col += (vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7)) * 0.2;
+                    reflColor += (vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7)) * 0.2;
                 }
             }
+            col += reflColor;
         }
 
         //col = normal;

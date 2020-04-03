@@ -66,10 +66,10 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
-  scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
-  scopedProgram->set("enableReflections", reflectionsEnabled);
-  scopedProgram->set("maxReflections", maxReflections);
+  // scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
+  // scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
+  // scopedProgram->set("enableReflections", reflectionsEnabled);
+  // scopedProgram->set("maxReflections", maxReflections);
   scopedProgram->set("shadowType", static_cast<int>(shadowType));
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
