@@ -16,155 +16,63 @@ uniform vec3 cameraFront;
 uniform bool enableAmbientOcclusion;
 uniform bool enableAntiAliasing;
 
-struct IntersectionResult
-{
+const vec3 lightPos = vec3(0, 25, 1 + cos(time / 10) * 100); // TODO
+const float AA_size = 2.0; // TODO
+//0 - none, 1 - old, 2 - new
+#define SHADOW_TYPE 2
+
+#define EPSILON  0.00001
+#define SHADOW_FALLOFF 0.05
+#define SHADOW_OPACITY 0.8
+#define SHADOW_STEP_LIMIT 100
+
+struct RenderResult {
+    vec4 color;
+    float depth;
+    int stepCount;
+};
+struct IntersectionResult {
     float minDist;
     float mat;
     int steps;
 };
 
 
-vec3 getCameraRayDir(vec2 uv, vec3 camPos, vec3 camForward)
-{
-    vec3 camRight = normalize(cross(vec3(0.0, 1.0, 0.0), camForward));
-    vec3 camUp = normalize(cross(camForward, camRight));
-
-    float fPersp = 2.0;
-    vec3 vDir = normalize(uv.x * camRight + uv.y * camUp + camForward * fPersp);
-
+vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
+    const vec3 camRight = normalize(cross(vec3(0.0, 1.0, 0.0), camForward));
+    const vec3 camUp = normalize(cross(camForward, camRight));
+    const float fPersp = 2.0; // TODO
+    const vec3 vDir = normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
     return vDir;
 }
-vec2 op_rep(vec3 p, vec3 c)
-{
-    vec3 q = mod(p, c)-0.5*c;
-    return vec2(sdSphere(q, .1));
-}
-
-const mat3 ma = mat3(0.60, 0.00, 0.80,
-0.00, 1.00, 0.00,
--0.80, 0.00, 0.60);
-
-vec4 cube_fract(vec3 p)
-{
-    float d = sdBox(p, vec3(1.0));
-    vec4 res = vec4(d, 1.0, 0.0, 0.0);
-
-    //float ani = smoothstep( -0.2, 0.2, -cos(0.5 * time) );
-    //float off = 1.5*sin( 0.01 * time);
-
-    float s = 1.0;
-    for (int m=0; m<24; m++)
-    {
-        //p = mix( p, ma*(p+off), ani );
-
-        vec3 a = mod(p*s, 2.0)-1.0;
-        s *= 3.0;
-        vec3 r = abs(1.0 - 3.0*abs(a));
-        float da = max(r.x, r.y);
-        float db = max(r.y, r.z);
-        float dc = max(r.z, r.x);
-        float c = (min(da, min(db, dc))-1.0)/s;
-
-        if (c>d)
-        {
-            d = c;
-            res = vec4(d, min(res.y, 0.2*da*db*dc), (1.0+float(m))/4.0, 0.0);
-        }
-    }
-
-    return res;
-}
-
-
-    #define SCALE 2.8
-    #define MINRAD2 .25
-float minRad2 = clamp(MINRAD2, 1.0e-9, 1.0);
-#define scale (vec4(SCALE, SCALE, SCALE, abs(SCALE)) / minRad2)
-float absScalem1 = abs(SCALE - 1.0);
-float AbsScaleRaisedTo1mIters = pow(abs(SCALE), float(1-10));
-//----------------------------------------------------------------------------------------
-float Map(vec3 pos)
-{
-
-    vec4 p = vec4(pos, 1);
-    vec4 p0 = p;// p.w is the distance estimate
-
-    for (int i = 0; i < 9; i++)
-    {
-        p.xyz = clamp(p.xyz, -1.0, 1.0) * 2.0 - p.xyz;
-
-        float r2 = dot(p.xyz, p.xyz);
-        p *= clamp(max(minRad2/r2, minRad2), 0.0, 1.0);
-
-        // scale, translate
-        p = p*scale + p0;
-    }
-    return ((length(p.xyz) - absScalem1) / p.w - AbsScaleRaisedTo1mIters);
-}
-
-vec3 surfaceColour1 = vec3(.8, .0, 0.);
-vec3 surfaceColour2 = vec3(.4, .4, 0.5);
-vec3 surfaceColour3 = vec3(.5, 0.3, 0.00);
-vec3 Colour(vec3 pos, float sphereR)
-{
-    vec3 p = pos;
-    vec3 p0 = p;
-    float trap = 1.0;
-
-    for (int i = 0; i < 6; i++)
-    {
-
-        p.xyz = clamp(p.xyz, -1.0, 1.0) * 2.0 - p.xyz;
-        float r2 = dot(p.xyz, p.xyz);
-        p *= clamp(max(minRad2/r2, minRad2), 0.0, 1.0);
-
-        p = p*scale.xyz + p0.xyz;
-        trap = min(trap, r2);
-    }
-    // |c.x|: log final distance (fractional iteration count)
-    // |c.y|: spherical orbit trap at (0,0,0)
-    vec2 c = clamp(vec2(0.3333*log(dot(p, p))-1.0, sqrt(trap)), 0.0, 1.0);
-
-    float t = mod(length(pos), 16.0);
-    surfaceColour1 = mix(surfaceColour1, vec3(.4, 3.0, 5.), pow(smoothstep(0.0, .3, t) * smoothstep(0.6, .3, t), 10.0));
-    return mix(mix(surfaceColour1, surfaceColour2, c.y), surfaceColour3, c.x);
-}
-
-
 
 
 vec2 distToObjects(vec3 camPos) {
-    //return vec2(mix(cube_fract(camPos).x, Map(camPos), cos(time)));
+    //return vec2(mix(mengerSponge(camPos).x, Map(camPos), cos(time)));
     //return vec2(camPos.y - sin(camPos.x  + time * 0.000000001) - sin(camPos.z));
     const float sphere1X = 3 + cos(time) * 5;
     vec2 d = vec2(sdSphere(camPos-vec3(sphere1X, -2.5, 10), 2.5));
     d = opUnion(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)));
     d = opUnion(d, vec2(sdSphere(camPos-vec3(0, 2, 10), 2.5)));
     d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
-    //d = opUnion(d, op_rep(camPos, vec3(2)));
+    //d = opUnion(d, repeatingSphere(camPos, vec3(2)));
     //d = opMinus(d, vec2(sdBox(camPos, vec3(10, 100000000, 10))));
     return d;
-    //return op_rep(camPos, vec3(10) + time / 10);
+    //return repeatingSphere(camPos, vec3(10) + time / 10);
     //return vec2(sdSphere(camPos, vec3(3, -2.5, 10), 2.5));
     //return vec2(opRepeat(sdSphere(camPos, vec3(0, 0, 20), 2.5), 10.f));
 }
 
-
-    #define FLT_MAX 3.402823466e+38
-IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir)
-{
-    float t = 0.0;// Stores current distance along ray
-
+IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
+    float travelDistance = 0.0;
     IntersectionResult result;
     result.mat = -1.0;
-    for (result.steps = 0; result.steps < stepLimit; result.steps++)
-    {
-        vec2 res = distToObjects(rayOrigin + rayDir * t);
-        t += res.x;
+    for (result.steps = 0; result.steps < stepLimit; result.steps++) {
+        const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
+        travelDistance += res.x;
         result.mat = res.y;
-        if (res.x < (0.00001))
-        {
-            result.minDist = t;
+        if (res.x < EPSILON) {
+            result.minDist = travelDistance;
             return result;
         } else if (res.x > maxDrawDistance) {
             result.mat = -1.0;
@@ -172,58 +80,31 @@ IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir)
             return result;
         }
     }
-    result.minDist = t;
+    result.minDist = travelDistance;
     return result;
 }
 
-vec3 calcNormal(vec3 pos)
-{
-    // Center sample
-    float c = distToObjects(pos).x;
-    // Use offset samples to compute gradient / normal
-    vec2 eps_zero = vec2(0.01, 0.0);
-    float xDist = distToObjects(pos + eps_zero.xyy).x;
-    float yDist = distToObjects(pos + eps_zero.yxy).x;
-    float zDist = distToObjects(pos + eps_zero.yyx).x;
+vec3 calcNormal(vec3 pos) {
+    const float c = distToObjects(pos).x;
+    const vec2 delta = vec2(0.01, 0.0);
+    const float xDist = distToObjects(pos + delta.xyy).x;
+    const float yDist = distToObjects(pos + delta.yxy).x;
+    const float zDist = distToObjects(pos + delta.yyx).x;
     return normalize(vec3(xDist, yDist, zDist) - c);
 }
 
-    #define SHADOW_FALLOFF 0.05
-    #define SHADOW_OPACITY 0.8
-struct RenderResult {
-    vec4 color;
-    float depth;
-    int stepCount;
-};
-/*
-float softshadow( vec3 ro, vec3 rd, float mint, float maxt, float w )
-{
-    float s = 1.0;
-    int i = 0;
-    for( float t=mint; i<stepLimit && t<maxt; i++)
-    {
-        float h = distToObjects(ro + rd*t).x;
-        s = min( s, 0.5+0.5*h/(w*t) );
-        if( s<0.0 ) break;
-        t += h;
-    }
-    s = max(s,0.0);
-    return s*s*(3.0-2.0*s); // smoothstep
-}*/
-#define SHADOW_STEP_LIMIT 100
-float softshadow(in vec3 ro, in vec3 rd, float mint, float maxt, float k)
-{
+float softshadow(vec3 rayOrigin, vec3 rayDirection, float minTravel, float maxTravel, float k) {
     float res = 1.0;
     float ph = 1e20;
     int i = 0;
-    for (float t=mint; i < stepLimit && t<maxt; i++)
-    {
-        float h = distToObjects(ro + rd*t).x;
-        if (h<0.001)
-        return 0.0;
-        float y = h*h/(2.0*ph);
-        float d = sqrt(h*h-y*y);
-        res = min(res, k*d/max(0.0, t-y));
+    for (float t = minTravel; i < stepLimit && t < maxTravel; i++) {
+        const float h = distToObjects(rayOrigin + rayDirection * t).x;
+        if (h < EPSILON) {
+            return 0.0;
+        }
+        const float y = h * h / (2.0 * ph);
+        const float d = sqrt(h * h - y * y);
+        res = min(res, k * d / max(0.0, t - y));
         ph = h;
         t += h;
     }
@@ -231,44 +112,29 @@ float softshadow(in vec3 ro, in vec3 rd, float mint, float maxt, float k)
 }
 
 float getShadowMultiplier(vec3 rayEnd, vec3 lightDir, vec3 normal){
-    vec3 rayDir = lightDir;//lightPos-(rayEnd + 0.1 * normal);
+    vec3 rayDir = lightDir;
     return softshadow(rayEnd, normalize(rayDir), 0.01, 100, 10);
-
 }
 
 
-float calcAO(vec3 pos, vec3 nor)
-{
+float calcAO(vec3 pos, vec3 nor) {
     float occ = 0.0;
     float sca = 1.0;
-    for (int i=0; i<5; i++)
-    {
-        float h = 0.001 + 0.15*float(i)/4.0;
-        float d = distToObjects(pos + h*nor).x;
-        occ += (h-d)*sca;
+    for (int i = 0; i < 5; i++) {
+        const float h = 0.001 + 0.15 * float(i) / 4.0;
+        const float d = distToObjects(pos + h * nor).x;
+        occ += (h - d) * sca;
         sca *= 0.95;
     }
-    return clamp(1.0 - 1.5*occ, 0.0, 1.0);
+    return clamp(1.0 - 1.5 * occ, 0.0, 1.0);
 }
 
-    //0 - none, 1 - old, 2 - new
-    #define SHADOW_TYPE 2
-
-
-RenderResult render(vec3 rayOrigin, vec3 rayDir)
-{
-    vec3 lightPos=vec3(0, 25, 1+ cos(time / 10) * 100);
-
+RenderResult render(vec3 rayOrigin, vec3 rayDir) {
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
-
     vec3 col;
-    if (intersectionResult.minDist <= -1.0)
-    {
-        // Skybox colour
+    if (intersectionResult.minDist <= -1.0) {
         col = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
-    }
-    else
-    {
+    } else {
         vec3 pos = rayOrigin + rayDir * intersectionResult.minDist;
         vec3 lightDir = normalize(lightPos-pos);
         vec3 normal = calcNormal(pos);
@@ -316,7 +182,6 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir)
 
 
         //col = normal;
-
         //col = smoothstep(0.0,1.0,col);
         if (enableAmbientOcclusion) {
             //col *= (1.0-vec3(intersectionResult.steps/stepLimit));
@@ -331,8 +196,7 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir)
     return result;
 }
 
-vec2 normalizeScreenCoords(vec2 screenCoord)
-{
+vec2 normalizeScreenCoords(vec2 screenCoord) {
     ivec2 resolution = imageSize(renderTexture);
     vec2 result = 2.0 * (screenCoord/resolution.xy - 0.5);
     result.x *= resolution.x/resolution.y; // Correct for aspect ratio
@@ -345,17 +209,12 @@ void main() {
         return;
     }
 
-
-
     RenderResult renderResult;
     if (enableAntiAliasing) {
         vec4 resColor = vec4(0);
-        float AA_size = 2.0;
         float count = 0.0;
-        for (float aaY = 0.0; aaY < AA_size; aaY++)
-        {
-            for (float aaX = 0.0; aaX < AA_size; aaX++)
-            {
+        for (float aaY = 0.0; aaY < AA_size; aaY++) {
+            for (float aaX = 0.0; aaX < AA_size; aaX++) {
                 vec2 screenCoord = vec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
                 vec2 uv = normalizeScreenCoords(screenCoord + vec2(aaX, aaY) / AA_size);
                 vec3 rayDir = getCameraRayDir(uv, cameraPosition, cameraFront);
@@ -373,7 +232,7 @@ void main() {
         renderResult = render(cameraPosition, rayDir);
     }
 
-    float stepColor = renderResult.stepCount / 64.f;
+    float stepColor = renderResult.stepCount / 64.f; // TODO: log?
     //renderResult.color += stepColor * vec4(0, 1, 0, 0);
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
     imageStore(stepCountTexture, texCoord, vec4(stepColor, 0, 0, 0));
