@@ -6,6 +6,7 @@
 #include "../common/gl_utils.h"
 #include "../common/shader_literals.h"
 #include <spdlog/spdlog.h>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace ShaderLiterals;
 using namespace ray_march;
@@ -62,6 +63,10 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("stepLimit", rayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
+  scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
+  scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
+  scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+  scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
   scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
@@ -85,8 +90,18 @@ auto RayMarcher::show(Tex tex) -> void {
 }
 
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
-  return {renderTexture.getWidth(0), renderTexture.getHeight(0)};
+  return {renderTexture.getWidth(0) / 8 + 1, renderTexture.getHeight(0) / 8 + 1};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
 auto RayMarcher::setTime(float time) -> void { RayMarcher::time = time; }
 auto RayMarcher::setMaxDrawDistance(float distance) -> void { maxDrawDistance = distance; }
+auto RayMarcher::setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void {
+  RayMarcher::cameraPosition = cameraPosition;
+  RayMarcher::cameraFront = cameraFront;
+}
+auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void {
+  ambientOcclusionEnabled = isAmbientOcclusionEnabled;
+}
+auto RayMarcher::setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void {
+  antiAliasingEnabled = isAntiAliasingEnabled;
+}

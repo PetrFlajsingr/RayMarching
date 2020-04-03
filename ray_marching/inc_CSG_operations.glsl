@@ -1,6 +1,6 @@
-float opMinus(float d1, float d2)
+vec2 opMinus(vec2 d1, vec2 d2)
 {
-    return max(-d2, d1);
+    return vec2(max(-d2.x, d1.x));
 }
 
 vec2 opUnion(vec2 d1, vec2 d2)
@@ -20,4 +20,9 @@ vec2 opBlend(vec2 d1, vec2 d2)
     float d = sminCubic(d1.x, d2.x, k);
     float m = mix(d1.y, d2.y, clamp(d1.x-d, 0.0, 1.0));
     return vec2(d, m);
+}
+
+float opRepeat(float d, float domain)
+{
+    return mod(d, domain)-domain/2.0;
 }

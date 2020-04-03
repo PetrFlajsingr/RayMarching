@@ -9,6 +9,7 @@
 #include <geGL/VertexArray.h>
 #include <geGL/Buffer.h>
 #include <utility>
+#include <glm/glm.hpp>
 
 namespace ray_march {
 enum class Tex{
@@ -28,6 +29,9 @@ public:
   auto setRayStepLimit(int limit) -> void;
   auto setTime(float time) -> void;
   auto setMaxDrawDistance(float distance) -> void;
+  auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
+  auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
+  auto setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void;
 
 private:
   ge::gl::Program csProgram;
@@ -54,6 +58,12 @@ private:
   int rayStepLimit = 64;
   float time = 0;
   float maxDrawDistance = 10.0f;
+
+  bool ambientOcclusionEnabled = false;
+  bool antiAliasingEnabled = false;
+
+  glm::vec3 cameraPosition;
+  glm::vec3 cameraFront;
 };
 } // namespace ray_march
 

@@ -28,8 +28,11 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       }
       ImGui::EndCombo();
     }
-    ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 512);
+    ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
     ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 0.1f, 1000.f);
+    ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
+    ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
+    ImGui::Checkbox("Anti aliasing", &antiAliasingEnabled);
     ImGui::End();
   }
 }
@@ -40,3 +43,6 @@ auto ui::RenderSettingsPanel::getSelectedTextureType() const -> ui::TextureChoic
 
 auto ui::RenderSettingsPanel::getRayStepLimit() const -> int { return rayStepLimit; }
 auto ui::RenderSettingsPanel::getMaxDrawDistance() const -> float { return maxDrawDistance; }
+auto ui::RenderSettingsPanel::getTimeScale() const -> float { return timeScale; }
+auto ui::RenderSettingsPanel::isAmbientOcclusionEnabled() const -> bool { return ambientOcclusionEnabled; }
+auto ui::RenderSettingsPanel::isAntiAliasingEnabled() const -> bool { return antiAliasingEnabled; }

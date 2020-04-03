@@ -19,12 +19,18 @@ public:
   [[nodiscard]] auto getSelectedTextureType() const -> TextureChoice;
   [[nodiscard]] auto getRayStepLimit() const -> int;
   [[nodiscard]] auto getMaxDrawDistance() const -> float;
+  [[nodiscard]] auto getTimeScale() const -> float;
+  [[nodiscard]] auto isAmbientOcclusionEnabled() const -> bool;
+  [[nodiscard]] auto isAntiAliasingEnabled() const -> bool;
 
 private:
   const char *currentItem;
   std::vector<std::string> textureChoiceItems;
   int rayStepLimit = 64;
   float maxDrawDistance = 100.0f;
+  float timeScale = 1.0f;
+  bool ambientOcclusionEnabled = false;
+  bool antiAliasingEnabled = false;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H
