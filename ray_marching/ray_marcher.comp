@@ -19,6 +19,9 @@ uniform vec3 cameraFront;
 
 uniform bool enableAmbientOcclusion;
 uniform bool enableAntiAliasing;
+uniform bool enableReflections;
+
+uniform int maxReflections;
 
 uniform float AA_size;
 
@@ -26,7 +29,7 @@ const vec3 lightPos = vec3(0, 25, 1 + cos(time / 10) * 100);// TODO
 
 #define SHADES 0
 
-#define EPSILON  0.00001
+#define EPSILON  0.000001
 #define SHADOW_FALLOFF 0.05
 #define SHADOW_OPACITY 0.8
 
@@ -50,19 +53,9 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     return vDir;
 }
 
-mat4 rotateY(float theta) {
-    float c = cos(theta);
-    float s = sin(theta);
-
-    return mat4(
-    vec4(c, 0, s, 0),
-    vec4(0, 1, 0, 0),
-    vec4(-s, 0, c, 0),
-    vec4(0, 0, 0, 1)
-    );
-}
 
 vec2 distToObjects(vec3 camPos) {
+    //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(sierpinski(camPos).x);
     //return vec2(camPos.y - sin(camPos.x  + time * 0.000000001) - sin(camPos.z));
     const float sphere1X = 3 + cos(time) * 5;
@@ -110,11 +103,11 @@ IntersectionResult castReflRay(vec3 rayOrigin, vec3 rayDir) {
     float travelDistance = 0.0;
     IntersectionResult result;
     result.mat = -1.0;
-    for (result.steps = 0; result.steps < stepLimit/5; result.steps++) {
+    for (result.steps = 0; result.steps < stepLimit / 5; result.steps++) {
         const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
         travelDistance += res.x;
         result.mat = res.y;
-        if (res.x < EPSILON) {
+        if (res.x < EPSILON * 2) {
             //result.mat = -1;
             result.minDist = travelDistance;
             return result;
@@ -263,14 +256,18 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         col = shading(pos, normal, lightDir, rayDir, true);
 
 
-        for (int i = 0; i < 4; i++) {
-            rayDir = reflect(rayDir, normal);
-            IntersectionResult reflIntersectionResult = castReflRay(pos + normal * 0.001, rayDir);
-            if (reflIntersectionResult.minDist > -1.0) {
-                pos = pos + rayDir * reflIntersectionResult.minDist;
-                normal = calcNormal(pos);
-                vec3 reflColor = shading(pos, normal, lightDir, rayDir, true);
-                col += reflColor * 0.2;
+        if (enableReflections) {
+            for (int i = 0; i < maxReflections; i++) {
+                rayDir = reflect(rayDir, normal);
+                IntersectionResult reflIntersectionResult = castReflRay(pos + rayDir * 0.001, rayDir);
+                if (reflIntersectionResult.minDist > -1.0) {
+                    pos = pos + rayDir * reflIntersectionResult.minDist;
+                    normal = calcNormal(pos);
+                    vec3 reflColor = shading(pos, normal, lightDir, rayDir, true);
+                    col += reflColor * 0.2;
+                } else {
+                    col += (vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7)) * 0.2;
+                }
             }
         }
 

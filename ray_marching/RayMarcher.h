@@ -33,8 +33,10 @@ public:
   auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
   auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
   auto setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void;
+  auto setReflectionsEnabled(bool areRefflectionsEnabled) -> void;
   auto setShadowType(Shadows shadowType) -> void;
   auto setAASize(int aaSize) -> void;
+  auto setMaxReflections(int maxReflections) -> void;
 
 private:
   ge::gl::Program csProgram;
@@ -60,11 +62,13 @@ private:
 
   int rayStepLimit = 512;
   int shadowRayStepLimit = 64;
+  int maxReflections = 1;
   float time = 0;
   float maxDrawDistance = 10.0f;
 
   bool ambientOcclusionEnabled = false;
   bool antiAliasingEnabled = false;
+  bool reflectionsEnabled = false;
 
   glm::vec3 cameraPosition;
   glm::vec3 cameraFront;

@@ -51,6 +51,8 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
     ImGui::Checkbox("Anti aliasing", &antiAliasingEnabled);
     ImGui::SliderInt("AAx", &aaX, 1, 8);
+    ImGui::Checkbox("Reflections", &reflectionsEnabled);
+    ImGui::SliderInt("Max reflections", &maxReflections, 1, 10);
     ImGui::End();
   }
 }
@@ -69,3 +71,5 @@ auto ui::RenderSettingsPanel::getShadowType() const -> ray_march::Shadows {
 }
 auto ui::RenderSettingsPanel::getAA() const -> int { return aaX; }
 auto ui::RenderSettingsPanel::getShadowRayStepLimit() const -> int { return shadowRayStepLimit; }
+auto ui::RenderSettingsPanel::areReflectionsEnabled() const -> bool { return reflectionsEnabled; }
+auto ui::RenderSettingsPanel::getMaxReflections() const -> int { return maxReflections; }

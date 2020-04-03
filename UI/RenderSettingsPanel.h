@@ -24,6 +24,8 @@ public:
   [[nodiscard]] auto isAmbientOcclusionEnabled() const -> bool;
   [[nodiscard]] auto isAntiAliasingEnabled() const -> bool;
   [[nodiscard]] auto getAA() const -> int;
+  [[nodiscard]] auto areReflectionsEnabled() const -> bool;
+  [[nodiscard]] auto getMaxReflections() const -> int;
 
 private:
   const char *currentItem;
@@ -35,8 +37,10 @@ private:
   float maxDrawDistance = 5000.0f;
   float timeScale = 1.0f;
   int aaX = 2;
+  int maxReflections = 1;
   bool ambientOcclusionEnabled = false;
   bool antiAliasingEnabled = false;
+  bool reflectionsEnabled = false;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

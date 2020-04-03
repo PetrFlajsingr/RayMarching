@@ -104,6 +104,8 @@ auto main() -> int {
     rayMarcher.setAntiAliasingEnabled(ui.getRenderSettingsPanel().isAntiAliasingEnabled());
     rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
     rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
+    rayMarcher.setReflectionsEnabled(ui.getRenderSettingsPanel().areReflectionsEnabled());
+    rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
     rayMarcher.render();
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();

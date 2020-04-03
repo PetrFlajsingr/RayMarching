@@ -68,6 +68,8 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
   scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
   scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
+  scopedProgram->set("enableReflections", reflectionsEnabled);
+  scopedProgram->set("maxReflections", maxReflections);
   scopedProgram->set("shadowType", static_cast<int>(shadowType));
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
@@ -113,3 +115,5 @@ auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> v
 auto RayMarcher::setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void { antiAliasingEnabled = isAntiAliasingEnabled; }
 auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowType = shadowType; }
 auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
+auto RayMarcher::setReflectionsEnabled(bool areReflectionsEnabled) -> void { reflectionsEnabled = areReflectionsEnabled; }
+auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
