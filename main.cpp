@@ -70,7 +70,7 @@ auto main() -> int {
   });
   window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera] (const SDL_Event &event) {
     if (isCameraControlled) {
-      constexpr auto movementSpeed = 0.5f;
+      constexpr auto movementSpeed = 0.1f;
       const auto pressedKey = event.key.keysym.sym;
       switch (pressedKey) {
       case SDLK_w:
@@ -96,12 +96,14 @@ auto main() -> int {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
+    rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
     rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
     rayMarcher.setTime(time);
     rayMarcher.setCameraVec(camera.Position, camera.Front);
     rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
     rayMarcher.setAntiAliasingEnabled(ui.getRenderSettingsPanel().isAntiAliasingEnabled());
     rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
+    rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
     rayMarcher.render();
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();

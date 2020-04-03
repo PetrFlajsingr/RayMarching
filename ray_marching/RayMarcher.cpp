@@ -5,14 +5,15 @@
 #include "RayMarcher.h"
 #include "../common/gl_utils.h"
 #include "../common/shader_literals.h"
-#include <spdlog/spdlog.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <spdlog/spdlog.h>
 
 using namespace ShaderLiterals;
 using namespace ray_march;
 
 RayMarcher::RayMarcher(const TextureSize &textureSize)
-    : csProgram(loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils")),
+    : csProgram(loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
+                           "inc_CSG_operations", "inc_utils")),
       renderProgram("render"_vert, "render"_frag),
       renderTexture(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second),
       stepCountTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
@@ -62,11 +63,13 @@ auto RayMarcher::render() -> void {
   ScopedShaderProgramUsage scopedProgram{csProgram};
   bindTextures();
   scopedProgram->set("stepLimit", rayStepLimit);
+  scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
   scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
   scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
   scopedProgram->set("shadowType", static_cast<int>(shadowType));
+  scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
@@ -96,6 +99,7 @@ auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned in
   return {renderTexture.getWidth(0) / 8 + 1, renderTexture.getHeight(0) / 8 + 1};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
+auto RayMarcher::setShadowRayStepLimit(int limit) -> void { shadowRayStepLimit = limit; }
 auto RayMarcher::setTime(float time) -> void { RayMarcher::time = time; }
 auto RayMarcher::setMaxDrawDistance(float distance) -> void { maxDrawDistance = distance; }
 auto RayMarcher::setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void {
@@ -107,3 +111,4 @@ auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> v
 }
 auto RayMarcher::setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void { antiAliasingEnabled = isAntiAliasingEnabled; }
 auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowType = shadowType; }
+auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }

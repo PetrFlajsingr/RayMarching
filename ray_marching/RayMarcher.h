@@ -27,12 +27,14 @@ public:
   auto show(Tex tex) -> void;
 
   auto setRayStepLimit(int limit) -> void;
+  auto setShadowRayStepLimit(int limit) -> void;
   auto setTime(float time) -> void;
   auto setMaxDrawDistance(float distance) -> void;
   auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
   auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
   auto setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void;
   auto setShadowType(Shadows shadowType) -> void;
+  auto setAASize(int aaSize) -> void;
 
 private:
   ge::gl::Program csProgram;
@@ -56,7 +58,8 @@ private:
   ge::gl::VertexArray quadVAO;
   ge::gl::Buffer quadVBO;
 
-  int rayStepLimit = 64;
+  int rayStepLimit = 512;
+  int shadowRayStepLimit = 64;
   float time = 0;
   float maxDrawDistance = 10.0f;
 
@@ -69,6 +72,7 @@ private:
   TextureSize textureSize;
 
   Shadows shadowType;
+  int aaSize;
 };
 } // namespace ray_march
 

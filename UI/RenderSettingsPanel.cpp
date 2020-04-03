@@ -45,10 +45,12 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       ImGui::EndCombo();
     }
     ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
+    ImGui::SliderInt("Max shadow ray steps", &shadowRayStepLimit, 1, 512);
     ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 0.1f, 1000.f);
     ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
     ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
     ImGui::Checkbox("Anti aliasing", &antiAliasingEnabled);
+    ImGui::SliderInt("AAx", &aaX, 1, 8);
     ImGui::End();
   }
 }
@@ -65,3 +67,5 @@ auto ui::RenderSettingsPanel::isAntiAliasingEnabled() const -> bool { return ant
 auto ui::RenderSettingsPanel::getShadowType() const -> ray_march::Shadows {
   return magic_enum::enum_cast<ray_march::Shadows>(currentShadowItem).value();
 }
+auto ui::RenderSettingsPanel::getAA() const -> int { return aaX; }
+auto ui::RenderSettingsPanel::getShadowRayStepLimit() const -> int { return shadowRayStepLimit; }

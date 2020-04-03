@@ -3,7 +3,7 @@ vec4 mengerSponge(vec3 p) {
     vec4 res = vec4(d, 1.0, 0.0, 0.0);
 
     float s = 1.0;
-    for (int m = 0; m < 24; m++) {
+    for (int m = 0; m < 4; m++) {
         const vec3 a = mod(p*s, 2.0)-1.0;
         s *= 3.0;
         const vec3 r = abs(1.0 - 3.0 * abs(a));
@@ -34,7 +34,7 @@ float colorFract(vec3 pos)
     vec4 p = vec4(pos, 1);
     vec4 p0 = p;// p.w is the distance estimate
 
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 7; i++)
     {
         p.xyz = clamp(p.xyz, -1.0, 1.0) * 2.0 - p.xyz;
 
@@ -42,7 +42,7 @@ float colorFract(vec3 pos)
         p *= clamp(max(colorFract_minRad2/r2, colorFract_minRad2), 0.0, 1.0);
 
         // scale, translate
-        p = p*scale + p0;
+        p = p*colorFract_scale + p0;
     }
     return ((length(p.xyz) - colorFract_absScalem1) / p.w - colorFract_AbsScaleRaisedTo1mIters);
 }
@@ -61,9 +61,9 @@ vec3 colorFractColor(vec3 pos, float sphereR)
 
         p.xyz = clamp(p.xyz, -1.0, 1.0) * 2.0 - p.xyz;
         float r2 = dot(p.xyz, p.xyz);
-        p *= clamp(max(minRad2/r2, minRad2), 0.0, 1.0);
+        p *= clamp(max(colorFract_minRad2/r2, colorFract_minRad2), 0.0, 1.0);
 
-        p = p*scale.xyz + p0.xyz;
+        p = p*colorFract_scale.xyz + p0.xyz;
         trap = min(trap, r2);
     }
     // |c.x|: log final distance (fractional iteration count)
@@ -73,4 +73,30 @@ vec3 colorFractColor(vec3 pos, float sphereR)
     float t = mod(length(pos), 16.0);
     colorFract_surfaceColour1 = mix(colorFract_surfaceColour1, vec3(.4, 3.0, 5.), pow(smoothstep(0.0, .3, t) * smoothstep(0.6, .3, t), 10.0));
     return mix(mix(colorFract_surfaceColour1, colorFract_surfaceColour2, c.y), colorFract_surfaceColour3, c.x);
+}
+
+const vec3 sierpinski_va = vec3(0.0, 0.57735, 0.0);
+const vec3 sierpinski_vb = vec3(0.0, -1.0, 1.15470);
+const vec3 sierpinski_vc = vec3(1.0, -1.0, -0.57735);
+const vec3 sierpinski_vd = vec3(-1.0, -1.0, -0.57735);
+
+vec2 sierpinski(vec3 p)
+{
+    float a = 0.0;
+    float s = 1.0;
+    float r = 1.0;
+    float dm;
+    vec3 v;
+    for (int i=0; i<12; i++)
+    {
+        float d, t;
+        d = dot(p-sierpinski_va, p-sierpinski_va);              v=sierpinski_va; dm=d; t=0.0;
+        d = dot(p-sierpinski_vb, p-sierpinski_vb); if (d<dm) { v=sierpinski_vb; dm=d; t=1.0; }
+        d = dot(p-sierpinski_vc, p-sierpinski_vc); if (d<dm) { v=sierpinski_vc; dm=d; t=2.0; }
+        d = dot(p-sierpinski_vd, p-sierpinski_vd); if (d<dm) { v=sierpinski_vd; dm=d; t=3.0; }
+        p = v + 2.0*(p - v); r*= 2.0;
+        a = t + 4.0*a; s*= 4.0;
+    }
+
+    return vec2((sqrt(dm)-1.0)/r, a/s);
 }

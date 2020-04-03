@@ -9,6 +9,7 @@ uniform int shadowType;
 
 uniform ivec2 resolution;
 uniform int stepLimit;
+uniform int shadowStepLimit;
 
 uniform float time;
 uniform float maxDrawDistance;
@@ -19,15 +20,14 @@ uniform vec3 cameraFront;
 uniform bool enableAmbientOcclusion;
 uniform bool enableAntiAliasing;
 
-const vec3 lightPos = vec3(0, 25, 1 + cos(time / 10) * 100); // TODO
-const float AA_size = 2.0; // TODO
-//0 - none, 1 - old, 2 - new
-#define SHADOW_TYPE 2
+uniform float AA_size;
+
+const vec3 lightPos = vec3(0, 25, 1 + cos(time / 10) * 100);// TODO
+
 
 #define EPSILON  0.00001
 #define SHADOW_FALLOFF 0.05
 #define SHADOW_OPACITY 0.8
-#define SHADOW_STEP_LIMIT 100
 
 struct RenderResult {
     vec4 color;
@@ -51,16 +51,19 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
 
 
 vec2 distToObjects(vec3 camPos) {
-    //return vec2(mix(mengerSponge(camPos).x, Map(camPos), cos(time)));
+    //return vec2(sierpinski(camPos).x);
     //return vec2(camPos.y - sin(camPos.x  + time * 0.000000001) - sin(camPos.z));
     const float sphere1X = 3 + cos(time) * 5;
     vec2 d = vec2(sdSphere(camPos-vec3(sphere1X, -2.5, 10), 2.5));
     d = opUnion(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)));
     d = opUnion(d, vec2(sdSphere(camPos-vec3(0, 2, 10), 2.5)));
     d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
-    //d = opMinus(d, repeatedSphereLimited(camPos, 2.0, vec3(20, 20, 20)));
-    //d = opUnion(d, repeatingSphere(camPos, vec3(2)));
-    //d = opMinus(d, vec2(sdBox(camPos, vec3(10, 100000000, 10))));
+
+    vec3 repeatC = repeatCoord(camPos, vec3(100, 5, 100));
+    vec2 b = vec2(sdBox(repeatC, vec3(5, 5, 5)));
+    b = opIntersection(b, vec2(sdBox(camPos - vec3(0, -5 + cos(time) * 100, 0), vec3(1000, 10, 1000))));
+    d = opBlend(d, b);
+
     return d;
     //return repeatingSphere(camPos, vec3(10) + time / 10);
     //return vec2(sdSphere(camPos, vec3(3, -2.5, 10), 2.5));
@@ -73,16 +76,17 @@ IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
     result.mat = -1.0;
     for (result.steps = 0; result.steps < stepLimit; result.steps++) {
         const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
-        travelDistance += res.x;
-        result.mat = res.y;
         if (res.x < EPSILON) {
+            //result.mat = -1;
             result.minDist = travelDistance;
             return result;
         } else if (res.x > maxDrawDistance) {
-            result.mat = -1.0;
+            result.mat = -1;
             result.minDist = -1.0;
             return result;
         }
+        travelDistance += res.x;
+        result.mat = res.y;
     }
     result.minDist = travelDistance;
     return result;
@@ -90,10 +94,16 @@ IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
 
 vec3 calcNormal(vec3 pos) {
     const float c = distToObjects(pos).x;
-    const vec2 delta = vec2(0.01, 0.0);
+    const vec2 delta = vec2(0.0001, 0.0);
     const float xDist = distToObjects(pos + delta.xyy).x;
     const float yDist = distToObjects(pos + delta.yxy).x;
     const float zDist = distToObjects(pos + delta.yyx).x;
+    return normalize(
+    vec3(
+    distToObjects(pos + delta.xyy).x - distToObjects(pos - delta.xyy).x,
+    distToObjects(pos + delta.yxy).x - distToObjects(pos - delta.yxy).x,
+    distToObjects(pos + delta.yyx).x - distToObjects(pos - delta.yyx).x));
+
     return normalize(vec3(xDist, yDist, zDist) - c);
 }
 
@@ -101,7 +111,7 @@ float softshadow(vec3 rayOrigin, vec3 rayDirection, float minTravel, float maxTr
     float res = 1.0;
     float ph = 1e20;
     int i = 0;
-    for (float t = minTravel; i < stepLimit && t < maxTravel; i++) {
+    for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
         const float h = distToObjects(rayOrigin + rayDirection * t).x;
         if (h < EPSILON) {
             return 0.0;
@@ -127,7 +137,7 @@ float getHardShadowMultiplier(vec3 rayOrigin, vec3 rayDirection, vec3 normal) {
     float minTravel = 0.01;
     float maxTravel = 100;
     int i = 0;
-    for (float t = minTravel; i < stepLimit && t < maxTravel; i++) {
+    for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
         const float h = distToObjects(rayOrigin + rayDirection * t).x;
         if (h < EPSILON) {
             return 0.0;
