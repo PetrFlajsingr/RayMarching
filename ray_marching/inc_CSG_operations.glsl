@@ -28,3 +28,7 @@ float opRepeat(float d, float domain)
 }
 
 vec2 opIntersection(vec2 d1, vec2 d2) { return vec2(max(d1.x, d2.x)); }
+
+vec2 opSmoothSubtraction(vec2 d1, vec2 d2, float k) {
+    float h = clamp(0.5 - 0.5*(d2.x+d1.x)/k, 0.0, 1.0);
+    return vec2(mix(d2.x, -d1.x, h) + k*h*(1.0-h)); }

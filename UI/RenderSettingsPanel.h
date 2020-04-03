@@ -32,7 +32,7 @@ private:
   std::vector<std::string> shadowChoiceItems;
   int rayStepLimit = 512;
   int shadowRayStepLimit = 64;
-  float maxDrawDistance = 100.0f;
+  float maxDrawDistance = 5000.0f;
   float timeScale = 1.0f;
   int aaX = 2;
   bool ambientOcclusionEnabled = false;

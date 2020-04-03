@@ -19,7 +19,7 @@ float sdBox(vec3 p, vec3 b)
 vec2 repeatingSphere(vec3 p, vec3 c)
 {
     vec3 q = mod(p, c)-0.5*c;
-    return vec2(sdSphere(q, .1));
+    return vec2(sdSphere(q, 5));
 }
 
 vec3 repeatCoord(vec3 p, vec3 c)

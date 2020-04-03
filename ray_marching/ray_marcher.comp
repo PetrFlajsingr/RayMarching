@@ -1,6 +1,6 @@
 #version 450
 
-layout (local_size_x = 8, local_size_y = 8) in;
+layout (local_size_x = 32, local_size_y = 32) in;
 layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
@@ -24,6 +24,7 @@ uniform float AA_size;
 
 const vec3 lightPos = vec3(0, 25, 1 + cos(time / 10) * 100);// TODO
 
+#define SHADES 0
 
 #define EPSILON  0.00001
 #define SHADOW_FALLOFF 0.05
@@ -49,6 +50,17 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     return vDir;
 }
 
+mat4 rotateY(float theta) {
+    float c = cos(theta);
+    float s = sin(theta);
+
+    return mat4(
+    vec4(c, 0, s, 0),
+    vec4(0, 1, 0, 0),
+    vec4(-s, 0, c, 0),
+    vec4(0, 0, 0, 1)
+    );
+}
 
 vec2 distToObjects(vec3 camPos) {
     //return vec2(sierpinski(camPos).x);
@@ -59,13 +71,15 @@ vec2 distToObjects(vec3 camPos) {
     d = opUnion(d, vec2(sdSphere(camPos-vec3(0, 2, 10), 2.5)));
     d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
 
-    vec3 repeatC = repeatCoord(camPos, vec3(100, 5, 100));
-    vec2 b = vec2(sdBox(repeatC, vec3(5, 5, 5)));
-    b = opIntersection(b, vec2(sdBox(camPos - vec3(0, -5 + cos(time) * 100, 0), vec3(1000, 10, 1000))));
+    vec3 repeatC = repeatCoord(camPos, vec3(100, 10, 100));
+    vec2 a = vec2(sdBox(repeatC, vec3(5, 10, 5)));
+    vec2 b = opIntersection(a, vec2(sdBox(camPos - vec3(0, -5 + cos(time) * 50, 0), vec3(1000, 10, 1000))));
+    vec2 c = opIntersection(a, vec2(sdBox(camPos - vec3(0, -5 + sin(time) * 50, 0), vec3(1000, 10, 1000))));
+    d = opSmoothSubtraction(c, d, 50);
     d = opBlend(d, b);
 
     return d;
-    //return repeatingSphere(camPos, vec3(10) + time / 10);
+    //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(sdSphere(camPos, vec3(3, -2.5, 10), 2.5));
     //return vec2(opRepeat(sdSphere(camPos, vec3(0, 0, 20), 2.5), 10.f));
 }
@@ -76,17 +90,39 @@ IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
     result.mat = -1.0;
     for (result.steps = 0; result.steps < stepLimit; result.steps++) {
         const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
+        travelDistance += res.x;
+        result.mat = res.y;
         if (res.x < EPSILON) {
             //result.mat = -1;
             result.minDist = travelDistance;
             return result;
-        } else if (res.x > maxDrawDistance) {
+        } else if (travelDistance > maxDrawDistance) {
             result.mat = -1;
             result.minDist = -1.0;
             return result;
         }
+    }
+    result.minDist = travelDistance;
+    return result;
+}
+
+IntersectionResult castReflRay(vec3 rayOrigin, vec3 rayDir) {
+    float travelDistance = 0.0;
+    IntersectionResult result;
+    result.mat = -1.0;
+    for (result.steps = 0; result.steps < stepLimit/5; result.steps++) {
+        const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
         travelDistance += res.x;
         result.mat = res.y;
+        if (res.x < EPSILON) {
+            //result.mat = -1;
+            result.minDist = travelDistance;
+            return result;
+        } else if (travelDistance > maxDrawDistance) {
+            result.mat = -1;
+            result.minDist = -1.0;
+            return result;
+        }
     }
     result.minDist = travelDistance;
     return result;
@@ -104,7 +140,6 @@ vec3 calcNormal(vec3 pos) {
     distToObjects(pos + delta.yxy).x - distToObjects(pos - delta.yxy).x,
     distToObjects(pos + delta.yyx).x - distToObjects(pos - delta.yyx).x));
 
-    return normalize(vec3(xDist, yDist, zDist) - c);
 }
 
 float softshadow(vec3 rayOrigin, vec3 rayDirection, float minTravel, float maxTravel, float k) {
@@ -129,13 +164,13 @@ float softshadow(vec3 rayOrigin, vec3 rayDirection, float minTravel, float maxTr
 
 float getShadowMultiplier(vec3 rayEnd, vec3 lightDir, vec3 normal){
     vec3 rayDir = lightDir;
-    return softshadow(rayEnd, normalize(rayDir), 0.01, 100, 10);
+    return softshadow(rayEnd, normalize(rayDir), 0.01, maxDrawDistance, 10);
 }
 
 float getHardShadowMultiplier(vec3 rayOrigin, vec3 rayDirection, vec3 normal) {
     rayDirection = normalize(rayDirection);
     float minTravel = 0.01;
-    float maxTravel = 100;
+    float maxTravel = maxDrawDistance;
     int i = 0;
     for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
         const float h = distToObjects(rayOrigin + rayDirection * t).x;
@@ -160,19 +195,11 @@ float calcAO(vec3 pos, vec3 nor) {
     return clamp(1.0 - 1.5 * occ, 0.0, 1.0);
 }
 
-RenderResult render(vec3 rayOrigin, vec3 rayDir) {
-    IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
+vec3 shading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, bool checkShadow) {
     vec3 col;
-    if (intersectionResult.minDist <= -1.0) {
-        col = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
-    } else {
-        vec3 pos = rayOrigin + rayDir * intersectionResult.minDist;
-        vec3 lightDir = normalize(lightPos-pos);
-        vec3 normal = calcNormal(pos);
-
-
-        float shadow = 0.0;
-        float shadowRayCount = 2.0;
+    float shadow = 0.0;
+    float shadowRayCount = 2.0;
+    if (checkShadow) {
         if (shadowType == 1) {
             for (float s = 0.0; s < shadowRayCount; s++)
             {
@@ -190,28 +217,62 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         } else if (shadowType == 3) {
             shadow = getHardShadowMultiplier(pos, lightDir, normal);
         }
+    } else {
+        shadow = 1.0;
+    }
 
 
-        vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
-        float NoL = max(dot(normal, lightDir), 0.0);
-        vec3 LDirectional = vec3(0.9, 0.9, 0.8) * NoL;
-        vec3 LAmbient = vec3(0.03, 0.04, 0.1);
-        vec3 diffuse = (LDirectional + LAmbient);
-        float specular = dot(normalize(lightPos-pos), reflect(normalize(pos-cameraPosition), normal));
+    vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
+    float NoL = max(dot(normal, lightDir), 0.0);
+    vec3 LDirectional = vec3(0.9, 0.9, 0.8) * NoL;
+    vec3 LAmbient = vec3(0.03, 0.04, 0.1);
+    vec3 diffuse = (LDirectional + LAmbient);
+    float specular = dot(normalize(lightPos-pos), reflect(normalize(pos-cameraPosition), normal));
+    col = objectSurfaceColour;
+    vec3 intensity;
+    if (shadowType != 0) {
+        intensity = diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+    } else {
+        intensity = diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+    }
 
-        if (shadowType != 0) {
-            col = objectSurfaceColour * diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
-        } else {
-            col = objectSurfaceColour * diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+    if (shadowType == 1) {
+        vec3 cshadow = pow(vec3(shadow), vec3(1.0, 1.2, 1.5));
+        intensity = mix(col, col*cshadow*(1.0-SHADOW_OPACITY), shadow/shadowRayCount);
+    } else if (shadowType == 2 || shadowType == 3) {
+        intensity *= shadow;
+    }
+
+        #if SHADES != 0
+    intensity = ceil(intensity * SHADES) / float(SHADES);
+    #endif
+    col *= intensity;
+    return col;
+}
+
+RenderResult render(vec3 rayOrigin, vec3 rayDir) {
+    IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
+    vec3 col;
+    if (intersectionResult.minDist <= -1.0) {
+        col = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
+    } else {
+        vec3 pos = rayOrigin + rayDir * intersectionResult.minDist;
+        vec3 lightDir = normalize(lightPos);//-pos);
+        vec3 normal = calcNormal(pos);
+
+        col = shading(pos, normal, lightDir, rayDir, true);
+
+
+        for (int i = 0; i < 4; i++) {
+            rayDir = reflect(rayDir, normal);
+            IntersectionResult reflIntersectionResult = castReflRay(pos + normal * 0.001, rayDir);
+            if (reflIntersectionResult.minDist > -1.0) {
+                pos = pos + rayDir * reflIntersectionResult.minDist;
+                normal = calcNormal(pos);
+                vec3 reflColor = shading(pos, normal, lightDir, rayDir, true);
+                col += reflColor * 0.2;
+            }
         }
-
-        if (shadowType == 1) {
-            vec3 cshadow = pow(vec3(shadow), vec3(1.0, 1.2, 1.5));
-            col = mix(col, col*cshadow*(1.0-SHADOW_OPACITY), shadow/shadowRayCount);
-        } else if (shadowType == 2 || shadowType == 3) {
-            col *= shadow;
-        }
-
 
         //col = normal;
         //col = smoothstep(0.0,1.0,col);

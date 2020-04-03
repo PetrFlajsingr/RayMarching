@@ -70,7 +70,7 @@ auto main() -> int {
   });
   window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera] (const SDL_Event &event) {
     if (isCameraControlled) {
-      constexpr auto movementSpeed = 0.1f;
+      constexpr auto movementSpeed = 1.0f;
       const auto pressedKey = event.key.keysym.sym;
       switch (pressedKey) {
       case SDLK_w:
