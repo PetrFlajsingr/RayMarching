@@ -21,3 +21,9 @@ vec2 repeatingSphere(vec3 p, vec3 c)
     vec3 q = mod(p, c)-0.5*c;
     return vec2(sdSphere(q, .1));
 }
+
+vec2 repeatedSphereLimited(vec3 p, float c, vec3 l)
+{
+    vec3 q = p-c*clamp(round(p/c), -l, l);
+    return vec2(sdSphere(q, 2));
+}

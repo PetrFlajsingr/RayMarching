@@ -44,7 +44,7 @@ struct IntersectionResult {
 vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const vec3 camRight = normalize(cross(vec3(0.0, 1.0, 0.0), camForward));
     const vec3 camUp = normalize(cross(camForward, camRight));
-    const float fPersp = 2.0; // TODO
+    const float fPersp = 2;// TODO
     const vec3 vDir = normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
     return vDir;
 }
@@ -58,6 +58,7 @@ vec2 distToObjects(vec3 camPos) {
     d = opUnion(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)));
     d = opUnion(d, vec2(sdSphere(camPos-vec3(0, 2, 10), 2.5)));
     d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
+    //d = opMinus(d, repeatedSphereLimited(camPos, 2.0, vec3(20, 20, 20)));
     //d = opUnion(d, repeatingSphere(camPos, vec3(2)));
     //d = opMinus(d, vec2(sdBox(camPos, vec3(10, 100000000, 10))));
     return d;
@@ -114,9 +115,26 @@ float softshadow(vec3 rayOrigin, vec3 rayDirection, float minTravel, float maxTr
     return clamp(res, 0.0, 1.0);
 }
 
+
+
 float getShadowMultiplier(vec3 rayEnd, vec3 lightDir, vec3 normal){
     vec3 rayDir = lightDir;
     return softshadow(rayEnd, normalize(rayDir), 0.01, 100, 10);
+}
+
+float getHardShadowMultiplier(vec3 rayOrigin, vec3 rayDirection, vec3 normal) {
+    rayDirection = normalize(rayDirection);
+    float minTravel = 0.01;
+    float maxTravel = 100;
+    int i = 0;
+    for (float t = minTravel; i < stepLimit && t < maxTravel; i++) {
+        const float h = distToObjects(rayOrigin + rayDirection * t).x;
+        if (h < EPSILON) {
+            return 0.0;
+        }
+        t += h;
+    }
+    return 1.0;
 }
 
 
@@ -159,6 +177,8 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
             }
         } else if (shadowType == 2) {
             shadow = getShadowMultiplier(pos, lightDir, normal);
+        } else if (shadowType == 3) {
+            shadow = getHardShadowMultiplier(pos, lightDir, normal);
         }
 
 
@@ -178,7 +198,7 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         if (shadowType == 1) {
             vec3 cshadow = pow(vec3(shadow), vec3(1.0, 1.2, 1.5));
             col = mix(col, col*cshadow*(1.0-SHADOW_OPACITY), shadow/shadowRayCount);
-        } else if (shadowType == 2) {
+        } else if (shadowType == 2 || shadowType == 3) {
             col *= shadow;
         }
 
@@ -202,6 +222,16 @@ vec2 normalizeScreenCoords(vec2 screenCoord) {
     vec2 result = 2.0 * (screenCoord/resolution.xy - 0.5);
     result.x *= resolution.x/float(resolution.y);// Correct for aspect ratio
     return result;
+}
+
+float logNormalize(float enteredValue, float minEntry, float maxEntry, float normalizedMin, float normalizedMax) {
+
+    float mx = (log((enteredValue-minEntry))/(log(maxEntry-minEntry)));
+    float preshiftNormalized = mx*(normalizedMax-normalizedMin);
+    float shiftedNormalized = preshiftNormalized + normalizedMin;
+
+    return shiftedNormalized;
+
 }
 
 void main() {
@@ -232,10 +262,11 @@ void main() {
         renderResult = render(cameraPosition, rayDir);
     }
 
-    float stepColor = renderResult.stepCount / 64.f; // TODO: log?
-    //renderResult.color += stepColor * vec4(0, 1, 0, 0);
+    float logStepColor = logNormalize(renderResult.stepCount, 0, stepLimit, 0, 1);
+    float stepColor = renderResult.stepCount / float(64);
+    //renderResult.color += stepColor * vec4(1, 0, 0, 0);
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
-    imageStore(stepCountTexture, texCoord, vec4(stepColor, 0, 0, 0));
+    imageStore(stepCountTexture, texCoord, vec4(logStepColor, 0, 0, 0));
     imageStore(renderTexture, texCoord, renderResult.color);
     imageStore(depthTexture, texCoord, vec4(renderResult.depth / maxDrawDistance, 0, 0, 0));
 }
