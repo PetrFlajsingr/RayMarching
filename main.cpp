@@ -3,7 +3,7 @@
 //
 #include "UI/UI.h"
 #include "common/GlslShaderLoader.h"
-#include "ray_marching/CSGTree.h"
+#include "ray_marching/CSG/CSGTree.h"
 #include "ray_marching/RayMarcher.h"
 #include <Camera.h>
 #include <SDL2CPP/MainLoop.h>
