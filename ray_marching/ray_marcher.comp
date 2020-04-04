@@ -52,9 +52,55 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const vec3 vDir = normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
     return vDir;
 }
+vec2 rotate(in vec2 v, in float a) {
+    return vec2(cos(a)*v.x + sin(a)*v.y, -sin(a)*v.x + cos(a)*v.y);
+}
 
+float torus(in vec3 p, in vec2 t)
+{
+    vec2 q = abs(vec2(max(abs(p.x), abs(p.z))-t.x, p.y));
+    return max(q.x, q.y)-t.y;
+}
+
+// These are all equally interesting, but I could only pick one :(
+float trap(in vec3 p)
+{
+    //return abs(max(abs(p.z)-0.1, abs(p.x)-0.1))-0.01;
+    //return length(max(abs(p.xy) - 0.05, 0.0));
+    //return length(p)-0.5;
+    //return length(max(abs(p) - 0.35, 0.0));
+    //return abs(length(p.xz)-0.2)-0.01;
+    //return abs(min(torus(vec3(p.x, mod(p.y,0.4)-0.2, p.z), vec2(0.1, 0.05)), max(abs(p.z)-0.05, abs(p.x)-0.05)))-0.005;
+    return abs(min(torus(p, vec2(0.3, 0.05)), max(abs(p.z)-0.05, abs(p.x)-0.05)))-0.005;
+    //return min(length(p.xz), min(length(p.yz), length(p.xy))) - 0.05;
+}
+
+float map(in vec3 p)
+{
+    float time = time+60.0;
+    float cutout = dot(abs(p.yz), vec2(0.5))-0.035;
+    float road = max(abs(p.y-0.025), abs(p.z)-0.035);
+
+    vec3 z = abs(1.0-mod(p, 2.0));
+    z.yz = rotate(z.yz, time*0.05);
+
+    float d = 999.0;
+    float s = 1.0;
+    for (float i = 0.0; i < 3.0; i++) {
+        z.xz = rotate(z.xz, radians(i*10.0+time));
+        z.zy = rotate(z.yz, radians((i+1.0)*20.0+time*1.1234));
+        z = abs(1.0-mod(z+i/3.0, 2.0));
+
+        z = z*2.0 - 0.3;
+        s *= 0.5;
+        d = min(d, trap(z) * s);
+    }
+    return min(max(d, -cutout), road);
+}
 
 vec2 distToObjects(vec3 camPos) {
+    return vec2(map(camPos));
+    /*
     //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(mengerSponge(camPos).x);
     //return vec2(camPos.y - sin(camPos.x  + time * 0.000000001) - sin(camPos.z));
@@ -72,10 +118,10 @@ vec2 distToObjects(vec3 camPos) {
     d = opSmoothSubtraction(c, d, 50);
     d = opBlend(d, b);
 
-    return d;
-    //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
+    //return d;
+    return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(sdSphere(camPos, vec3(3, -2.5, 10), 2.5));
-    //return vec2(opRepeat(sdSphere(camPos, vec3(0, 0, 20), 2.5), 10.f));
+    //return vec2(opRepeat(sdSphere(camPos, vec3(0, 0, 20), 2.5), 10.f));*/
 }
 
 IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
@@ -278,6 +324,27 @@ vec3 shading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, bool checkShadow
     return col;
 }
 
+
+vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
+    vec3 albedo = vec3(1);//mix( vec3(1,.8,.7), vec3(.5,.2,.1), Noise(pos*vec3(1,10,1)) );
+    const vec3 fillLightDir = vec3(0, 0, -1);
+    const vec3 lightColour = vec3(1.1, 1.05, 1);
+    const vec3 fillLightColour = vec3(.38, .4, .42);
+    vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
+    vec3 fl = fillLightColour*(dot(normal, normalize(fillLightDir))*.5+.5);
+
+    vec3 view = normalize(-rayDir);
+    vec3 h = normalize(view+lightDir);
+    float specular = pow(max(0.0, dot(h, normal)), 2000.0);
+
+    float fresnel = pow(1.0 - dot(view, normal), 5.0);
+    fresnel = mix(.01, 1.0, min(1.0, fresnel));
+
+    //fresnel = 0.0;
+
+    return vec4(albedo*(l+fl)*(1.0-fresnel) + visibility*specular*32.0*lightColour, fresnel);
+}
+
 RenderResult renderRefraction(vec3 rayOrigin, vec3 rayDir) {
     float refractionRatio = 1.0 / 1.6;
     const int refractLimit = 100;
@@ -340,10 +407,9 @@ RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
         vec3 lightDir = normalize(lightPos);//-pos);
         vec3 normal = calcNormal(pos);
 
-        col = shading(pos, normal, lightDir, rayDir, true);
 
         vec3 subsurface = castScatterRay(pos + rayDir * 0.001, lightDir);
-        col = col + subsurface * 0.3;
+        col = subSurfaceShading(pos, normal, lightDir, rayDir, subsurface).xyz;
 
         //col = normal;
         //col = smoothstep(0.0,1.0,col);
@@ -361,7 +427,6 @@ RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
 }
 
 RenderResult render(vec3 rayOrigin, vec3 rayDir) {
-    return renderScattering(rayOrigin, rayDir);
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
     vec3 col;
     if (intersectionResult.minDist <= -1.0) {
@@ -372,9 +437,6 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
         vec3 normal = calcNormal(pos);
 
         col = shading(pos, normal, lightDir, rayDir, true);
-
-
-
 
         if (enableReflections) {
             vec3 reflColor = vec3(0);

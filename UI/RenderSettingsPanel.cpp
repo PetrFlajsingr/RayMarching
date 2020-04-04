@@ -20,6 +20,9 @@ ui::RenderSettingsPanel::RenderSettingsPanel() {
 auto ui::RenderSettingsPanel::onFrame() -> void {
   if (isVisible()) {
     ImGui::Begin("Render settings");
+    if (ImGui::Button("Reload shader")) {
+      onReloadShaderClicked();
+    }
     if (ImGui::BeginCombo("Texture", currentItem)) {
       for (auto &choice : textureChoiceItems) {
         bool isSelected = (currentItem == choice.data());

@@ -12,8 +12,8 @@ using namespace ShaderLiterals;
 using namespace ray_march;
 
 RayMarcher::RayMarcher(const TextureSize &textureSize)
-    : csProgram(loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
-                           "inc_CSG_operations", "inc_utils")),
+    : csProgram(std::make_shared<ge::gl::Program>(loadShader(
+          GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils"))),
       renderProgram("render"_vert, "render"_frag),
       renderTexture(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second),
       stepCountTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
@@ -60,16 +60,16 @@ auto RayMarcher::unBindTextures() -> void {
 }
 
 auto RayMarcher::render() -> void {
-  ScopedShaderProgramUsage scopedProgram{csProgram};
+  ScopedShaderProgramUsage scopedProgram{*csProgram};
   bindTextures();
   scopedProgram->set("stepLimit", rayStepLimit);
   scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  // scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
-  // scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
-  // scopedProgram->set("enableReflections", reflectionsEnabled);
-  // scopedProgram->set("maxReflections", maxReflections);
+  scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
+  scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
+  scopedProgram->set("enableReflections", reflectionsEnabled);
+  scopedProgram->set("maxReflections", maxReflections);
   scopedProgram->set("shadowType", static_cast<int>(shadowType));
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
@@ -117,3 +117,13 @@ auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowT
 auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
 auto RayMarcher::setReflectionsEnabled(bool areReflectionsEnabled) -> void { reflectionsEnabled = areReflectionsEnabled; }
 auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
+
+auto RayMarcher::reloadShader() -> void {
+  try {
+    auto tmpShader = loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
+                                "inc_CSG_operations", "inc_utils");
+    csProgram = std::make_shared<ge::gl::Program>(tmpShader);
+  } catch (...) {
+    spdlog::error("Shader loading failed");
+  }
+}

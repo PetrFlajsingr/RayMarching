@@ -3,6 +3,7 @@
 //
 #include "UI/UI.h"
 #include "common/GlslShaderLoader.h"
+#include "ray_marching/CSGTree.h"
 #include "ray_marching/RayMarcher.h"
 #include <Camera.h>
 #include <SDL2CPP/MainLoop.h>
@@ -15,6 +16,24 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <utility>
+#include <various/overload.h>
+void test() {
+  CSGTree tree;
+  tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
+  auto &root = dynamic_cast<OperationCSGNode &>(*tree.root);
+  // root.setLeftChild(std::make_unique<ShapeCSGNode>(std::make_unique<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3})));
+
+  auto &op = dynamic_cast<OperationCSGNode &>(root.setLeftChild<OperationUnion>());
+
+  op.setLeftChild<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3});
+  op.setRightChild<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3});
+
+  root.setRightChild<SphereShape>(glm::vec3{4, 4, 4}, 5);
+
+  csgInorder(root, overload{[](OperationCSGNode &node) { std::cout << node.getOperation().getName() << std::endl; },
+                            [](ShapeCSGNode &node) { std::cout << node.getShape().getName() << std::endl; }});
+}
+
 auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   SDL_DisplayMode displayMode;
   if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
@@ -26,6 +45,7 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 }
 
 auto main() -> int {
+
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
   auto [screenWidth, screenHeight] = getDisplaySize();
@@ -50,27 +70,27 @@ auto main() -> int {
 
   Camera camera{PerspectiveProjection{0, 0, 0, 0}};
   bool isCameraControlled = false;
-  window->setEventCallback(SDL_MOUSEMOTION, [&isCameraControlled, &camera] (const SDL_Event &event) {
+  window->setEventCallback(SDL_MOUSEMOTION, [&isCameraControlled, &camera](const SDL_Event &event) {
     if (isCameraControlled) {
       camera.ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
       return true;
     }
     return false;
   });
-  window->setEventCallback(SDL_MOUSEBUTTONDOWN, [&isCameraControlled] (const SDL_Event &event) {
+  window->setEventCallback(SDL_MOUSEBUTTONDOWN, [&isCameraControlled](const SDL_Event &event) {
     isCameraControlled = event.button.button == SDL_BUTTON_RIGHT;
     return isCameraControlled;
   });
-  window->setEventCallback(SDL_MOUSEBUTTONUP, [&isCameraControlled] (const SDL_Event &event) {
+  window->setEventCallback(SDL_MOUSEBUTTONUP, [&isCameraControlled](const SDL_Event &event) {
     if (isCameraControlled && event.button.button == SDL_BUTTON_RIGHT) {
       isCameraControlled = false;
       return true;
     }
     return false;
   });
-  window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera] (const SDL_Event &event) {
+  window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera](const SDL_Event &event) {
     if (isCameraControlled) {
-      constexpr auto movementSpeed = 1.0f;
+      constexpr auto movementSpeed = 0.01f;
       const auto pressedKey = event.key.keysym.sym;
       switch (pressedKey) {
       case SDLK_w:
@@ -102,6 +122,8 @@ auto main() -> int {
     }
     return true;
   });
+
+  ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
 
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

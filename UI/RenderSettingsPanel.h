@@ -6,6 +6,7 @@
 #define RAYMARCHING_RENDERSETTINGSPANEL_H
 #include "../ray_marching/RayMarcher.h"
 #include "Panel.h"
+#include <functional>
 #include <string>
 #include <vector>
 namespace ui {
@@ -14,6 +15,8 @@ public:
   RenderSettingsPanel();
 
   auto onFrame() -> void override;
+
+  template <typename F> auto setOnReloadShaderClicked(F &&onClicked) { onReloadShaderClicked = onClicked; }
 
   [[nodiscard]] auto getSelectedTextureType() const -> ray_march::Tex;
   [[nodiscard]] auto getShadowType() const -> ray_march::Shadows;
@@ -41,6 +44,8 @@ private:
   bool ambientOcclusionEnabled = false;
   bool antiAliasingEnabled = false;
   bool reflectionsEnabled = false;
+
+  std::function<void()> onReloadShaderClicked;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

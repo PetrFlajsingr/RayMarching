@@ -38,8 +38,10 @@ public:
   auto setAASize(int aaSize) -> void;
   auto setMaxReflections(int maxReflections) -> void;
 
+  auto reloadShader() -> void;
+
 private:
-  ge::gl::Program csProgram;
+  std::shared_ptr<ge::gl::Program> csProgram;
   ge::gl::Program renderProgram;
 
   ge::gl::Texture renderTexture;
