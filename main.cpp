@@ -92,6 +92,17 @@ auto main() -> int {
     return false;
   });
 
+  window->setWindowEventCallback(SDL_WINDOWEVENT_RESIZED, [&screenWidth, &screenHeight, &rayMarcher](const SDL_Event &event) {
+    auto diff = screenWidth - event.window.data1;
+    diff += screenHeight - event.window.data2;
+    if (diff > 50) {
+      screenWidth = event.window.data1;
+      screenHeight = event.window.data2;
+      rayMarcher.changeRenderSize({screenWidth, screenHeight});
+    }
+    return true;
+  });
+
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
