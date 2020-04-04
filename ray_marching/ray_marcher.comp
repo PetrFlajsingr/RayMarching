@@ -29,7 +29,7 @@ const vec3 lightPos = vec3(0, 25, 1 + cos(time / 10) * 100);// TODO
 
 #define SHADES 0
 
-#define EPSILON  0.000001
+#define EPSILON  0.0001
 #define SHADOW_FALLOFF 0.05
 #define SHADOW_OPACITY 0.8
 
@@ -99,15 +99,21 @@ float map(in vec3 p)
 }
 
 vec2 distToObjects(vec3 camPos) {
-    return vec2(map(camPos));
-    /*
+    //return
+    //opUnion(
+    //opBlend(
+    //vec2(sdBox(camPos - vec3(0.0, -5.0, 0.0), vec3(30.0, 1.0, 30.0))), vec2(sdBox(camPos - vec3(0.0, -2.0, 0.0), vec3(3.0, 3.0, 3.0))), 10.0), vec2(sdSphere(camPos - vec3(4.0, 4.0, 4.0), 5.0)));
+
+
+    //return vec2(map(camPos));
+
     //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(mengerSponge(camPos).x);
     //return vec2(camPos.y - sin(camPos.x  + time * 0.000000001) - sin(camPos.z));
     const float sphere1X = 3 + cos(time) * 5;
     vec2 d = vec2(sdSphere(camPos-vec3(sphere1X, -2.5, 10), 2.5));
-    d = opUnion(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)));
-    d = opUnion(d, vec2(sdSphere(camPos-vec3(0, 2, 10), 2.5)));
+    d = opBlend(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)), 20);
+    d = opSubstraction(d, vec2(sdSphere(camPos-vec3(0, 2 + sin(time) * 5, 10), 2.5)));
     d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
     //d = opBlend(d, vec2(sdPlane(camPos - vec3(5, 0, 0), vec4(1.4, 0, 0, 10))));
 
@@ -116,12 +122,12 @@ vec2 distToObjects(vec3 camPos) {
     vec2 b = opIntersection(a, vec2(sdBox(camPos - vec3(0, -5 + cos(time) * 50, 0), vec3(1000, 10, 1000))));
     vec2 c = opIntersection(a, vec2(sdBox(camPos - vec3(0, -5 + sin(time) * 50, 0), vec3(1000, 10, 1000))));
     d = opSmoothSubtraction(c, d, 50);
-    d = opBlend(d, b);
+    d = opBlend(d, b, 10);
 
-    //return d;
-    return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
+    return d;
+    //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(sdSphere(camPos, vec3(3, -2.5, 10), 2.5));
-    //return vec2(opRepeat(sdSphere(camPos, vec3(0, 0, 20), 2.5), 10.f));*/
+    //return vec2(opRepeat(sdSphere(camPos, vec3(0, 0, 20), 2.5), 10.f));
 }
 
 IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
@@ -347,7 +353,7 @@ vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 v
 
 RenderResult renderRefraction(vec3 rayOrigin, vec3 rayDir) {
     float refractionRatio = 1.0 / 1.6;
-    const int refractLimit = 100;
+    const int refractLimit = 5;
 
     vec3 col = vec3(0);
     vec3 lightDir = normalize(lightPos);
@@ -429,6 +435,8 @@ RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
 RenderResult render(vec3 rayOrigin, vec3 rayDir) {
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
     vec3 col;
+    int steps = intersectionResult.steps;
+    float depth = intersectionResult.minDist;
     if (intersectionResult.minDist <= -1.0) {
         col = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
     } else {
@@ -440,7 +448,8 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
 
         if (enableReflections) {
             vec3 reflColor = vec3(0);
-            for (int i = 0; i < maxReflections; i++) {
+            int i = 0;
+            for (i = 0; i < maxReflections; i++) {
                 rayDir = reflect(rayDir, normal);
                 IntersectionResult reflIntersectionResult = castReflRay(pos + rayDir * 0.001, rayDir);
                 if (reflIntersectionResult.minDist > -1.0) {
@@ -451,8 +460,9 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
                 } else {
                     reflColor += (vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7)) * 0.2;
                 }
+                steps += intersectionResult.steps;
             }
-            col += reflColor;
+            col += reflColor / i;
         }
 
         //col = normal;
@@ -465,8 +475,8 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
 
     RenderResult result;
     result.color = vec4(col, 1);
-    result.stepCount = intersectionResult.steps;
-    result.depth = intersectionResult.minDist;
+    result.stepCount = steps;
+    result.depth = depth;
     return result;
 }
 
@@ -515,10 +525,11 @@ void main() {
     }
 
     float logStepColor = logNormalize(renderResult.stepCount, 0, stepLimit, 0, 1);
+    float logDepth = logNormalize(renderResult.depth, 0, maxDrawDistance, 0, 1);
     float stepColor = renderResult.stepCount / float(64);
     //renderResult.color += stepColor * vec4(1, 0, 0, 0);
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
     imageStore(stepCountTexture, texCoord, vec4(logStepColor, 0, 0, 0));
     imageStore(renderTexture, texCoord, renderResult.color);
-    imageStore(depthTexture, texCoord, vec4(renderResult.depth / maxDrawDistance, 0, 0, 0));
+    imageStore(depthTexture, texCoord, vec4(logDepth, 0, 0, 0));
 }

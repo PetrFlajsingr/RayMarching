@@ -31,6 +31,7 @@ constexpr uint8_t operationFlag = 0b00000000;
 constexpr uint8_t shapeFlag = 0b10000000;
 
 struct OperationUnion;
+struct OperationSubstraction;
 struct BoxShape;
 struct SphereShape;
 class Operation;
@@ -39,26 +40,10 @@ struct Shape;
 template <typename T> concept C_Shape = std::is_base_of_v<Shape, T>;
 template <typename T> concept C_Operation = std::is_base_of_v<Operation, T>;
 
-template <typename T> constexpr uint8_t flagForOperation() {
-  if constexpr (std::is_same_v<T, OperationUnion>) {
-    return 0b00000000;
-  }
-  throw "invalid operation type";
-}
-
-template <typename T> constexpr uint8_t flagForShape() {
-  if constexpr (std::is_same_v<T, BoxShape>) {
-    return 0b00000000;
-  }
-  if constexpr (std::is_same_v<T, SphereShape>) {
-    return flagForShape<BoxShape>() + 0b00000001;
-  }
-  throw "invalid operation type";
-}
-
 struct CSGRawData {
   [[nodiscard]] virtual auto getRaw() -> std::vector<uint8_t> = 0;
   [[nodiscard]] virtual auto getDataSize() -> std::size_t = 0;
+  [[nodiscard]] virtual auto src() -> std::string = 0;
   virtual ~CSGRawData() = default;
 };
 
@@ -68,8 +53,30 @@ public:
 };
 
 struct OperationUnion : public Operation {
-  std::vector<uint8_t> getRaw() override;
+  auto getRaw() -> std::vector<uint8_t> override;
   [[nodiscard]] auto getDataSize() -> std::size_t override;
+  [[nodiscard]] auto src() -> std::string override;
+
+private:
+  [[nodiscard]] auto getName() const -> std::string override;
+};
+
+struct OperationSubstraction : public Operation {
+  auto getRaw() -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() -> std::size_t override;
+  [[nodiscard]] auto src() -> std::string override;
+
+private:
+  [[nodiscard]] auto getName() const -> std::string override;
+};
+
+struct OperationBlend : public Operation {
+  explicit OperationBlend(float k);
+  auto getRaw() -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() -> std::size_t override;
+  [[nodiscard]] auto src() -> std::string override;
+
+  float k;
 
 private:
   [[nodiscard]] auto getName() const -> std::string override;
@@ -78,7 +85,7 @@ private:
 struct Shape : public CSGRawData {
   explicit Shape(const glm::vec3 &position) : position(position) {}
   glm::vec3 position;
-  [[nodiscard]] virtual std::string getName() const = 0;
+  [[nodiscard]] virtual auto getName() const -> std::string = 0;
 };
 
 struct BoxShape : public Shape {
@@ -87,6 +94,7 @@ struct BoxShape : public Shape {
   [[nodiscard]] auto getRaw() -> std::vector<uint8_t> override;
   [[nodiscard]] auto getDataSize() -> std::size_t override;
   [[nodiscard]] auto getName() const -> std::string override;
+  [[nodiscard]] auto src() -> std::string override;
 };
 
 struct SphereShape : public Shape {
@@ -95,12 +103,14 @@ struct SphereShape : public Shape {
   [[nodiscard]] auto getRaw() -> std::vector<uint8_t> override;
   [[nodiscard]] auto getDataSize() -> std::size_t override;
   [[nodiscard]] auto getName() const -> std::string override;
+  [[nodiscard]] auto src() -> std::string override;
 };
 
 class CSGNode {
 public:
   [[nodiscard]] virtual auto isLeaf() const -> bool = 0;
-
+  [[nodiscard]] virtual auto getRawData() -> std::vector<uint8_t> = 0;
+  [[nodiscard]] virtual auto getRawDataSize() -> std::size_t = 0;
   virtual ~CSGNode() = default;
 };
 
@@ -109,14 +119,11 @@ public:
   explicit ShapeCSGNode(std::unique_ptr<Shape> &&shape);
   [[nodiscard]] auto isLeaf() const -> bool override;
   [[nodiscard]] auto getShape() -> Shape &;
+  [[nodiscard]] auto getRawData() -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getRawDataSize() -> std::size_t override;
 
 private:
   std::unique_ptr<Shape> shape;
-};
-
-class CSGTree {
-public:
-  std::unique_ptr<CSGNode> root = nullptr;
 };
 
 class OperationCSGNode : public CSGNode {
@@ -136,6 +143,9 @@ public:
     return internalSetRightChild(std::make_unique<OperationCSGNode>(std::make_unique<T>(std::forward<Args>(args)...)));
   }
 
+  [[nodiscard]] auto getRawData() -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getRawDataSize() -> std::size_t override;
+
   [[nodiscard]] auto getLeftChild() -> CSGNode &;
   [[nodiscard]] auto getRightChild() -> CSGNode &;
   [[nodiscard]] auto isLeaf() const -> bool override;
@@ -148,6 +158,12 @@ private:
   std::unique_ptr<CSGNode> leftChild;
   std::unique_ptr<CSGNode> rightChild;
   std::unique_ptr<Operation> operation;
+};
+class CSGTree {
+public:
+  std::unique_ptr<CSGNode> root = nullptr;
+
+  auto src() -> std::string;
 };
 
 template <typename F> auto csgPreorder(CSGNode &node, F &&callable) -> void {
@@ -169,6 +185,26 @@ template <typename F> auto csgInorder(CSGNode &node, F &&callable) -> void {
     csgInorder(opNode.getLeftChild(), callable);
     csgInorder(opNode.getRightChild(), callable);
   }
+}
+
+template <C_Operation T> constexpr uint8_t flagForOperation() {
+  if constexpr (std::is_same_v<T, OperationUnion>) {
+    return 0b00000000;
+  } else if constexpr (std::is_same_v<T, OperationSubstraction>) {
+    return flagForOperation<OperationUnion>() + 0b00000001;
+  } else if constexpr (std::is_same_v<T, OperationBlend>) {
+    return flagForOperation<OperationSubstraction>() + 0b00000001;
+  }
+  throw "invalid operation type";
+}
+
+template <C_Shape T> constexpr uint8_t flagForShape() {
+  if constexpr (std::is_same_v<T, BoxShape>) {
+    return 0b00000000;
+  } else if constexpr (std::is_same_v<T, SphereShape>) {
+    return flagForShape<BoxShape>() + 0b00000001;
+  }
+  throw "invalid operation type";
 }
 
 #endif // RAYMARCHING_CSGTREE_H

@@ -23,15 +23,14 @@ void test() {
   auto &root = dynamic_cast<OperationCSGNode &>(*tree.root);
   // root.setLeftChild(std::make_unique<ShapeCSGNode>(std::make_unique<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3})));
 
-  auto &op = dynamic_cast<OperationCSGNode &>(root.setLeftChild<OperationUnion>());
+  auto &op = dynamic_cast<OperationCSGNode &>(root.setLeftChild<OperationBlend>(10));
 
-  op.setLeftChild<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3});
-  op.setRightChild<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3});
+  op.setRightChild<BoxShape>(glm::vec3{0, -2, 0}, glm::vec3{3, 3, 3});
+  op.setLeftChild<BoxShape>(glm::vec3{0, -5, 0}, glm::vec3{30, 1, 30});
 
   root.setRightChild<SphereShape>(glm::vec3{4, 4, 4}, 5);
 
-  csgInorder(root, overload{[](OperationCSGNode &node) { std::cout << node.getOperation().getName() << std::endl; },
-                            [](ShapeCSGNode &node) { std::cout << node.getShape().getName() << std::endl; }});
+  std::cout << tree.src() << std::endl;
 }
 
 auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
@@ -45,7 +44,8 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 }
 
 auto main() -> int {
-
+  test();
+  // return 0;
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
   auto [screenWidth, screenHeight] = getDisplaySize();
@@ -90,7 +90,7 @@ auto main() -> int {
   });
   window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera](const SDL_Event &event) {
     if (isCameraControlled) {
-      constexpr auto movementSpeed = 0.01f;
+      constexpr auto movementSpeed = 1.0f;
       const auto pressedKey = event.key.keysym.sym;
       switch (pressedKey) {
       case SDLK_w:

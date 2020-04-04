@@ -119,11 +119,12 @@ auto RayMarcher::setReflectionsEnabled(bool areReflectionsEnabled) -> void { ref
 auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
 
 auto RayMarcher::reloadShader() -> void {
-  try {
-    auto tmpShader = loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
-                                "inc_CSG_operations", "inc_utils");
-    csProgram = std::make_shared<ge::gl::Program>(tmpShader);
-  } catch (...) {
+  auto tmpShader = loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
+                              "inc_CSG_operations", "inc_utils");
+  auto tmpProgram = std::make_shared<ge::gl::Program>(tmpShader);
+  if (tmpProgram->getLinkStatus()) {
+    csProgram = tmpProgram;
+  } else {
     spdlog::error("Shader loading failed");
   }
 }
