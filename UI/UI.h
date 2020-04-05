@@ -4,6 +4,7 @@
 
 #ifndef RAYMARCHING_UI_H
 #define RAYMARCHING_UI_H
+#include "CameraPanel.h"
 #include "FPSPanel.h"
 #include "GPUPanel.h"
 #include "RenderSettingsPanel.h"
@@ -32,12 +33,16 @@ public:
   [[nodiscard]] auto getRenderSettingsPanel() const -> const RenderSettingsPanel &;
   [[nodiscard]] auto getRenderSettingsPanel() -> RenderSettingsPanel &;
 
+  [[nodiscard]] auto getCameraPanel() const -> const CameraPanel &;
+  [[nodiscard]] auto getCameraPanel() -> CameraPanel &;
+
 private:
   ImGuiContext *ctx;
   ImGuiIO &io;
   FPSPanel fpsPanel;
   GPUPanel gpuPanel;
   RenderSettingsPanel renderSettingsPanel;
+  CameraPanel cameraPanel;
 
   std::vector<Panel *> panels;
   sdl2cpp::Window &window;

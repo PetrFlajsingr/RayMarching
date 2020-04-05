@@ -7,6 +7,7 @@
 
 #include "CSGOperations.h"
 #include "CSGShapes.h"
+#include <functional>
 #include <glm/vec3.hpp>
 #include <memory>
 #include <vector>
@@ -26,6 +27,7 @@ public:
   [[nodiscard]] auto getShape() -> Shape &;
   [[nodiscard]] auto getRawData() -> std::vector<uint8_t> override;
   [[nodiscard]] auto getRawDataSize() -> std::size_t override;
+  [[nodiscard]] auto eval(const glm::vec3 &camPos) -> float;
 
 private:
   std::unique_ptr<Shape> shape;
@@ -55,6 +57,7 @@ public:
   [[nodiscard]] auto getRightChild() -> CSGNode &;
   [[nodiscard]] auto isLeaf() const -> bool override;
   [[nodiscard]] auto getOperation() -> Operation &;
+  [[nodiscard]] auto eval(float d1, float d2) -> float;
 
 private:
   auto internalSetLeftChild(std::unique_ptr<CSGNode> &&leftChild) -> CSGNode &;
@@ -69,6 +72,9 @@ public:
   std::unique_ptr<CSGNode> root = nullptr;
 
   auto src() -> std::string;
+
+  auto eval(const glm::vec3 &camPos) -> float;
+  ;
 };
 
 template <typename F> auto csgPreorder(CSGNode &node, F &&callable) -> void {

@@ -17,6 +17,7 @@ ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::stri
   panels.emplace_back(&gpuPanel);
   panels.emplace_back(&fpsPanel);
   panels.emplace_back(&renderSettingsPanel);
+  panels.emplace_back(&cameraPanel);
 }
 
 auto ui::UI::onFrame() -> void {
@@ -46,3 +47,5 @@ auto ui::UI::getGpuPanel() -> ui::GPUPanel & { return gpuPanel; }
 auto ui::UI::getRenderSettingsPanel() const -> const ui::RenderSettingsPanel & { return renderSettingsPanel; }
 
 auto ui::UI::getRenderSettingsPanel() -> ui::RenderSettingsPanel & { return renderSettingsPanel; }
+auto ui::UI::getCameraPanel() const -> const CameraPanel & { return cameraPanel; }
+auto ui::UI::getCameraPanel() -> CameraPanel & { return cameraPanel; }

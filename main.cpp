@@ -17,21 +17,6 @@
 #include <spdlog/spdlog.h>
 #include <utility>
 #include <various/overload.h>
-void test() {
-  CSGTree tree;
-  tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
-  auto &root = dynamic_cast<OperationCSGNode &>(*tree.root);
-  // root.setLeftChild(std::make_unique<ShapeCSGNode>(std::make_unique<BoxShape>(glm::vec3{0, 0, 0}, glm::vec3{3, 3, 3})));
-
-  auto &op = dynamic_cast<OperationCSGNode &>(root.setLeftChild<OperationBlend>(10));
-
-  op.setRightChild<BoxShape>(glm::vec3{0, -2, 0}, glm::vec3{3, 3, 3});
-  op.setLeftChild<BoxShape>(glm::vec3{0, -5, 0}, glm::vec3{30, 1, 30});
-
-  root.setRightChild<SphereShape>(glm::vec3{4, 4, 4}, 5);
-
-  std::cout << tree.src() << std::endl;
-}
 
 auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   SDL_DisplayMode displayMode;
@@ -44,8 +29,19 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 }
 
 auto main() -> int {
-  test();
-  // return 0;
+  CSGTree tree;
+  tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationBlend>(20));
+  auto &root = dynamic_cast<OperationCSGNode &>(*tree.root);
+
+  auto &op = dynamic_cast<OperationCSGNode &>(root.setLeftChild<OperationBlend>(10));
+
+  op.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{3, 3, 3});
+  op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
+
+  root.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
+
+  std::cout << tree.src() << std::endl;
+
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
   auto [screenWidth, screenHeight] = getDisplaySize();
@@ -124,10 +120,20 @@ auto main() -> int {
     return true;
   });
 
+  glm::vec3 lastCamPos = camera.Position;
   ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
 
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    float currentDistance = tree.eval(camera.Position);
+    if (!ui.getCameraPanel().isClippingEnabled()) {
+      if (currentDistance < 0) {
+        camera.Position = lastCamPos;
+      }
+    }
+    lastCamPos = camera.Position;
+    ui.getCameraPanel().setDistance(currentDistance);
 
     const auto swapInterval = ui.getFPSPanel().isVsyncEnabled() ? 1 : 0;
     SDL_GL_SetSwapInterval(swapInterval);
