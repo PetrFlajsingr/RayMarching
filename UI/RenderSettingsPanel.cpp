@@ -52,8 +52,9 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 0.1f, 10000.f);
     ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
     ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
-    ImGui::Checkbox("Anti aliasing", &antiAliasingEnabled);
-    ImGui::SliderInt("AAx", &aaX, 1, 8);
+    ImGui::Checkbox("FXAA", &enableFXAA);
+    ImGui::Checkbox("MSAA", &antiAliasingEnabled);
+    ImGui::SliderInt("MSAAx", &aaX, 1, 8);
     ImGui::Checkbox("Reflections", &reflectionsEnabled);
     ImGui::SliderInt("Max reflections", &maxReflections, 1, 10);
     ImGui::End();
@@ -76,3 +77,4 @@ auto ui::RenderSettingsPanel::getAA() const -> int { return aaX; }
 auto ui::RenderSettingsPanel::getShadowRayStepLimit() const -> int { return shadowRayStepLimit; }
 auto ui::RenderSettingsPanel::areReflectionsEnabled() const -> bool { return reflectionsEnabled; }
 auto ui::RenderSettingsPanel::getMaxReflections() const -> int { return maxReflections; }
+auto ui::RenderSettingsPanel::isFXAAEnabled() const -> bool { return enableFXAA; }

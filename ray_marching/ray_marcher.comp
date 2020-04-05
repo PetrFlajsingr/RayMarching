@@ -499,6 +499,7 @@ void main() {
     if (gl_GlobalInvocationID.x >= resolution.x || gl_GlobalInvocationID.y >= resolution.y) {
         return;
     }
+    const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
 
     RenderResult renderResult;
     if (enableAntiAliasing) {
@@ -527,7 +528,7 @@ void main() {
     float logDepth = logNormalize(renderResult.depth, 0, maxDrawDistance, 0, 1);
     float stepColor = renderResult.stepCount / float(64);
     //renderResult.color += stepColor * vec4(1, 0, 0, 0);
-    const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+
     imageStore(stepCountTexture, texCoord, vec4(logStepColor, 0, 0, 0));
     imageStore(renderTexture, texCoord, renderResult.color);
     imageStore(depthTexture, texCoord, vec4(logDepth, 0, 0, 0));

@@ -94,6 +94,7 @@ auto RayMarcher::show(Tex tex) -> void {
     stepCountTexture->bind(0);
     break;
   }
+  scopedProgram->set("enableFXAA", enableFXAA);
 
   ge::gl::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
@@ -129,3 +130,4 @@ auto RayMarcher::reloadShader() -> void {
     spdlog::error("Shader loading failed");
   }
 }
+auto RayMarcher::setFXAAEnabled(bool enabled) -> void { enableFXAA = enabled; }

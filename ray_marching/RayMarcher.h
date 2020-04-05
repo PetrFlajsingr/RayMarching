@@ -37,6 +37,7 @@ public:
   auto setShadowType(Shadows shadowType) -> void;
   auto setAASize(int aaSize) -> void;
   auto setMaxReflections(int maxReflections) -> void;
+  auto setFXAAEnabled(bool enabled) -> void;
 
   auto reloadShader() -> void;
 
@@ -71,6 +72,7 @@ private:
   bool ambientOcclusionEnabled = false;
   bool antiAliasingEnabled = false;
   bool reflectionsEnabled = false;
+  bool enableFXAA = false;
 
   glm::vec3 cameraPosition;
   glm::vec3 cameraFront;

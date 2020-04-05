@@ -29,6 +29,7 @@ public:
   [[nodiscard]] auto getAA() const -> int;
   [[nodiscard]] auto areReflectionsEnabled() const -> bool;
   [[nodiscard]] auto getMaxReflections() const -> int;
+  [[nodiscard]] auto isFXAAEnabled() const -> bool;
 
 private:
   const char *currentItem;
@@ -44,6 +45,7 @@ private:
   bool ambientOcclusionEnabled = false;
   bool antiAliasingEnabled = false;
   bool reflectionsEnabled = false;
+  bool enableFXAA = false;
 
   std::function<void()> onReloadShaderClicked;
 };

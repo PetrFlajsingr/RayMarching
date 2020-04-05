@@ -152,6 +152,7 @@ auto main() -> int {
     rayMarcher.setReflectionsEnabled(ui.getRenderSettingsPanel().areReflectionsEnabled());
     rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
     rayMarcher.render();
+    rayMarcher.setFXAAEnabled(ui.getRenderSettingsPanel().isFXAAEnabled());
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();
     window->swap();
