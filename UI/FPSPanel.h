@@ -16,6 +16,8 @@ public:
   auto operator=(FPSPanel &&other) -> FPSPanel & = delete;
   auto operator=(const FPSPanel &other) -> FPSPanel & = delete;
 
+  [[nodiscard]] auto getFPSCounter() const -> const FPSCounter &;
+
   auto onFrame() -> void override;
   auto reset() -> void;
 

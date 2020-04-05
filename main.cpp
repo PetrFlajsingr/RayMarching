@@ -88,6 +88,7 @@ auto main() -> int {
     }
     return false;
   });
+  SDL_GL_SetSwapInterval(0);
   window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera](const SDL_Event &event) {
     if (isCameraControlled) {
       constexpr auto movementSpeed = 1.0f;
@@ -128,6 +129,8 @@ auto main() -> int {
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    const auto currentFps = ui.getFPSPanel().getFPSCounter().current();
+
     rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
     rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
     rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
@@ -143,7 +146,7 @@ auto main() -> int {
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();
     window->swap();
-    time += 1 / 60.0f * ui.getRenderSettingsPanel().getTimeScale();
+    time += 1 / currentFps * ui.getRenderSettingsPanel().getTimeScale();
   });
   spdlog::info("Starting main loop");
   (*mainLoop)();

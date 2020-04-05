@@ -6,7 +6,8 @@
 #define RAYMARCHING_CSGCOMMON_H
 
 #include <array>
-
+#include <glm/glm.hpp>
+#include <vector>
 class Operation;
 class Shape;
 

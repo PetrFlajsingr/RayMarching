@@ -18,3 +18,5 @@ auto ui::FPSPanel::onFrame() -> void {
 }
 
 auto ui::FPSPanel::reset() -> void { fpsCounter.restart(); }
+
+auto ui::FPSPanel::getFPSCounter() const -> const FPSCounter & { return fpsCounter; }
