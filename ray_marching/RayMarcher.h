@@ -44,9 +44,9 @@ private:
   std::shared_ptr<ge::gl::Program> csProgram;
   ge::gl::Program renderProgram;
 
-  ge::gl::Texture renderTexture;
-  ge::gl::Texture stepCountTexture;
-  ge::gl::Texture depthTexture;
+  std::shared_ptr<ge::gl::Texture> renderTexture;
+  std::shared_ptr<ge::gl::Texture> stepCountTexture;
+  std::shared_ptr<ge::gl::Texture> depthTexture;
 
   static constexpr int renderTextureBinding = 0;
   static constexpr int stepCountTextureBinding = 1;

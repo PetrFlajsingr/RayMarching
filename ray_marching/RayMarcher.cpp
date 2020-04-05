@@ -15,9 +15,9 @@ RayMarcher::RayMarcher(const TextureSize &textureSize)
     : csProgram(std::make_shared<ge::gl::Program>(loadShader(
           GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils"))),
       renderProgram("render"_vert, "render"_frag),
-      renderTexture(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second),
-      stepCountTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
-      depthTexture(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second),
+      renderTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second)),
+      stepCountTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second)),
+      depthTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second)),
       quadVertices({
           -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
           1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
@@ -31,32 +31,32 @@ RayMarcher::RayMarcher(const TextureSize &textureSize)
 
 auto RayMarcher::changeRenderSize(const TextureSize &textureSize) -> void {
   spdlog::debug("[Ray_marcher]Changing texture size to {}x{}", textureSize.first, textureSize.second);
-  renderTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second};
-  stepCountTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second};
-  depthTexture = ge::gl::Texture{GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second};
+  renderTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second);
+  stepCountTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second);
+  depthTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second);
   setTextureInterpolation();
   RayMarcher::textureSize = textureSize;
 }
 
 auto RayMarcher::setTextureInterpolation() -> void {
-  renderTexture.texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  renderTexture.texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  stepCountTexture.texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  stepCountTexture.texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  depthTexture.texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  depthTexture.texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  renderTexture->texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  renderTexture->texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  stepCountTexture->texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  stepCountTexture->texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  depthTexture->texParameteri(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  depthTexture->texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 auto RayMarcher::bindTextures() -> void {
-  renderTexture.bindImage(renderTextureBinding);
-  stepCountTexture.bindImage(stepCountTextureBinding);
-  depthTexture.bindImage(depthTextureBinding);
+  renderTexture->bindImage(renderTextureBinding);
+  stepCountTexture->bindImage(stepCountTextureBinding);
+  depthTexture->bindImage(depthTextureBinding);
 }
 
 auto RayMarcher::unBindTextures() -> void {
-  renderTexture.unbind(renderTextureBinding);
-  stepCountTexture.unbind(stepCountTextureBinding);
-  depthTexture.unbind(depthTextureBinding);
+  renderTexture->unbind(renderTextureBinding);
+  stepCountTexture->unbind(stepCountTextureBinding);
+  depthTexture->unbind(depthTextureBinding);
 }
 
 auto RayMarcher::render() -> void {
@@ -81,16 +81,17 @@ auto RayMarcher::render() -> void {
 }
 auto RayMarcher::show(Tex tex) -> void {
   ScopedShaderProgramUsage scopedProgram{renderProgram};
+  ge::gl::glViewport(0, 0, textureSize.first, textureSize.second);
   quadVAO.bind();
   switch (tex) {
   case Tex::Render:
-    renderTexture.bind(0);
+    renderTexture->bind(0);
     break;
   case Tex::Depth:
-    depthTexture.bind(0);
+    depthTexture->bind(0);
     break;
   case Tex::StepCount:
-    stepCountTexture.bind(0);
+    stepCountTexture->bind(0);
     break;
   }
 
@@ -99,7 +100,7 @@ auto RayMarcher::show(Tex tex) -> void {
 
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
   constexpr double groupSize = 32;
-  return {renderTexture.getWidth(0) / groupSize + 1, renderTexture.getHeight(0) / groupSize + 1};
+  return {renderTexture->getWidth(0) / groupSize + 1, renderTexture->getHeight(0) / groupSize + 1};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
 auto RayMarcher::setShadowRayStepLimit(int limit) -> void { shadowRayStepLimit = limit; }
