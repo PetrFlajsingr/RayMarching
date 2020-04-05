@@ -17,6 +17,8 @@ constexpr uint8_t shapeFlag = 0b10000000;
 template <typename T> concept C_Shape = std::is_base_of_v<Shape, T>;
 template <typename T> concept C_Operation = std::is_base_of_v<Operation, T>;
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-member-init"
 inline auto vec3ToBytes(const glm::vec3 &vec) -> std::array<uint8_t, 12> {
   auto raw = reinterpret_cast<uint8_t const *>(&vec);
   std::array<uint8_t, 12> result;
@@ -25,7 +27,6 @@ inline auto vec3ToBytes(const glm::vec3 &vec) -> std::array<uint8_t, 12> {
   }
   return result;
 }
-
 inline auto floatToBytes(float val) -> std::array<uint8_t, 4> {
   auto raw = reinterpret_cast<uint8_t const *>(&val);
   std::array<uint8_t, 4> result;
@@ -34,15 +35,16 @@ inline auto floatToBytes(float val) -> std::array<uint8_t, 4> {
   }
   return result;
 }
+#pragma clang diagnostic pop
 
 struct CSGRawData {
-  [[nodiscard]] virtual auto getRaw() -> std::vector<uint8_t> = 0;
-  [[nodiscard]] virtual auto getDataSize() -> std::size_t = 0;
-  [[nodiscard]] virtual auto src() -> std::string = 0;
+  [[nodiscard]] virtual auto getRaw() const -> std::vector<uint8_t> = 0;
+  [[nodiscard]] virtual auto getDataSize() const -> std::size_t = 0;
+  [[nodiscard]] virtual auto src() const -> std::string = 0;
   virtual ~CSGRawData() = default;
 };
 
-inline std::string replace(const std::string &str, const std::string &find, const std::string &replace) {
+inline auto replace(const std::string &str, const std::string &find, const std::string &replace) -> std::string {
   std::string result;
   std::size_t find_len = find.size();
   std::size_t pos, from = 0;

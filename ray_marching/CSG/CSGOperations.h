@@ -16,18 +16,18 @@ public:
 };
 
 struct OperationUnion : public Operation {
-  auto getRaw() -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() -> std::size_t override;
-  [[nodiscard]] auto src() -> std::string override;
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
 
 private:
   [[nodiscard]] auto getName() const -> std::string override;
 };
 
 struct OperationSubstraction : public Operation {
-  auto getRaw() -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() -> std::size_t override;
-  [[nodiscard]] auto src() -> std::string override;
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
 
 private:
   [[nodiscard]] auto getName() const -> std::string override;
@@ -35,9 +35,9 @@ private:
 
 struct OperationBlend : public Operation {
   explicit OperationBlend(float k);
-  auto getRaw() -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() -> std::size_t override;
-  [[nodiscard]] auto src() -> std::string override;
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
 
   float k;
 

@@ -5,23 +5,25 @@
 #include "CSGOperations.h"
 #include <fmt/format.h>
 
-auto OperationUnion::getRaw() -> std::vector<uint8_t> { return {operationFlag | flagForOperation<OperationUnion>()}; }
-auto OperationUnion::getDataSize() -> std::size_t { return 1; }
+auto OperationUnion::getRaw() const -> std::vector<uint8_t> { return {operationFlag | flagForOperation<OperationUnion>()}; }
+auto OperationUnion::getDataSize() const -> std::size_t { return 1; }
 auto OperationUnion::getName() const -> std::string { return "union"; }
-auto OperationUnion::src() -> std::string { return "opUnion(\n{}, {})"; }
+auto OperationUnion::src() const -> std::string { return "opUnion(\n{}, {})"; }
 
-auto OperationSubstraction::getRaw() -> std::vector<uint8_t> {
+auto OperationSubstraction::getRaw() const -> std::vector<uint8_t> {
   return {operationFlag | flagForOperation<OperationSubstraction>()};
 }
-auto OperationSubstraction::getDataSize() -> std::size_t { return 1; }
+auto OperationSubstraction::getDataSize() const -> std::size_t { return 1; }
 auto OperationSubstraction::getName() const -> std::string { return "substraction"; }
-auto OperationSubstraction::src() -> std::string { return "opSubstraction(\n{}, {})"; }
+auto OperationSubstraction::src() const -> std::string { return "opSubstraction(\n{}, {})"; }
 
 OperationBlend::OperationBlend(float k) : k(k) {}
-auto OperationBlend::getRaw() -> std::vector<uint8_t> { return {operationFlag | flagForOperation<OperationSubstraction>()}; }
-auto OperationBlend::getDataSize() -> std::size_t { return 1; }
+auto OperationBlend::getRaw() const -> std::vector<uint8_t> {
+  return {operationFlag | flagForOperation<OperationSubstraction>()};
+}
+auto OperationBlend::getDataSize() const -> std::size_t { return 1; }
 auto OperationBlend::getName() const -> std::string { return "substraction"; }
-auto OperationBlend::src() -> std::string {
+auto OperationBlend::src() const -> std::string {
   using namespace std::string_literals;
   return "opBlend(\n{}, {}, "s + fmt::format("{}", k) + ")";
 }
