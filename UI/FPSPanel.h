@@ -17,12 +17,13 @@ public:
   auto operator=(const FPSPanel &other) -> FPSPanel & = delete;
 
   [[nodiscard]] auto getFPSCounter() const -> const FPSCounter &;
-
+  [[nodiscard]] auto isVsyncEnabled() const -> bool;
   auto onFrame() -> void override;
   auto reset() -> void;
 
 private:
   FPSCounter fpsCounter;
+  bool vsyncEnabled = true;
 };
 } // namespace ui
 #endif // RAYMARCHING_FPSPANEL_H

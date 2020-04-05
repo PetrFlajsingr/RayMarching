@@ -88,7 +88,7 @@ auto main() -> int {
     }
     return false;
   });
-  SDL_GL_SetSwapInterval(0);
+
   window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera](const SDL_Event &event) {
     if (isCameraControlled) {
       constexpr auto movementSpeed = 1.0f;
@@ -128,6 +128,9 @@ auto main() -> int {
 
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    const auto swapInterval = ui.getFPSPanel().isVsyncEnabled() ? 1 : 0;
+    SDL_GL_SetSwapInterval(swapInterval);
 
     const auto currentFps = ui.getFPSPanel().getFPSCounter().current();
 
