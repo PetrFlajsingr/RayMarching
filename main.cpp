@@ -34,14 +34,14 @@ auto maketree() -> CSGTree {
       std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{500.0, 1000.0, 500.0}, glm::vec3{10.0, 0.0, 10.0}));
   auto &first = dynamic_cast<WarpOperationNode &>(*tree.root);
 
-  auto &firstOp = first.setChild<OperationBlend>(200);
+  auto &firstOp = first.setChild<OperationBlend>(250);
 
   auto &op = dynamic_cast<OperationCSGNode &>(firstOp.setLeftChild<OperationBlend>(100));
 
-  auto &tower = op.setRightChild<OperationBlend>(300);
+  auto &tower = op.setRightChild<OperationBlend>(500);
 
-  tower.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{4, 300, 4});
-  tower.setLeftChild<SphereShape>(glm::vec3{0, 300, 0}, 10);
+  tower.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{4, 500, 4});
+  tower.setLeftChild<SphereShape>(glm::vec3{0, 500, 0}, 10);
   op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
 
   firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});

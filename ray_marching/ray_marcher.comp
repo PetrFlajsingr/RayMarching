@@ -29,8 +29,8 @@ const vec3 lightPos = vec3(20, 25, 1 + cos(time / 10) * 100);// TODO
 
 #define SHADES 0
 
-#define EPSILON  0.0001
-#define SHADOW_FALLOFF 0.01
+#define EPSILON  0.001
+#define SHADOW_FALLOFF 0.001
 #define SHADOW_OPACITY 0.8
 
 struct RenderResult {
@@ -58,13 +58,18 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
 
 vec2 distToObjects(vec3 camPos) {
     camPos = opRepLim(camPos, vec3(500.0, 1000.0, 500.0), vec3(10.0, 0.0, 10.0));
-    return opBlend(
+    return
+    opBlend(
     opBlend(
     vec2(sdBox(camPos - vec3(0.0, -15.0, 0.0), vec3(30.0, 1.0, 30.0))), opBlend(
-    vec2(sdSphere(camPos - vec3(0.0, 300.0, 0.0), 10.0)), vec2(sdBox(camPos - vec3(0.0, -12.0, 0.0), vec3(4.0, 300.0, 4.0))), 300.0
+    vec2(sdSphere(camPos - vec3(0.0, 500.0, 0.0), 10.0)), vec2(sdBox(camPos - vec3(0.0, -12.0, 0.0), vec3(4.0, 500.0, 4.0))), 500.0
     ), 100.0
-    ), vec2(sdPlane(camPos - vec3(0.0, -10.0, 0.0), vec4(0.0, 1.4, 0.0, 10.0))), 200.0
-    );
+    ),
+    //vec2(sdPlane(camPos - vec3(0.0, -10.0, 0.0), vec4(0.0, 0.13864784, 0.0, 0.9903418)))
+    vec2(sdBox(camPos - vec3(0.0, -10.0, 0.0), vec3(100000.0, 1, 100000.0)))
+    , 250.0
+    )
+    ;
 
     //return repeatingSphere(camPos, vec3(20) + time * 0.00000001);
     //return vec2(mengerSponge(camPos).x);
@@ -73,7 +78,7 @@ vec2 distToObjects(vec3 camPos) {
     vec2 d = vec2(sdSphere(camPos-vec3(sphere1X, -2.5, 10), 2.5));
     d = opBlend(d, vec2(sdSphere(camPos-vec3(-3, -2.5, 10), 2.5)), 20);
     d = opSubstraction(d, vec2(sdSphere(camPos-vec3(0, 2 + sin(time) * 5, 10), 2.5)));
-    d = opUnion(d, vec2(sdPlane(camPos, vec4(0, 1.4, 0, 10))));
+    d = opUnion(d, vec2(sdPlane(camPos, normalize(vec4(0, 1.4, 0, 10)))));
     //d = opBlend(d, vec2(sdPlane(camPos - vec3(5, 0, 0), vec4(1.4, 0, 0, 10))));
 
     vec3 repeatC = repeatCoord(camPos, vec3(100, 10, 100));
@@ -137,7 +142,7 @@ IntersectionResult castReflRay(vec3 rayOrigin, vec3 rayDir) {
     float travelDistance = 0.0;
     IntersectionResult result;
     result.mat = -1.0;
-    for (result.steps = 0; result.steps < stepLimit / 5; result.steps++) {
+    for (result.steps = 0; result.steps < stepLimit; result.steps++) {
         const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
         travelDistance += res.x;
         result.mat = res.y;
@@ -173,14 +178,11 @@ vec3 castScatterRay(vec3 rayOrigin, vec3 rayDir) {
         vec3 softened = pow(density, vec3(smoothstep(soft, -soft, val)));
         //tweak this to create soft shadows, by expanding with each step (linearly)
 
-        if ((val-soft)*lastVal < 0.0)
-        {
+        if ((val-soft)*lastVal < 0.0){
             // approximate position of the surface
             float transition = -min(val-soft, lastVal)/abs(val-soft-lastVal);
             visibility *= pow(softened, vec3(transition));
-        }
-        else if (val-soft < 0.0)
-        {
+        } else if (val-soft < 0.0) {
             visibility *= softened;
         }
 
@@ -313,8 +315,8 @@ vec3 shading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, bool checkShadow
 
 
 vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
-    vec3 albedo = vec3(1);//mix( vec3(1,.8,.7), vec3(.5,.2,.1), Noise(pos*vec3(1,10,1)) );
-    const vec3 fillLightDir = vec3(0, 0, -1);
+    vec3 albedo = vec3(1);
+    const vec3 fillLightDir = lightDir;
     const vec3 lightColour = vec3(1.1, 1.05, 1);
     const vec3 fillLightColour = vec3(.38, .4, .42);
     vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
@@ -334,7 +336,7 @@ vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 v
 
 RenderResult renderRefraction(vec3 rayOrigin, vec3 rayDir) {
     float refractionRatio = 1.0 / 1.7;
-    const int refractLimit = 50;
+    const int refractLimit = 15;
     float refractFactor = 0.6;
 
     vec3 col = vec3(0);
@@ -362,7 +364,7 @@ RenderResult renderRefraction(vec3 rayOrigin, vec3 rayDir) {
             vec3 refraction = refract(rayDir, normal, refractionRatio);
             if (dot(refraction, refraction) < EPSILON) {
                 rayDir = reflect(rayDir, normal);
-                rayOrigin += rayDir * EPSILON * 10.0;
+                rayOrigin += rayDir * EPSILON * 10;
             } else {
                 rayDir = refraction;
                 rayOrigin += rayDir * EPSILON * 10;
@@ -388,7 +390,7 @@ RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
         vec3 normal = calcNormal(pos);
 
 
-        vec3 subsurface = castScatterRay(pos + rayDir * 0.001, lightDir);
+        vec3 subsurface = castScatterRay(pos + rayDir * 1, rayDir);
         col = subSurfaceShading(pos, normal, lightDir, rayDir, subsurface).xyz;
 
         //col = normal;
@@ -407,7 +409,8 @@ RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
 }
 
 RenderResult render(vec3 rayOrigin, vec3 rayDir) {
-    return renderScattering(rayOrigin, rayDir);
+    //return renderScattering(rayOrigin, rayDir);
+    //return renderRefraction(rayOrigin, rayDir);
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
     vec3 col;
     int steps = intersectionResult.steps;
@@ -426,14 +429,14 @@ RenderResult render(vec3 rayOrigin, vec3 rayDir) {
             int i = 0;
             for (i = 0; i < maxReflections; i++) {
                 rayDir = reflect(rayDir, normal);
-                IntersectionResult reflIntersectionResult = castReflRay(pos + rayDir * 0.001, rayDir);
+                IntersectionResult reflIntersectionResult = castReflRay(pos + rayDir * 0.01, rayDir);
                 if (reflIntersectionResult.minDist > -1.0) {
                     pos = pos + rayDir * reflIntersectionResult.minDist;
                     normal = calcNormal(pos);
                     vec3 targetColor = shading(pos, normal, lightDir, rayDir, true);
-                    reflColor += targetColor * 0.2;
+                    reflColor += targetColor * 0.5;
                 } else {
-                    reflColor += (vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7)) * 0.2;
+                    reflColor += (vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7)) * 0.5;
                 }
                 steps += intersectionResult.steps;
             }

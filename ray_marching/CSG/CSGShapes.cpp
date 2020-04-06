@@ -50,9 +50,9 @@ auto SphereShape::distance(const glm::vec3 &camPos) const -> float {
   return sdfForShape<SphereShape>()(camPos - position, radius);
 }
 
-PlaneShape::PlaneShape(const glm::vec3 &position, const glm::vec4 &normal) : Shape(position), normal(normal) {}
+PlaneShape::PlaneShape(const glm::vec3 &position, const glm::vec4 &normal) : Shape(position), normal(glm::normalize(normal)) {}
 auto PlaneShape::getNormal() const -> const glm::vec4 & { return normal; }
-auto PlaneShape::setNormal(const glm::vec4 &normal) { PlaneShape::normal = normal; }
+auto PlaneShape::setNormal(const glm::vec4 &normal) { PlaneShape::normal = glm::normalize(normal); }
 auto PlaneShape::getRaw() const -> std::vector<uint8_t> {
   const auto positionRaw = vec3ToBytes(position);
   const auto normalRaw = vec4ToBytes(normal);
