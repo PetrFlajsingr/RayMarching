@@ -28,19 +28,27 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   return {w, h};
 }
 
-auto main() -> int {
+auto maketree() -> CSGTree {
   CSGTree tree;
-  tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationBlend>(20));
-  auto &root = dynamic_cast<OperationCSGNode &>(*tree.root);
+  tree.root = std::make_unique<WarpOperationNode>(
+      std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{100.0, 1000.0, 100.0}, glm::vec3{10.0, 0.0, 10.0}));
+  auto &first = dynamic_cast<WarpOperationNode &>(*tree.root);
 
-  auto &op = dynamic_cast<OperationCSGNode &>(root.setLeftChild<OperationBlend>(10));
+  auto &firstOp = first.setChild<OperationBlend>(20);
+
+  auto &op = dynamic_cast<OperationCSGNode &>(firstOp.setLeftChild<OperationBlend>(10));
 
   op.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{3, 3, 3});
   op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
 
-  root.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
+  firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
 
   std::cout << tree.src() << std::endl;
+  return tree;
+}
+
+auto main() -> int {
+  auto tree = maketree();
 
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
@@ -85,28 +93,33 @@ auto main() -> int {
     return false;
   });
 
-  window->setEventCallback(SDL_KEYDOWN, [&isCameraControlled, &camera](const SDL_Event &event) {
-    if (isCameraControlled) {
-      constexpr auto movementSpeed = 1.0f;
-      const auto pressedKey = event.key.keysym.sym;
-      switch (pressedKey) {
-      case SDLK_w:
-        camera.ProcessKeyboard(Camera_Movement::FORWARD, movementSpeed);
-        break;
-      case SDLK_a:
-        camera.ProcessKeyboard(Camera_Movement::RIGHT, movementSpeed);
-        break;
-      case SDLK_s:
-        camera.ProcessKeyboard(Camera_Movement::BACKWARD, movementSpeed);
-        break;
-      case SDLK_d:
-        camera.ProcessKeyboard(Camera_Movement::LEFT, movementSpeed);
-        break;
-      }
-
-      return true;
+  // glm::vec3 velocity{0};
+  window->setEventCallback(SDL_KEYDOWN, [&camera](const SDL_Event &event) {
+    constexpr auto movementSpeed = 1.0f;
+    const auto pressedKey = event.key.keysym.sym;
+    switch (pressedKey) {
+    case SDLK_w:
+      // velocity += 0.01f * camera.Front;
+      camera.ProcessKeyboard(Camera_Movement::FORWARD, movementSpeed);
+      break;
+    case SDLK_a:
+      // velocity += -0.01f * camera.Right;
+      camera.ProcessKeyboard(Camera_Movement::RIGHT, movementSpeed);
+      break;
+    case SDLK_s:
+      // velocity += 0.01f * camera.Front;
+      camera.ProcessKeyboard(Camera_Movement::BACKWARD, movementSpeed);
+      break;
+    case SDLK_d:
+      // velocity += 0.01f * camera.Right;
+      camera.ProcessKeyboard(Camera_Movement::LEFT, movementSpeed);
+      break;
+    case SDLK_SPACE:
+      // velocity += glm::vec3{0, 0.5f, 0};
+      break;
     }
-    return false;
+
+    return true;
   });
 
   window->setWindowEventCallback(SDL_WINDOWEVENT_RESIZED, [&screenWidth, &screenHeight, &rayMarcher](const SDL_Event &event) {
@@ -126,13 +139,27 @@ auto main() -> int {
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // velocity += glm::vec3{0, -0.009, 0};
+    // camera.Position += velocity;
+
     float currentDistance = tree.eval(camera.Position);
     if (!ui.getCameraPanel().isClippingEnabled()) {
-      if (currentDistance < 0) {
-        camera.Position = lastCamPos;
+      unsigned int iterationCount = 0;
+      while (currentDistance < 0) {
+        const auto surfaceNormal = tree.getNormal(camera.Position);
+        const auto delta = surfaceNormal * glm::dot(lastCamPos - camera.Position, surfaceNormal);
+        camera.Position += delta;
+        camera.Position += surfaceNormal * 0.0001f * float(iterationCount);
+        currentDistance = tree.eval(camera.Position);
+        iterationCount += 100;
+        // if (-velocity.y > 0.1f) {
+        //  velocity = glm::reflect(velocity, surfaceNormal) * 0.8f;
+        //} else {
+        //  velocity -= surfaceNormal * glm::dot(velocity, surfaceNormal);
+        //}
       }
+      lastCamPos = camera.Position;
     }
-    lastCamPos = camera.Position;
     ui.getCameraPanel().setDistance(currentDistance);
 
     const auto swapInterval = ui.getFPSPanel().isVsyncEnabled() ? 1 : 0;

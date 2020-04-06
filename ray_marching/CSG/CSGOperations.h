@@ -11,13 +11,64 @@
 #include <string>
 #include <vector>
 
-class Operation : public CSGRawData {
+class BinaryOperation : public CSGRawData {
 public:
   [[nodiscard]] virtual auto getName() const -> std::string = 0;
   [[nodiscard]] virtual auto eval(float d1, float d2) const -> float = 0;
 };
 
-struct OperationUnion : public Operation {
+class SpaceWarpOperation : public CSGRawData {
+public:
+  [[nodiscard]] virtual auto getName() const -> std::string = 0;
+  [[nodiscard]] virtual auto eval(const glm::vec3 &camPos) const -> glm::vec3 = 0;
+};
+
+class SpaceRepetitionOperation : public SpaceWarpOperation {
+public:
+  explicit SpaceRepetitionOperation(const glm::vec3 &domain);
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
+  [[nodiscard]] auto getName() const -> std::string override;
+  [[nodiscard]] auto eval(const glm::vec3 &camPos) const -> glm::vec3 override;
+
+  glm::vec3 domain;
+};
+
+class LimitedSpaceRepetitionOperation : public SpaceWarpOperation {
+public:
+  LimitedSpaceRepetitionOperation(const glm::vec3 &domain, const glm::vec3 &limit);
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
+  [[nodiscard]] auto getName() const -> std::string override;
+  [[nodiscard]] auto eval(const glm::vec3 &camPos) const -> glm::vec3 override;
+
+  glm::vec3 domain;
+  glm::vec3 limit;
+};
+
+class SpaceStretchOperation : public SpaceWarpOperation {
+public:
+  explicit SpaceStretchOperation(const glm::vec3 &multiplier);
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
+  [[nodiscard]] auto getName() const -> std::string override;
+  [[nodiscard]] auto eval(const glm::vec3 &camPos) const -> glm::vec3 override;
+
+  glm::vec3 multiplier;
+};
+
+struct OperationUnion : public BinaryOperation {
+  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
+  [[nodiscard]] auto getDataSize() const -> std::size_t override;
+  [[nodiscard]] auto src() const -> std::string override;
+  [[nodiscard]] auto eval(float d1, float d2) const -> float override;
+  [[nodiscard]] auto getName() const -> std::string override;
+};
+
+struct OperationSubstraction : public BinaryOperation {
   [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
   [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
@@ -27,17 +78,7 @@ private:
   [[nodiscard]] auto getName() const -> std::string override;
 };
 
-struct OperationSubstraction : public Operation {
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
-  [[nodiscard]] auto src() const -> std::string override;
-  [[nodiscard]] auto eval(float d1, float d2) const -> float override;
-
-private:
-  [[nodiscard]] auto getName() const -> std::string override;
-};
-
-struct OperationBlend : public Operation {
+struct OperationBlend : public BinaryOperation {
   explicit OperationBlend(float k);
   [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
   [[nodiscard]] auto getDataSize() const -> std::size_t override;

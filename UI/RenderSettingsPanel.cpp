@@ -53,8 +53,8 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
     ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
     ImGui::Checkbox("FXAA", &enableFXAA);
-    ImGui::Checkbox("MSAA", &antiAliasingEnabled);
-    ImGui::SliderInt("MSAAx", &aaX, 1, 8);
+    ImGui::Checkbox("SSAA", &antiAliasingEnabled);
+    ImGui::SliderInt("SSAAx", &aaX, 1, 8);
     ImGui::Checkbox("Reflections", &reflectionsEnabled);
     ImGui::SliderInt("Max reflections", &maxReflections, 1, 10);
     ImGui::End();

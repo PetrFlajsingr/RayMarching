@@ -8,14 +8,16 @@
 #include <array>
 #include <glm/glm.hpp>
 #include <vector>
-class Operation;
+class BinaryOperation;
+class SpaceWarpOperation;
 class Shape;
 
 constexpr uint8_t operationFlag = 0b00000000;
 constexpr uint8_t shapeFlag = 0b10000000;
 
 template <typename T> concept C_Shape = std::is_base_of_v<Shape, T>;
-template <typename T> concept C_Operation = std::is_base_of_v<Operation, T>;
+template <typename T> concept C_Operation = std::is_base_of_v<BinaryOperation, T>;
+template <typename T> concept C_WarpOperation = std::is_base_of_v<SpaceWarpOperation, T>;
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cppcoreguidelines-pro-type-member-init"

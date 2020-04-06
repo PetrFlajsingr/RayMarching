@@ -23,10 +23,22 @@ vec2 opBlend(vec2 d1, vec2 d2, float k)
     return vec2(d, m);
 }
 
+vec3 opRep(vec3 p, vec3 domain)
+{
+    return mod(p+0.5*domain, domain)-0.5*domain;
+}
+
+vec3 opRepLim(vec3 p, vec3 domain, vec3 limit)
+{
+    return p-domain*clamp(round(p/domain), -limit, limit);
+}
+
 float opRepeat(float d, float domain)
 {
     return mod(d, domain)-domain/2.0;
 }
+
+vec3 opStretch(vec3 p, vec3 mul){ return p * mul; }
 
 vec2 opIntersection(vec2 d1, vec2 d2) { return vec2(max(d1.x, d2.x)); }
 
