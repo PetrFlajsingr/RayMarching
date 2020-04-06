@@ -31,14 +31,17 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 auto maketree() -> CSGTree {
   CSGTree tree;
   tree.root = std::make_unique<WarpOperationNode>(
-      std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{100.0, 1000.0, 100.0}, glm::vec3{10.0, 0.0, 10.0}));
+      std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{500.0, 1000.0, 500.0}, glm::vec3{10.0, 0.0, 10.0}));
   auto &first = dynamic_cast<WarpOperationNode &>(*tree.root);
 
-  auto &firstOp = first.setChild<OperationBlend>(20);
+  auto &firstOp = first.setChild<OperationBlend>(200);
 
-  auto &op = dynamic_cast<OperationCSGNode &>(firstOp.setLeftChild<OperationBlend>(10));
+  auto &op = dynamic_cast<OperationCSGNode &>(firstOp.setLeftChild<OperationBlend>(100));
 
-  op.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{3, 3, 3});
+  auto &tower = op.setRightChild<OperationBlend>(300);
+
+  tower.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{4, 300, 4});
+  tower.setLeftChild<SphereShape>(glm::vec3{0, 300, 0}, 10);
   op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
 
   firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
@@ -95,7 +98,7 @@ auto main() -> int {
 
   // glm::vec3 velocity{0};
   window->setEventCallback(SDL_KEYDOWN, [&camera](const SDL_Event &event) {
-    constexpr auto movementSpeed = 1.0f;
+    constexpr auto movementSpeed = 10.0f;
     const auto pressedKey = event.key.keysym.sym;
     switch (pressedKey) {
     case SDLK_w:
@@ -116,6 +119,7 @@ auto main() -> int {
       break;
     case SDLK_SPACE:
       // velocity += glm::vec3{0, 0.5f, 0};
+      camera.Position += camera.Up * movementSpeed;
       break;
     }
 
@@ -136,11 +140,15 @@ auto main() -> int {
   glm::vec3 lastCamPos = camera.Position;
   ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
 
+  camera.Position = glm::vec3{0, 400, 0};
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // velocity += glm::vec3{0, -0.009, 0};
     // camera.Position += velocity;
+    // if (glm::length(velocity) > 10) {
+    //  velocity = glm::normalize(velocity) * 10.0f;
+    //}
 
     float currentDistance = tree.eval(camera.Position);
     if (!ui.getCameraPanel().isClippingEnabled()) {
@@ -153,9 +161,9 @@ auto main() -> int {
         currentDistance = tree.eval(camera.Position);
         iterationCount += 100;
         // if (-velocity.y > 0.1f) {
-        //  velocity = glm::reflect(velocity, surfaceNormal) * 0.8f;
+        // velocity = glm::reflect(velocity, surfaceNormal) * 0.8f;
         //} else {
-        //  velocity -= surfaceNormal * glm::dot(velocity, surfaceNormal);
+        // velocity -= surfaceNormal * glm::dot(velocity, surfaceNormal);
         //}
       }
       lastCamPos = camera.Position;
