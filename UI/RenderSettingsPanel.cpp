@@ -49,7 +49,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     }
     ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
     ImGui::SliderInt("Max shadow ray steps", &shadowRayStepLimit, 1, 512);
-    ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 0.1f, 10000.f);
+    ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 1.0f, 100000.f);
     ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
     ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
     ImGui::Checkbox("FXAA", &enableFXAA);

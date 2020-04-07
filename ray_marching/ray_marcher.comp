@@ -96,10 +96,11 @@ vec2 distToObjects(vec3 camPos) {
 
 IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
     float travelDistance = 0.0;
+    const float boundOptimisation = 1;
     IntersectionResult result;
     result.mat = -1.0;
     for (result.steps = 0; result.steps < stepLimit; result.steps++) {
-        const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance);
+        const vec2 res = distToObjects(rayOrigin + rayDir * travelDistance * boundOptimisation);
         travelDistance += res.x;
         result.mat = res.y;
         if (res.x < EPSILON) {
@@ -115,6 +116,7 @@ IntersectionResult castRay(vec3 rayOrigin, vec3 rayDir) {
     result.minDist = travelDistance;
     return result;
 }
+
 
 IntersectionResult castRefrRay(vec3 rayOrigin, vec3 rayDir, float distanceFactor) {
     float travelDistance = 0.0;
@@ -161,20 +163,21 @@ IntersectionResult castReflRay(vec3 rayOrigin, vec3 rayDir) {
 }
 
     #define MAX_SCATTER_RAYS 50
+
+
 vec3 castScatterRay(vec3 rayOrigin, vec3 rayDir) {
     vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
-    vec3 density = pow(objectSurfaceColour, vec3(.6));
+    vec3 density = pow(objectSurfaceColour, vec3(.4));
     vec3 visibility = vec3(1.);
 
     float lastVal = distToObjects(rayOrigin).x;
     float soft = 0.0;
-    for (int i=1; i < MAX_SCATTER_RAYS; i++)
+    for (int i=0; i < MAX_SCATTER_RAYS; i++)
     {
         if (visibility.x < EPSILON)
         continue;
 
         float val = distToObjects(rayOrigin).x;
-
         vec3 softened = pow(density, vec3(smoothstep(soft, -soft, val)));
         //tweak this to create soft shadows, by expanding with each step (linearly)
 
@@ -317,8 +320,8 @@ vec3 shading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, bool checkShadow
 vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
     vec3 albedo = vec3(1);
     const vec3 fillLightDir = lightDir;
-    const vec3 lightColour = vec3(1.1, 1.05, 1);
-    const vec3 fillLightColour = vec3(.38, .4, .42);
+    const vec3 lightColour = vec3(1, 1, 1);
+    const vec3 fillLightColour = vec3(1, 0, 1);
     vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
     vec3 fl = fillLightColour*(dot(normal, normalize(fillLightDir))*.5+.5);
 
@@ -381,17 +384,18 @@ RenderResult renderRefraction(vec3 rayOrigin, vec3 rayDir) {
 
 RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
-    vec3 col;
+    //vec3 col;
+    vec4 col = vec4(1.0);
     if (intersectionResult.minDist <= -1.0) {
-        col = vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7);
+        col = vec4(vec3(0.30, 0.36, 0.60) - (rayDir.y * 0.7), 1);
     } else {
         vec3 pos = rayOrigin + rayDir * intersectionResult.minDist;
         vec3 lightDir = normalize(lightPos);//-pos);
         vec3 normal = calcNormal(pos);
 
 
-        vec3 subsurface = castScatterRay(pos + rayDir * 1, rayDir);
-        col = subSurfaceShading(pos, normal, lightDir, rayDir, subsurface).xyz;
+        vec3 subsurface = castScatterRay(pos + rayDir, lightDir);
+        col = subSurfaceShading(pos, normal, lightDir, rayDir, subsurface);
 
         //col = normal;
         //col = smoothstep(0.0,1.0,col);
@@ -402,14 +406,15 @@ RenderResult renderScattering(vec3 rayOrigin, vec3 rayDir) {
     }
 
     RenderResult result;
-    result.color = vec4(col, 1);
+    result.color = col;
     result.stepCount = intersectionResult.steps;
     result.depth = intersectionResult.minDist;
     return result;
 }
 
+
 RenderResult render(vec3 rayOrigin, vec3 rayDir) {
-    //return renderScattering(rayOrigin, rayDir);
+    return renderScattering(rayOrigin, rayDir);
     //return renderRefraction(rayOrigin, rayDir);
     IntersectionResult intersectionResult = castRay(rayOrigin, rayDir);
     vec3 col;
@@ -464,6 +469,7 @@ vec2 normalizeScreenCoords(vec2 screenCoord) {
     return result;
 }
 
+
 float logNormalize(float enteredValue, float minEntry, float maxEntry, float normalizedMin, float normalizedMax) {
 
     float mx = (log((enteredValue-minEntry))/(log(maxEntry-minEntry)));
@@ -515,6 +521,8 @@ void main() {
     renderResult.color = vec4(pow(renderResult.color.xyz, vec3(0.4545)), renderResult.color.w);
     vec2 q = vec2(texCoord) / vec2(resolution.xy);
     renderResult.color = vec4(renderResult.color.xyz * (0.8 + 0.3*sqrt(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y))), renderResult.color.w);
+
+
     float logStepColor = logNormalize(renderResult.stepCount, 0, stepLimit, 0, 1);
     float logDepth = logNormalize(renderResult.depth, 0, maxDrawDistance, 0, 1);
     float stepColor = renderResult.stepCount / float(64);
