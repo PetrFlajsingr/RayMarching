@@ -9,6 +9,7 @@
 #include <geGL/geGL.h>
 #include <string>
 #include <utility>
+#include <various/StringUtils.h>
 
 enum class ShaderType { Vertex, TesselationControl, TesselationEvaluation, Geometry, Fragment, Compute, Include };
 auto glEnumToShaderType(GLenum type) -> ShaderType;
@@ -46,9 +47,18 @@ template <typename... IncPaths> inline auto loadShader(GLenum type, const std::s
   for (std::size_t i = 0; i < includePaths.size(); ++i) {
     includeSrcs[i] = loadShaderFile(includePaths[i], ShaderType::Include);
   }
+
+  std::size_t incPos = 1;
+  auto splitSrc = StringUtils::split(mainShaderSrc, "\n"s);
+  auto splitSrcIter = splitSrc.begin();
+  auto line = *splitSrcIter++;
+  while (splitSrcIter != splitSrc.end() && line[0] == '#') {
+    incPos += line.length();
+    line = *splitSrcIter++;
+  }
   for (const auto &incSrc : includeSrcs) {
     std::string toInsert{"\n"s + incSrc + "\n"};
-    mainShaderSrc.insert(12, toInsert);
+    mainShaderSrc.insert(incPos, toInsert);
   }
   // std::cout << mainShaderSrc << std::endl;
   return std::make_shared<ge::gl::Shader>(type, mainShaderSrc);

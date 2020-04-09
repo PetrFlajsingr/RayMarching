@@ -181,13 +181,12 @@ auto main() -> int {
     rayMarcher.setTime(time);
     rayMarcher.setCameraVec(camera.Position, camera.Front);
     rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
-    rayMarcher.setAntiAliasingEnabled(ui.getRenderSettingsPanel().isAntiAliasingEnabled());
+    rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
     rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
     rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
     rayMarcher.setReflectionsEnabled(ui.getRenderSettingsPanel().areReflectionsEnabled());
     rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
     rayMarcher.render();
-    rayMarcher.setFXAAEnabled(ui.getRenderSettingsPanel().isFXAAEnabled());
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();
     window->swap();

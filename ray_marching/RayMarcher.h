@@ -13,8 +13,8 @@
 
 namespace ray_march {
 enum class Tex { Render = 0, Depth, StepCount };
-
-enum class Shadows : int { None = 0, RayTraced, Soft, Hard };
+enum class Shadows : int { Disabled = 0, RayTraced, Soft, Hard };
+enum class AntiAliasing : int { Disabled = 0, FXAA, SSAA, EdgeAA };
 
 using TextureSize = std::pair<int, int>;
 class RayMarcher {
@@ -32,12 +32,11 @@ public:
   auto setMaxDrawDistance(float distance) -> void;
   auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
   auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
-  auto setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void;
   auto setReflectionsEnabled(bool areRefflectionsEnabled) -> void;
   auto setShadowType(Shadows shadowType) -> void;
   auto setAASize(int aaSize) -> void;
   auto setMaxReflections(int maxReflections) -> void;
-  auto setFXAAEnabled(bool enabled) -> void;
+  auto setAntiaAliasingType(AntiAliasing aaType) -> void;
 
   auto reloadShader() -> void;
 
@@ -70,16 +69,16 @@ private:
   float maxDrawDistance = 10.0f;
 
   bool ambientOcclusionEnabled = false;
-  bool antiAliasingEnabled = false;
+
   bool reflectionsEnabled = false;
-  bool enableFXAA = false;
 
   glm::vec3 cameraPosition;
   glm::vec3 cameraFront;
 
   TextureSize textureSize;
 
-  Shadows shadowType;
+  Shadows shadowType = Shadows::Disabled;
+  AntiAliasing aaType = AntiAliasing::Disabled;
   int aaSize;
 };
 } // namespace ray_march

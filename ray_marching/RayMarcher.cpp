@@ -63,14 +63,15 @@ auto RayMarcher::render() -> void {
   ScopedShaderProgramUsage scopedProgram{*csProgram};
   bindTextures();
   scopedProgram->set("stepLimit", rayStepLimit);
-  scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
+  // scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
-  scopedProgram->set("enableAntiAliasing", antiAliasingEnabled);
-  scopedProgram->set("enableReflections", reflectionsEnabled);
-  scopedProgram->set("maxReflections", maxReflections);
-  scopedProgram->set("shadowType", static_cast<int>(shadowType));
+  // scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
+  scopedProgram->set("enableAntiAliasing", aaType == AntiAliasing::SSAA);
+  scopedProgram->set("enableEdgeAntiAliasing", aaType == AntiAliasing::EdgeAA);
+  // scopedProgram->set("enableReflections", reflectionsEnabled);
+  // scopedProgram->set("maxReflections", maxReflections);
+  // scopedProgram->set("shadowType", static_cast<int>(shadowType));
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
@@ -94,7 +95,7 @@ auto RayMarcher::show(Tex tex) -> void {
     stepCountTexture->bind(0);
     break;
   }
-  scopedProgram->set("enableFXAA", enableFXAA);
+  scopedProgram->set("enableFXAA", aaType == AntiAliasing::FXAA);
 
   ge::gl::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
@@ -114,7 +115,7 @@ auto RayMarcher::setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &
 auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void {
   ambientOcclusionEnabled = isAmbientOcclusionEnabled;
 }
-auto RayMarcher::setAntiAliasingEnabled(bool isAntiAliasingEnabled) -> void { antiAliasingEnabled = isAntiAliasingEnabled; }
+
 auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowType = shadowType; }
 auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
 auto RayMarcher::setReflectionsEnabled(bool areReflectionsEnabled) -> void { reflectionsEnabled = areReflectionsEnabled; }
@@ -130,4 +131,4 @@ auto RayMarcher::reloadShader() -> void {
     spdlog::error("Shader loading failed");
   }
 }
-auto RayMarcher::setFXAAEnabled(bool enabled) -> void { enableFXAA = enabled; }
+auto RayMarcher::setAntiaAliasingType(AntiAliasing aaType) -> void { RayMarcher::aaType = aaType; }

@@ -20,22 +20,23 @@ public:
 
   [[nodiscard]] auto getSelectedTextureType() const -> ray_march::Tex;
   [[nodiscard]] auto getShadowType() const -> ray_march::Shadows;
+  [[nodiscard]] auto getAAType() const -> ray_march::AntiAliasing;
   [[nodiscard]] auto getRayStepLimit() const -> int;
   [[nodiscard]] auto getShadowRayStepLimit() const -> int;
   [[nodiscard]] auto getMaxDrawDistance() const -> float;
   [[nodiscard]] auto getTimeScale() const -> float;
   [[nodiscard]] auto isAmbientOcclusionEnabled() const -> bool;
-  [[nodiscard]] auto isAntiAliasingEnabled() const -> bool;
   [[nodiscard]] auto getAA() const -> int;
   [[nodiscard]] auto areReflectionsEnabled() const -> bool;
   [[nodiscard]] auto getMaxReflections() const -> int;
-  [[nodiscard]] auto isFXAAEnabled() const -> bool;
 
 private:
   const char *currentItem;
   const char *currentShadowItem;
+  const char *currentAAItem;
   std::vector<std::string> textureChoiceItems;
   std::vector<std::string> shadowChoiceItems;
+  std::vector<std::string> aaChoiceItems;
   int rayStepLimit = 512;
   int shadowRayStepLimit = 64;
   float maxDrawDistance = 10000.0f;
@@ -43,9 +44,7 @@ private:
   int aaX = 2;
   int maxReflections = 1;
   bool ambientOcclusionEnabled = false;
-  bool antiAliasingEnabled = false;
   bool reflectionsEnabled = false;
-  bool enableFXAA = false;
 
   std::function<void()> onReloadShaderClicked;
 };

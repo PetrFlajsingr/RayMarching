@@ -1,5 +1,4 @@
 #version 450
-
 layout (local_size_x = 32, local_size_y = 32) in;
 layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
@@ -20,6 +19,7 @@ uniform vec3 cameraFront;
 uniform bool enableAmbientOcclusion;
 uniform bool enableAntiAliasing;
 uniform bool enableReflections;
+uniform bool enableEdgeAntiAliasing;
 
 uniform int maxReflections;
 
@@ -42,6 +42,7 @@ struct IntersectionResult {
     float minDistance;
     int material;
     int rmSteps;
+    vec4 color;
 };
 struct MapResult {
     float distance;
@@ -129,6 +130,7 @@ IntersectionResult castRay(Ray ray) {
     result.minDistance = travelDistance;
     return result;
 }
+
 
 
 IntersectionResult castRefrRay(Ray ray, float distanceFactor) {
@@ -336,6 +338,68 @@ vec3 shading(Ray ray, vec3 normal, vec3 lightDir, bool checkShadow) {
     return col;
 }
 
+vec4 blend(vec4 fg, vec4 bg) {
+    float a = 1.- fg.a;
+    return fg + bg * a;
+}
+
+
+IntersectionResult castEdgeAARay(Ray ray) {
+    float travelDistance = 0.0;
+    const float boundOptimisation = 1;
+    IntersectionResult result;
+    result.material = -1;
+    result.color = vec4(0);
+
+    float direction = 1.0;
+    float lastDistance = 1e20;
+    float lastTotalDistance = 0.0;
+
+    vec3 lightDir = normalize(lightPos);
+
+    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
+        MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
+        travelDistance += res.distance;
+        result.material = res.material;
+        if (res.distance < EPSILON) {
+            result.minDistance = travelDistance;
+
+            Ray shadingRay;
+            shadingRay.origin = ray.origin + ray.direction * travelDistance;
+            shadingRay.direction = ray.direction;
+            vec3 normal = calcNormal(shadingRay.origin);
+            vec3 color = shading(shadingRay, normal, lightDir, true);
+            result.color = blend(result.color, vec4(color, 1));
+
+            return result;
+        } else if (travelDistance > maxDrawDistance) {
+            result.material = -1;
+            result.minDistance = -1.0;
+            result.color = blend(result.color, vec4(vec3(0.30, 0.36, 0.60) - (ray.direction.y * 0.7), 1));
+            return result;
+        }
+        if (res.distance < lastDistance) {
+            direction = 1.0;
+            lastDistance = res.distance;
+            lastTotalDistance = travelDistance;
+        } else if (direction > 0.0) {
+            direction = 0.0;
+            float s = (lastTotalDistance + 1.0) / resolution.y;
+            if (lastDistance < s) {
+                float a = 1.0 - (lastDistance / s);
+                Ray shadingRay;
+                shadingRay.origin = ray.origin + ray.direction * travelDistance;
+                shadingRay.direction = ray.direction;
+                vec3 normal = calcNormal(shadingRay.origin);
+                vec3 color = shading(shadingRay, normal, lightDir, true);
+                result.color = blend(result.color, vec4(color.rgb * a, a));
+            }
+        }
+    }
+    result.minDistance = travelDistance;
+    return result;
+}
+
 
 vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
     vec3 albedo = vec3(1);
@@ -360,7 +424,7 @@ vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 v
 RenderResult renderRefraction(Ray ray) {
     float refractionRatio = 1.0 / 1.7;
     const int refractLimit = 15;
-    float refractFactor = 0.6;
+    float refractFactor = 1;
 
     vec3 col = vec3(0);
     vec3 lightDir = normalize(lightPos);
@@ -433,10 +497,26 @@ RenderResult renderScattering(Ray ray) {
     return result;
 }
 
+RenderResult renderEdgeAA(Ray ray) {
+    IntersectionResult intersectionResult = castEdgeAARay(ray);
+    vec3 col;
+    int steps = intersectionResult.rmSteps;
+    float depth = intersectionResult.minDistance;
+    col = intersectionResult.color.rgb;
+
+    RenderResult result;
+    result.color = vec4(col, 1);
+    result.rmSteps = steps;
+    result.fragmentDepth = depth;
+    return result;
+}
 
 RenderResult render(Ray ray) {
     //return renderScattering(ray);
     //return renderRefraction(ray);
+    if (enableEdgeAntiAliasing) {
+        return renderEdgeAA(ray);
+    }
     IntersectionResult intersectionResult = castRay(ray);
     vec3 col;
     int steps = intersectionResult.rmSteps;
