@@ -30,33 +30,51 @@ const vec3 lightPos = vec3(20, 25, 1 + cos(time / 10) * 100);// TODO
 #define SHADES 0
 
 #define EPSILON  0.001
-#define SHADOW_FALLOFF 0.001
+#define SHADOW_FALLOFF 0.1
 #define SHADOW_OPACITY 0.8
 
 struct RenderResult {
     vec4 color;
+    vec3 normal;
+    vec3 endPos;
     float fragmentDepth;
     int rmSteps;
 };
 struct IntersectionResult {
-    float minDistance;
+    float distance;
     int material;
     int rmSteps;
+    vec4 color;
+    vec3 normal;
+    bool isInShadow;
+    bool isSelfShadowed;
+};
+struct ShadowResult {
+    float shadow;
+    bool isSelfShadowed;
+};
+struct ShadingResult {
+    bool isInShadow;
+    bool isSelfShadowed;
     vec4 color;
 };
 struct MapResult {
     float distance;
-    int material;
+    int materialIndex;
 };
 struct Ray {
     vec3 origin;
     vec3 direction;
 };
+struct RayHitCheckResult {
+    bool hit;
+    float distance;
+};
 
-const uint MatNormal = 0;
-const uint MatReflective = 1;
-const uint MatTransparent = 2;
-const uint MatScatter = 3;
+const int MatNormal = 0;
+const int MatReflective = 1;
+const int MatTransparent = 2;
+const int MatScatter = 3;
 struct Material {
     int type;
     vec3 color;
@@ -66,6 +84,13 @@ struct Material {
     float scatterDensity;
 };
 
+Material materials[4] = Material[4](
+Material(MatNormal, vec3(1, 1, 0), 0, 0, 0, 0),
+Material(MatReflective, vec3(1, 0, 0), .5, 0, 0, 0),
+Material(MatTransparent, vec3(0, 1, 1), 0.3, 1.6, 0.5, 0),
+Material(MatScatter, vec3(0, .5, 0), 0, 0, 0, .9)
+);
+
 
 
 
@@ -73,22 +98,24 @@ vec3 backgroundColor(Ray ray) {
     return (vec3(0.30, 0.36, 0.60) - (ray.direction.y * 0.7));
 }
 
-
+/**
+ * Get ray direction from camera based on pixel coordinates and camera info.
+ */
 vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const vec3 camRight = normalize(cross(vec3(0.0, 1.0, 0.0), camForward));
     const vec3 camUp = normalize(cross(camForward, camRight));
-    const float fPersp = 2;// TODO
-    const vec3 vDir = normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
-    return vDir;
+    const float fPersp = 2;
+    const vec3 viewDirection = normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
+    return viewDirection;
 }
 
-float displacement(vec3 camPos) {
-    return sin(camPos.x/10) + sin(camPos.y/10) + sin(camPos.z/10);
-}
-
+/**
+ * Calculate distance of a point to the scene.
+ */
 MapResult map(vec3 camPos) {
     MapResult result;
 
+    const vec3 origPos = camPos;
     camPos = opRepLim(camPos, vec3(500.0, 1000.0, 500.0), vec3(10.0, 0.0, 10.0));
     result.distance =
     opBlend(
@@ -101,92 +128,222 @@ MapResult map(vec3 camPos) {
     , 250.0
     ).x
     ;
-    if (camPos.y > 60) {
-        result.material = 1;
-    } else {
-        result.material = 2;
+
+    if (origPos.x < 0 && origPos.z < 0) {
+        result.materialIndex = 0;
+    } else if (origPos.x > 0 && origPos.z < 0) {
+        result.materialIndex = 1;
+    } else if (origPos.x < 0 && origPos.z > 0) {
+        result.materialIndex = 2;
+    } else if (origPos.x > 0 && origPos.z > 0) {
+        result.materialIndex = 3;
     }
+
+    result.materialIndex = 1;
     return result;
 }
 
-IntersectionResult castRay(Ray ray) {
+vec3 calcNormal(vec3 pos) {
+    const float h = 0.001;
+    const vec2 k = vec2(1, -1);
+    vec3 normal = normalize(
+    k.xyy * map(pos + k.xyy * h).distance +
+    k.yyx * map(pos + k.yyx * h).distance +
+    k.yxy * map(pos + k.yxy * h).distance +
+    k.xxx * map(pos + k.xxx * h).distance
+    );
+    return normalize(normal);
+}
+
+ShadowResult softshadow(Ray ray, float minTravel, float maxTravel, float k) {
+    float res = 1.0;
+    float ph = 1e20;
+    int i = 0;
+    float t = minTravel;
+    for (t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
+        const float h = map(ray.origin + ray.direction * t).distance;
+        if (h < EPSILON) {
+            return ShadowResult(0.0, t < 1);
+        }
+        const float y = h * h / (2.0 * ph);
+        const float d = sqrt(h * h - y * y);
+        res = min(res, k * d / max(0.0, t - y));
+        ph = h;
+        t += h;
+    }
+    return ShadowResult(clamp(res, 0.0, 1.0), t < 1);
+}
+
+ShadowResult getSoftShadowMultiplier(Ray ray, vec3 normal){
+    return softshadow(ray, 0.01, maxDrawDistance, 50);
+}
+
+ShadowResult getHardShadowMultiplier(Ray ray, vec3 normal) {
+    ray.direction = normalize(ray.direction);
+    float minTravel = 0.01;
+    float maxTravel = maxDrawDistance;
+    int i = 0;
+    for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
+        const float h = map(ray.origin + ray.direction * t).distance;
+        if (h < EPSILON) {
+            return ShadowResult(0.0, t < 1);
+        }
+        t += h;
+    }
+    return ShadowResult(1.0, false);
+}
+
+RayHitCheckResult checkRayHit(Ray ray, float distanceFactor) {
+    float travelDistance = 0.0;
+    const float boundOptimisation = 1;
+    for (uint i = 0; i < shadowStepLimit; i++) {
+        MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
+        res.distance *= distanceFactor;
+        travelDistance += res.distance;
+        if (res.distance < EPSILON) {
+            return RayHitCheckResult(true, travelDistance);
+        } else if (travelDistance > maxDrawDistance) {
+            return RayHitCheckResult(false, travelDistance);
+        }
+    }
+    return RayHitCheckResult(false, travelDistance);
+}
+
+ShadingResult shading(Ray ray, vec3 normal, vec3 lightDir, Material material, bool checkShadow) {
+    ShadingResult result;
+    result.isInShadow = false;
+    vec3 col;
+    float shadow = 1.0;
+    float shadowRayCount = 2.0;
+    vec3 pos = ray.origin;
+    if (checkShadow) {
+        ray.origin += normal * 0.01;
+        if (shadowType == 1) {
+            float minHitDist = FLT_MAX;
+            for (float s = 0.0; s < shadowRayCount; s++)
+            {
+                float r = rand(vec2(ray.direction.xy)) * 2.0 - 1.0;
+                Ray shadowRay;
+                shadowRay.origin = ray.origin;
+                shadowRay.direction = lightDir + vec3(1.0 * SHADOW_FALLOFF) * r;
+                RayHitCheckResult rayhitCheckResult = checkRayHit(shadowRay, 1.0);
+                if (rayhitCheckResult.hit) {
+                    shadow += 1.0;
+                }
+                minHitDist = min(minHitDist, rayhitCheckResult.distance);
+            }
+            shadow /= shadowRayCount;
+            shadow = 1 - shadow;
+            result.isSelfShadowed = minHitDist < 1;
+            result.isInShadow = shadow < 1;
+        } else if (shadowType == 2) {
+            Ray shadowRay;
+            shadowRay.origin = ray.origin;
+            shadowRay.direction = lightDir;
+            ShadowResult shadowResult = getSoftShadowMultiplier(shadowRay, normal);
+            result.isSelfShadowed = shadowResult.isSelfShadowed;
+            shadow = shadowResult.shadow;
+            result.isInShadow = shadow < 1;
+        } else if (shadowType == 3) {
+            Ray shadowRay;
+            shadowRay.origin = ray.origin;
+            shadowRay.direction = lightDir;
+            ShadowResult shadowResult = getHardShadowMultiplier(shadowRay, normal);
+            result.isSelfShadowed = shadowResult.isSelfShadowed;
+            shadow = shadowResult.shadow;
+            result.isInShadow = shadow < 1;
+        }
+    }
+
+    vec3 objectSurfaceColour = material.color;
+    float NoL = max(dot(normal, lightDir), 0.0);
+    vec3 LDirectional = vec3(0.9, 0.9, 0.8) * NoL;
+    vec3 LAmbient = vec3(0.03, 0.04, 0.1);
+    vec3 diffuse = (LDirectional + LAmbient);
+    float specular = dot(normalize(lightPos-pos), reflect(normalize(pos-cameraPosition), normal));
+    col = objectSurfaceColour;
+    vec3 intensity;
+    if (shadowType == 1) {
+        intensity = diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+    } else if (shadowType != 0) {
+        intensity = diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+    } else {
+        intensity = diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
+    }
+
+
+    intensity *= shadow;
+
+
+    #if SHADES != 0
+    intensity = ceil(intensity * SHADES) / float(SHADES);
+    #endif
+    col *= intensity;
+    result.color = vec4(col, 1);
+    return result;
+}
+
+
+IntersectionResult castRay(Ray ray, float distanceFactor) {
     float travelDistance = 0.0;
     const float boundOptimisation = 1;
     IntersectionResult result;
+    result.isInShadow = false;
     result.material = -1;
     for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
         MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
-        travelDistance += res.distance;
-        result.material = res.material;
-        if (res.distance < EPSILON) {
-            result.minDistance = travelDistance;
-            return result;
-        } else if (travelDistance > maxDrawDistance) {
-            result.material = -1;
-            result.minDistance = -1.0;
-            return result;
-        }
-    }
-    result.minDistance = travelDistance;
-    return result;
-}
-
-
-
-IntersectionResult castRefrRay(Ray ray, float distanceFactor) {
-    float travelDistance = 0.0;
-    IntersectionResult result;
-    result.material = -1;
-    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
-        MapResult res = map(ray.origin + ray.direction * travelDistance);
         res.distance *= distanceFactor;
         travelDistance += res.distance;
-        result.material = res.material;
+        result.material = res.materialIndex;
         if (res.distance < EPSILON) {
-            result.minDistance = travelDistance;
+            result.distance = travelDistance;
+            Ray shadingRay;
+            shadingRay.origin = ray.origin + ray.direction * travelDistance;
+            shadingRay.direction = ray.direction;
+            result.normal = calcNormal(shadingRay.origin);
+            ShadingResult shadingResult = shading(shadingRay, result.normal, normalize(lightPos), materials[result.material], true);
+            result.color = shadingResult.color;
+            result.isInShadow = shadingResult.isInShadow;
+            result.isSelfShadowed = shadingResult.isSelfShadowed;
             return result;
         } else if (travelDistance > maxDrawDistance) {
             result.material = -1;
-            result.minDistance = -1.0;
+            result.distance = -1.0;
             return result;
         }
     }
-    result.minDistance = travelDistance;
+    result.distance = travelDistance;
     return result;
 }
 
-IntersectionResult castReflRay(Ray ray) {
-    float travelDistance = 0.0;
-    IntersectionResult result;
-    result.material = -1;
-    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
-        MapResult res = map(ray.origin + ray.direction * travelDistance);
-        travelDistance += res.distance;
-        result.material = res.material;
-        if (res.distance < EPSILON * 2) {
-            result.minDistance = travelDistance;
-            return result;
-        } else if (travelDistance > maxDrawDistance) {
-            result.material = -1;
-            result.minDistance = -1.0;
-            return result;
-        }
-    }
-    result.minDistance = travelDistance;
-    return result;
+vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
+    vec3 albedo = vec3(1);
+    const vec3 fillLightDir = lightDir;
+    const vec3 lightColour = vec3(1, 1, 1);
+    const vec3 fillLightColour = vec3(1, 1, 1);
+    vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
+    vec3 fl = fillLightColour*(dot(normal, normalize(fillLightDir))*.5+.5);
+
+    vec3 view = normalize(-rayDir);
+    vec3 h = normalize(view+lightDir);
+    float specular = pow(max(0.0, dot(h, normal)), 2000.0);
+
+    float fresnel = pow(1.0 - dot(view, normal), 5.0);
+    fresnel = mix(.01, 1.0, min(1.0, fresnel));
+
+    //fresnel = 0.0;
+
+    return vec4(albedo*(l+fl)*(1.0-fresnel) + visibility*specular*32.0*lightColour, fresnel);
 }
 
-    #define MAX_SCATTER_RAYS 50
-
-
-vec3 castScatterRay(Ray ray) {
-    vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
-    vec3 density = pow(objectSurfaceColour, vec3(.4));
+const int scatterRayLimit = 50;
+vec3 castScatterRay(Ray ray, Material material) {
+    vec3 density = pow(material.color, vec3(material.scatterDensity));
     vec3 visibility = vec3(1.);
 
     float lastVal = map(ray.origin).distance;
     float soft = 0.0;
-    for (int i=0; i < MAX_SCATTER_RAYS; i++)
+    for (int i=0; i < scatterRayLimit; i++)
     {
         if (visibility.x < EPSILON)
         continue;
@@ -211,54 +368,6 @@ vec3 castScatterRay(Ray ray) {
     return visibility;
 }
 
-vec3 calcNormal(vec3 pos) {
-    const float h = 0.001;
-    const vec2 k = vec2(1, -1);
-    return normalize(
-    k.xyy * map(pos + k.xyy * h).distance +
-    k.yyx * map(pos + k.yyx * h).distance +
-    k.yxy * map(pos + k.yxy * h).distance +
-    k.xxx * map(pos + k.xxx * h).distance
-    );
-}
-
-float softshadow(Ray ray, float minTravel, float maxTravel, float k) {
-    float res = 1.0;
-    float ph = 1e20;
-    int i = 0;
-    for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
-        const float h = map(ray.origin + ray.direction * t).distance;
-        if (h < EPSILON) {
-            return 0.0;
-        }
-        const float y = h * h / (2.0 * ph);
-        const float d = sqrt(h * h - y * y);
-        res = min(res, k * d / max(0.0, t - y));
-        ph = h;
-        t += h;
-    }
-    return clamp(res, 0.0, 1.0);
-}
-
-float getShadowMultiplier(Ray ray, vec3 normal){
-    return softshadow(ray, 0.01, maxDrawDistance, 50);
-}
-
-float getHardShadowMultiplier(Ray ray, vec3 normal) {
-    ray.direction = normalize(ray.direction);
-    float minTravel = 0.01;
-    float maxTravel = maxDrawDistance;
-    int i = 0;
-    for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
-        const float h = map(ray.origin + ray.direction * t).distance;
-        if (h < EPSILON) {
-            return 0.0;
-        }
-        t += h;
-    }
-    return 1.0;
-}
-
 float calcAO(vec3 pos, vec3 nor) {
     float occ = 0.0;
     float sca = 1.0;
@@ -270,79 +379,6 @@ float calcAO(vec3 pos, vec3 nor) {
     }
     return clamp(1.0 - 1.5 * occ, 0.0, 1.0);
 }
-
-vec3 shading(Ray ray, vec3 normal, vec3 lightDir, bool checkShadow) {
-    vec3 col;
-    float shadow = 0.0;
-    float shadowRayCount = 2.0;
-    vec3 pos = ray.origin;
-    if (checkShadow) {
-        ray.origin += normal * 0.01;
-        if (shadowType == 1) {
-            for (float s = 0.0; s < shadowRayCount; s++)
-            {
-                float r = rand(vec2(ray.direction.xy)) * 2.0 - 1.0;
-                Ray shadowRay;
-                shadowRay.origin = ray.origin;
-                shadowRay.direction = lightDir + vec3(1.0 * SHADOW_FALLOFF) * r;
-                IntersectionResult shadowRayIntersection = castRay(shadowRay);
-                if (shadowRayIntersection.material != -1.0)
-                {
-                    shadow += 1.0;
-                }
-            }
-        } else if (shadowType == 2) {
-            Ray shadowRay;
-            shadowRay.origin = ray.origin;
-            shadowRay.direction = lightDir;
-            shadow = getShadowMultiplier(shadowRay, normal);
-        } else if (shadowType == 3) {
-            Ray shadowRay;
-            shadowRay.origin = ray.origin;
-            shadowRay.direction = lightDir;
-            shadow = getHardShadowMultiplier(shadowRay, normal);
-        }
-    } else {
-        shadow = 1.0;
-    }
-
-
-    vec3 objectSurfaceColour = vec3(0.4, 0.8, 0.1);
-    float NoL = max(dot(normal, lightDir), 0.0);
-    vec3 LDirectional = vec3(0.9, 0.9, 0.8) * NoL;
-    vec3 LAmbient = vec3(0.03, 0.04, 0.1);
-    vec3 diffuse = (LDirectional + LAmbient);
-    float specular = dot(normalize(lightPos-pos), reflect(normalize(pos-cameraPosition), normal));
-    col = objectSurfaceColour;
-    vec3 intensity;
-    if (shadowType == 1) {
-        intensity = diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
-    } else if (shadowType != 0) {
-        intensity = diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
-    } else {
-        intensity = diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
-    }
-
-    if (shadowType == 1) {
-        intensity *= 1 - shadow;
-        //vec3 cshadow = pow(vec3(shadow), vec3(1.0, 1.2, 1.5));
-        //intensity = mix(col, col*cshadow*(1.0-SHADOW_OPACITY), shadow/shadowRayCount);
-    } else if (shadowType == 2 || shadowType == 3) {
-        intensity *= shadow;
-    }
-
-        #if SHADES != 0
-    intensity = ceil(intensity * SHADES) / float(SHADES);
-    #endif
-    col *= intensity;
-    return col;
-}
-
-vec4 blend(vec4 fg, vec4 bg) {
-    float a = 1.- fg.a;
-    return fg + bg * a;
-}
-
 
 IntersectionResult castEdgeAARay(Ray ray) {
     float travelDistance = 0.0;
@@ -360,21 +396,21 @@ IntersectionResult castEdgeAARay(Ray ray) {
     for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
         MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
         travelDistance += res.distance;
-        result.material = res.material;
+        result.material = res.materialIndex;
         if (res.distance < EPSILON) {
-            result.minDistance = travelDistance;
+            result.distance = travelDistance;
 
             Ray shadingRay;
             shadingRay.origin = ray.origin + ray.direction * travelDistance;
             shadingRay.direction = ray.direction;
             vec3 normal = calcNormal(shadingRay.origin);
-            vec3 color = shading(shadingRay, normal, lightDir, true);
+            vec3 color = shading(shadingRay, normal, lightDir, materials[0], true).color.rgb;
             result.color = blend(result.color, vec4(color, 1));
 
             return result;
         } else if (travelDistance > maxDrawDistance) {
             result.material = -1;
-            result.minDistance = -1.0;
+            result.distance = -1.0;
             result.color = blend(result.color, vec4(vec3(0.30, 0.36, 0.60) - (ray.direction.y * 0.7), 1));
             return result;
         }
@@ -391,109 +427,12 @@ IntersectionResult castEdgeAARay(Ray ray) {
                 shadingRay.origin = ray.origin + ray.direction * travelDistance;
                 shadingRay.direction = ray.direction;
                 vec3 normal = calcNormal(shadingRay.origin);
-                vec3 color = shading(shadingRay, normal, lightDir, true);
+                vec3 color = shading(shadingRay, normal, lightDir, materials[0], true).color.rgb;
                 result.color = blend(result.color, vec4(color.rgb * a, a));
             }
         }
     }
-    result.minDistance = travelDistance;
-    return result;
-}
-
-
-vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
-    vec3 albedo = vec3(1);
-    const vec3 fillLightDir = lightDir;
-    const vec3 lightColour = vec3(1, 1, 1);
-    const vec3 fillLightColour = vec3(1, 0, 1);
-    vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
-    vec3 fl = fillLightColour*(dot(normal, normalize(fillLightDir))*.5+.5);
-
-    vec3 view = normalize(-rayDir);
-    vec3 h = normalize(view+lightDir);
-    float specular = pow(max(0.0, dot(h, normal)), 2000.0);
-
-    float fresnel = pow(1.0 - dot(view, normal), 5.0);
-    fresnel = mix(.01, 1.0, min(1.0, fresnel));
-
-    //fresnel = 0.0;
-
-    return vec4(albedo*(l+fl)*(1.0-fresnel) + visibility*specular*32.0*lightColour, fresnel);
-}
-
-RenderResult renderRefraction(Ray ray) {
-    float refractionRatio = 1.0 / 1.7;
-    const int refractLimit = 15;
-    float refractFactor = 1;
-
-    vec3 col = vec3(0);
-    vec3 lightDir = normalize(lightPos);
-    float distanceFactor = 1.0;
-    int stepCount = 0;
-    int rayIndex = 0;
-    float intensity = 1.0;
-    for (rayIndex = 0; rayIndex < 15; rayIndex++) {
-        IntersectionResult intersectionResult = castRefrRay(ray, distanceFactor);
-        stepCount += intersectionResult.rmSteps;
-        if (intersectionResult.minDistance <= -1.0) {
-            col = col * (1.0 - intensity) + backgroundColor(ray) * intensity;
-            break;
-        } else {
-            ray.origin = ray.origin + ray.direction * intersectionResult.minDistance;
-            vec3 normal = distanceFactor * calcNormal(ray.origin);
-
-            if (distanceFactor > 0) {
-                const vec3 objColor = shading(ray, normal, lightDir, true);
-                col = col * (1.0 - intensity) + objColor * intensity;
-                intensity *= refractFactor;
-            }
-
-            vec3 refraction = refract(ray.direction, normal, refractionRatio);
-            if (dot(refraction, refraction) < EPSILON) {
-                ray.direction = reflect(ray.direction, normal);
-                ray.origin += ray.direction * EPSILON * 10;
-            } else {
-                ray.direction = refraction;
-                ray.origin += ray.direction * EPSILON * 10;
-                distanceFactor = -distanceFactor;
-                refractionRatio = 1.0 / refractionRatio;
-            }
-        }
-    }
-    RenderResult result;
-    result.color = vec4(col / (0.6 * (rayIndex + 1)), 1);
-    result.rmSteps = stepCount;
-    return result;
-}
-
-RenderResult renderScattering(Ray ray) {
-    IntersectionResult intersectionResult = castRay(ray);
-    vec4 col = vec4(1.0);
-    if (intersectionResult.minDistance <= -1.0) {
-        col = vec4(vec3(0.30, 0.36, 0.60) - (ray.direction.y * 0.7), 1);
-    } else {
-        ray.origin += ray.direction * intersectionResult.minDistance;
-        vec3 lightDir = normalize(lightPos);//-pos);
-        vec3 normal = calcNormal(ray.origin);
-
-        Ray subsurfaceRay;
-        subsurfaceRay.origin = ray.origin + ray.direction;
-        subsurfaceRay.direction = lightDir;
-        vec3 subsurface = castScatterRay(subsurfaceRay);
-        col = subSurfaceShading(subsurfaceRay.origin, normal, lightDir, ray.direction, subsurface);
-
-        //col = normal;
-        //col = smoothstep(0.0,1.0,col);
-        if (enableAmbientOcclusion) {
-            //col *= (1.0-vec3(intersectionResult.steps/stepLimit));
-            col *= calcAO(ray.origin, normal);
-        }
-    }
-
-    RenderResult result;
-    result.color = col;
-    result.rmSteps = intersectionResult.rmSteps;
-    result.fragmentDepth = intersectionResult.minDistance;
+    result.distance = travelDistance;
     return result;
 }
 
@@ -501,7 +440,7 @@ RenderResult renderEdgeAA(Ray ray) {
     IntersectionResult intersectionResult = castEdgeAARay(ray);
     vec3 col;
     int steps = intersectionResult.rmSteps;
-    float depth = intersectionResult.minDistance;
+    float depth = intersectionResult.distance;
     col = intersectionResult.color.rgb;
 
     RenderResult result;
@@ -511,80 +450,111 @@ RenderResult renderEdgeAA(Ray ray) {
     return result;
 }
 
-RenderResult render(Ray ray) {
-    //return renderScattering(ray);
-    //return renderRefraction(ray);
-    if (enableEdgeAntiAliasing) {
-        return renderEdgeAA(ray);
-    }
-    IntersectionResult intersectionResult = castRay(ray);
-    vec3 col;
-    int steps = intersectionResult.rmSteps;
-    float depth = intersectionResult.minDistance;
-    if (intersectionResult.minDistance <= -1.0) {
-        col = vec3(0.30, 0.36, 0.60) - (ray.direction.y * 0.7);
-    } else {
-        ray.origin += ray.direction * intersectionResult.minDistance;
-        vec3 lightDir = normalize(lightPos);//-pos);
-        vec3 normal = calcNormal(ray.origin);
-
-
-
-        if (enableReflections) {
-            const float reflectivity1 = 1.0f;
-            const float reflectivity2 = 0.0f;
-            float reflectivity;
-            if (intersectionResult.material == 1) {
-                reflectivity = reflectivity1;
-            } else {
-                reflectivity = reflectivity2;
-            }
-            col = shading(ray, normal, lightDir, true) * (1.0 - reflectivity);
-            vec3 reflColor = vec3(0);
-            int i = 0;
-            float totalReflectivity = 0;
-            if (reflectivity > EPSILON) {
-                for (i = 0; i < maxReflections; i++) {
-                    ray.direction = reflect(ray.direction, normal);
-                    ray.origin += ray.direction * 0.01;
-                    IntersectionResult reflIntersectionResult = castReflRay(ray);
-                    if (reflIntersectionResult.minDistance > -1.0) {
-                        ray.origin += ray.direction * reflIntersectionResult.minDistance;
-                        normal = calcNormal(ray.origin);
-                        vec3 targetColor = shading(ray, normal, lightDir, true);
-                        reflColor += targetColor * reflectivity;
-                    } else {
-                        reflColor += backgroundColor(ray) * reflectivity;
-                    }
-                    totalReflectivity += reflectivity;
-                    steps += reflIntersectionResult.rmSteps;
-                    if (reflIntersectionResult.material == 1) {
-                        reflectivity = reflectivity1;
-                    } else {
-                        reflectivity = reflectivity2;
-                    }
-                    if (reflectivity <= EPSILON) {
-                        break;
-                    }
-                }
-                col += reflColor / totalReflectivity;
-            }
-        } else {
-            col = shading(ray, normal, lightDir, true);
-        }
-
-        //col = normal;
-        //col = smoothstep(0.0,1.0,col);
-        if (enableAmbientOcclusion) {
-            //col *= (1.0-vec3(intersectionResult.steps/stepLimit));
-            col *= calcAO(ray.origin, normal);
-        }
-    }
-
+RenderResult renderMarching(Ray ray) {
     RenderResult result;
-    result.color = vec4(col, 1);
-    result.rmSteps = steps;
-    result.fragmentDepth = depth;
+    IntersectionResult intersection = castRay(ray, 1.0);
+    result.fragmentDepth = intersection.distance;
+    result.rmSteps = 0;
+    bool intersected = intersection.distance >= 0.0;
+    if (!intersected) {
+        result.rmSteps = intersection.rmSteps;
+        result.color = vec4(backgroundColor(ray), 1.0);
+    } else {
+        const vec3 lightDir = normalize(lightPos);
+        const uint followUpRayLimit = uint(maxReflections) + 1;
+        uint followUpRayCount = 0;
+        result.color = vec4(0, 0, 0, 1);
+        float colorModifier = 1.0;
+        float distanceFactor = 1.0;
+        float refractionIntensity = 1;
+        const float airRefractionIndex = 1;
+        float refractionRatio;
+        while (intersected) {
+            result.rmSteps += intersection.rmSteps;
+            const vec3 rayEndPos = ray.origin + intersection.distance * ray.direction;
+            const uint materialType = materials[intersection.material].type;
+            const vec3 normal = calcNormal(rayEndPos);
+            result.endPos = rayEndPos;
+            result.normal = normal;
+            switch (materialType) {
+                case MatNormal:{
+                    result.color += vec4((colorModifier * intersection.color).rgb, 0);
+                    result.color /= colorModifier;
+                    return result;
+                }
+                case MatScatter:{
+                    ray.origin = rayEndPos + ray.direction;
+                    const vec3 originalRayDirection = ray.direction;
+                    ray.direction = lightDir;
+                    if (intersection.isInShadow && !intersection.isSelfShadowed) {
+                        result.color += vec4((colorModifier * intersection.color).rgb, 0);
+                    } else {
+                        vec3 visibility = castScatterRay(ray, materials[intersection.material]);
+                        result.color += vec4((colorModifier * subSurfaceShading(ray.origin, normal, lightDir, originalRayDirection, visibility)).rgb, 0);
+                    }
+                    result.color /= colorModifier;
+                    return result;
+                }
+                case MatReflective:{
+                    ray.origin = rayEndPos + normal * 0.01;
+                    ray.direction = reflect(ray.direction, normal);
+                    result.color += vec4((colorModifier * intersection.color * (1 - materials[intersection.material].reflectivity)).rgb, 0);
+                    colorModifier += materials[intersection.material].reflectivity;
+                    followUpRayCount++;
+                    if (followUpRayCount == followUpRayLimit) {
+                        result.color /= colorModifier;
+                        return result;
+                    }
+                    intersection = castRay(ray, distanceFactor);
+                    break;
+                }
+                case MatTransparent:{
+                    ray.origin = rayEndPos;
+                    vec3 normal = distanceFactor * normal;
+
+                    if (distanceFactor > 0) {
+                        refractionRatio = airRefractionIndex / materials[intersection.material].refractiveIndex;
+                        const vec3 objColor = intersection.color.rgb;
+                        result.color = vec4(result.color.rgb * (1.0 - refractionIntensity) + objColor * refractionIntensity, 1);
+                        refractionIntensity *= materials[intersection.material].refractiveFactor;
+                        colorModifier *= materials[intersection.material].refractiveFactor;
+                    }
+                    vec3 refraction = refract(ray.direction, normal, refractionRatio);
+                    if (dot(refraction, refraction) < EPSILON) {
+                        ray.direction = reflect(ray.direction, normal);
+                        ray.origin += ray.direction;
+                    } else {
+                        ray.direction = refraction;
+                        ray.origin += ray.direction * EPSILON * 10;
+                        distanceFactor = -distanceFactor;
+                        refractionRatio = 1.0 / refractionRatio;
+                    }
+
+                    followUpRayCount++;
+                    if (followUpRayCount == followUpRayLimit) {
+                        result.color /= colorModifier;
+                        return result;
+                    }
+                    intersection = castRay(ray, distanceFactor);
+                    break;
+                }
+                default :
+                return result;
+            }
+            intersected = intersection.distance >= 0;
+        }
+        if (!intersected) {
+            result.color += vec4(backgroundColor(ray), 0.0);
+        }
+    }
+    return result;
+}
+
+RenderResult render(Ray ray) {
+    RenderResult result = renderMarching(ray);
+    if (enableAmbientOcclusion) {
+        result.color.rgb *= calcAO(result.endPos, result.normal);
+    }
     return result;
 }
 
@@ -594,27 +564,6 @@ vec2 normalizeScreenCoords(vec2 screenCoord) {
     return result;
 }
 
-
-float logNormalize(float enteredValue, float minEntry, float maxEntry, float normalizedMin, float normalizedMax) {
-
-    float mx = (log((enteredValue-minEntry))/(log(maxEntry-minEntry)));
-    float preshiftNormalized = mx*(normalizedMax-normalizedMin);
-    float shiftedNormalized = preshiftNormalized + normalizedMin;
-
-    return shiftedNormalized;
-}
-
-vec3 applyFog(in vec3  rgb, // original color of the pixel
-in float distance, // camera to point distance
-in vec3  rayOri, // camera position
-in vec3  rayDir)// camera to point vector
-{ ;
-    float b = 0.05;
-    float c = 0.2;
-    float fogAmount = c * exp(-rayOri.y*b) * (1.0-exp(-distance*rayDir.y*b))/rayDir.y;
-    vec3  fogColor  = vec3(0.5, 0.5, 0.5);
-    return mix(rgb, fogColor, fogAmount);
-}
 
 void main() {
     if (gl_GlobalInvocationID.x >= resolution.x || gl_GlobalInvocationID.y >= resolution.y) {

@@ -10,6 +10,8 @@ vec2 opUnion(vec2 d1, vec2 d2)
 
 vec2 opSubstraction(vec2 d2, vec2 d1) { return vec2(max(-d1.x, d2.x)); }
 
+float opIntersection(float d1, float d2) { return max(d1, d2); }
+
 float sminCubic(float a, float b, float k)
 {
     float h = max(k-abs(a-b), 0.0);

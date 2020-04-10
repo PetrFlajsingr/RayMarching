@@ -70,7 +70,7 @@ endif ()
 
 
 add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST}
-        UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp UI/CameraPanel.cpp
+        UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp UI/CameraPanel.cpp UI/KeyboardHandler.cpp
         ray_marching/Scene.cpp
         common/gl_utils.cpp common/GlslShaderLoader.cpp common/gl_utils.cpp
         ray_marching/RayMarcher.cpp include/Camera.cpp ray_marching/CSG/CSGTree.cpp ray_marching/CSG/CSGShapes.cpp ray_marching/CSG/CSGOperations.cpp)

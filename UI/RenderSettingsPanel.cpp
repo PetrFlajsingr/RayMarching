@@ -57,7 +57,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       ImGui::EndCombo();
     }
     const auto shadowType = getShadowType();
-    if (isIn(shadowType, {ray_march::Shadows::Hard, ray_march::Shadows::Soft})) {
+    if (isIn(shadowType, {ray_march::Shadows::Hard, ray_march::Shadows::Soft, ray_march::Shadows::RayTraced})) {
       ImGui::SliderInt("Max shadow ray steps", &shadowRayStepLimit, 1, 512);
     }
     if (ImGui::BeginCombo("Anti-aliasing", currentAAItem)) {
@@ -80,10 +80,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     default:
       break;
     }
-    ImGui::Checkbox("Reflections", &reflectionsEnabled);
-    if (reflectionsEnabled) {
-      ImGui::SliderInt("Max reflections", &maxReflections, 1, 10);
-    }
+    ImGui::SliderInt("Max reflections/refractions", &maxReflections, 0, 50);
     ImGui::End();
   }
 }
@@ -101,7 +98,6 @@ auto ui::RenderSettingsPanel::getShadowType() const -> ray_march::Shadows {
 }
 auto ui::RenderSettingsPanel::getAA() const -> int { return aaX; }
 auto ui::RenderSettingsPanel::getShadowRayStepLimit() const -> int { return shadowRayStepLimit; }
-auto ui::RenderSettingsPanel::areReflectionsEnabled() const -> bool { return reflectionsEnabled; }
 auto ui::RenderSettingsPanel::getMaxReflections() const -> int { return maxReflections; }
 auto ui::RenderSettingsPanel::getAAType() const -> ray_march::AntiAliasing {
   return magic_enum::enum_cast<ray_march::AntiAliasing>(currentAAItem).value();

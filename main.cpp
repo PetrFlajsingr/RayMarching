@@ -100,6 +100,8 @@ auto main() -> int {
   window->setEventCallback(SDL_KEYDOWN, [&camera](const SDL_Event &event) {
     constexpr auto movementSpeed = 10.0f;
     const auto pressedKey = event.key.keysym.sym;
+    const Uint8 *keyboard_state_array = SDL_GetKeyboardState(NULL);
+
     switch (pressedKey) {
     case SDLK_w:
       // velocity += 0.01f * camera.Front;
@@ -184,7 +186,6 @@ auto main() -> int {
     rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
     rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
     rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
-    rayMarcher.setReflectionsEnabled(ui.getRenderSettingsPanel().areReflectionsEnabled());
     rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
     rayMarcher.render();
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());

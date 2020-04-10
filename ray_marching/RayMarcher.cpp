@@ -63,15 +63,14 @@ auto RayMarcher::render() -> void {
   ScopedShaderProgramUsage scopedProgram{*csProgram};
   bindTextures();
   scopedProgram->set("stepLimit", rayStepLimit);
-  // scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
+  scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  // scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
+  scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
   scopedProgram->set("enableAntiAliasing", aaType == AntiAliasing::SSAA);
-  scopedProgram->set("enableEdgeAntiAliasing", aaType == AntiAliasing::EdgeAA);
-  // scopedProgram->set("enableReflections", reflectionsEnabled);
-  // scopedProgram->set("maxReflections", maxReflections);
-  // scopedProgram->set("shadowType", static_cast<int>(shadowType));
+  // scopedProgram->set("enableEdgeAntiAliasing", aaType == AntiAliasing::EdgeAA);
+  scopedProgram->set("maxReflections", maxReflections);
+  scopedProgram->set("shadowType", static_cast<int>(shadowType));
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
@@ -118,7 +117,6 @@ auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> v
 
 auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowType = shadowType; }
 auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
-auto RayMarcher::setReflectionsEnabled(bool areReflectionsEnabled) -> void { reflectionsEnabled = areReflectionsEnabled; }
 auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
 
 auto RayMarcher::reloadShader() -> void {

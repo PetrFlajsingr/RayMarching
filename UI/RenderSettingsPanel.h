@@ -27,7 +27,6 @@ public:
   [[nodiscard]] auto getTimeScale() const -> float;
   [[nodiscard]] auto isAmbientOcclusionEnabled() const -> bool;
   [[nodiscard]] auto getAA() const -> int;
-  [[nodiscard]] auto areReflectionsEnabled() const -> bool;
   [[nodiscard]] auto getMaxReflections() const -> int;
 
 private:
@@ -44,7 +43,6 @@ private:
   int aaX = 2;
   int maxReflections = 1;
   bool ambientOcclusionEnabled = false;
-  bool reflectionsEnabled = false;
 
   std::function<void()> onReloadShaderClicked;
 };

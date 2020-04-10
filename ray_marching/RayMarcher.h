@@ -70,8 +70,6 @@ private:
 
   bool ambientOcclusionEnabled = false;
 
-  bool reflectionsEnabled = false;
-
   glm::vec3 cameraPosition;
   glm::vec3 cameraFront;
 
