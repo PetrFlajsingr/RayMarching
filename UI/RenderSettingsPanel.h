@@ -28,6 +28,7 @@ public:
   [[nodiscard]] auto isAmbientOcclusionEnabled() const -> bool;
   [[nodiscard]] auto getAA() const -> int;
   [[nodiscard]] auto getMaxReflections() const -> int;
+  [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
 
 private:
   const char *currentItem;
@@ -43,7 +44,7 @@ private:
   int aaX = 2;
   int maxReflections = 1;
   bool ambientOcclusionEnabled = false;
-
+  glm::vec3 lightPosition;
   std::function<void()> onReloadShaderClicked;
 };
 } // namespace ui

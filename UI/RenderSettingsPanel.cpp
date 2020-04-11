@@ -3,6 +3,7 @@
 //
 
 #include "RenderSettingsPanel.h"
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 #include <magic_enum.hpp>
 #include <various/isin.h>
@@ -81,6 +82,8 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       break;
     }
     ImGui::SliderInt("Max reflections/refractions", &maxReflections, 0, 50);
+    ImGui::SliderFloat3("Light direction", glm::value_ptr(lightPosition), -1, 1.0);
+    lightPosition = glm::normalize(lightPosition);
     ImGui::End();
   }
 }
@@ -102,3 +105,4 @@ auto ui::RenderSettingsPanel::getMaxReflections() const -> int { return maxRefle
 auto ui::RenderSettingsPanel::getAAType() const -> ray_march::AntiAliasing {
   return magic_enum::enum_cast<ray_march::AntiAliasing>(currentAAItem).value();
 }
+auto ui::RenderSettingsPanel::getLightPosition() const -> const glm::vec3 & { return lightPosition; }

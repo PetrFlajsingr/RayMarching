@@ -44,7 +44,7 @@ auto maketree() -> CSGTree {
   tower.setLeftChild<SphereShape>(glm::vec3{0, 500, 0}, 10);
   op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
 
-  firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
+  firstOp.setRightChild<BoxShape>(glm::vec3{0, -10, 0}, glm::vec3{100000.0, 15, 100000.0});
 
   std::cout << tree.src() << std::endl;
   return tree;
@@ -187,6 +187,7 @@ auto main() -> int {
     rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
     rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
     rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
+    rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
     rayMarcher.render();
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();

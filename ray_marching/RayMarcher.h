@@ -32,11 +32,12 @@ public:
   auto setMaxDrawDistance(float distance) -> void;
   auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
   auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
-  auto setReflectionsEnabled(bool areRefflectionsEnabled) -> void;
   auto setShadowType(Shadows shadowType) -> void;
   auto setAASize(int aaSize) -> void;
   auto setMaxReflections(int maxReflections) -> void;
   auto setAntiaAliasingType(AntiAliasing aaType) -> void;
+  [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
+  void setLightPosition(const glm::vec3 &lightPosition);
 
   auto reloadShader() -> void;
 
@@ -67,6 +68,7 @@ private:
   int maxReflections = 1;
   float time = 0;
   float maxDrawDistance = 10.0f;
+  glm::vec3 lightPosition;
 
   bool ambientOcclusionEnabled = false;
 
