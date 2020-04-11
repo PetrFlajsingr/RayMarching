@@ -557,6 +557,8 @@ RenderResult renderMarching(Ray ray) {
                         result.color = vec4(result.color.rgb * (1.0 - refractionIntensity) + objColor * refractionIntensity, 1);
                         refractionIntensity *= materials[intersection.material].refractiveFactor;
                         colorModifier *= materials[intersection.material].refractiveFactor;
+                    } else {
+                        followUpRayCount++;
                     }
                     vec3 refraction = refract(ray.direction, normal, refractionRatio);
                     if (dot(refraction, refraction) < EPSILON) {
@@ -569,7 +571,6 @@ RenderResult renderMarching(Ray ray) {
                         refractionRatio = 1.0 / refractionRatio;
                     }
 
-                    followUpRayCount++;
                     if (followUpRayCount == followUpRayLimit) {
                         result.color /= colorModifier;
                         return result;

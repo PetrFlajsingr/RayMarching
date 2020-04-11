@@ -44,7 +44,7 @@ private:
   int aaX = 2;
   int maxReflections = 1;
   bool ambientOcclusionEnabled = false;
-  glm::vec3 lightPosition;
+  glm::vec3 lightPosition{0, 1, 0};
   std::function<void()> onReloadShaderClicked;
 };
 } // namespace ui

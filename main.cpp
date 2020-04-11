@@ -30,23 +30,19 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 }
 
 auto addMaterials(MaterialManager &materialManager) -> void {
-  Material normal("normal", Material::Type::Normal);
+  Material normal("Mat1", Material::Type::Normal);
   normal.setColor({1, 1, 0});
-  Material reflective("reflective", Material::Type::Reflective);
+  Material reflective("Mat2", Material::Type::Reflective);
   reflective.setColor({1, 0, 0});
   reflective.setReflectivity(0.5);
-  Material transparent("transparent", Material::Type::Transparent);
+  Material transparent("Mat3", Material::Type::Transparent);
   transparent.setColor({0, 1, 1});
   transparent.setReflectivity(0.3);
   transparent.setRefractiveIndex(1.6);
   transparent.setRefractiveFactor(0.5);
-  Material scatter("scatter", Material::Type::Scatter);
+  Material scatter("Mat4", Material::Type::Scatter);
   scatter.setColor({0, .5, 0});
   scatter.setScatterDensity(.9);
-  std::stringstream ss;
-  ss << normal << "\n" << reflective << "\n" << transparent << "\n" << scatter << "\n";
-  spdlog::debug("Adding materials:\n");
-  spdlog::debug(ss.str());
   materialManager.addMaterial(std::move(normal));
   materialManager.addMaterial(std::move(reflective));
   materialManager.addMaterial(std::move(transparent));
@@ -93,10 +89,9 @@ auto main() -> int {
   ge::gl::setHighDebugMessage();
   ge::gl::glClearColor(0, 0, 0, 1);
 
-  ui::UI ui{*window, *mainLoop, "450"};
-
   setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
+  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager()};
 
   float time = 0;
 

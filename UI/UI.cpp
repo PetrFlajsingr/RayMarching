@@ -7,8 +7,8 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_sdl.h>
 
-ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion)
-    : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), window(window) {
+ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion, MaterialManager &materialManager)
+    : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), window(window), materialPanel(materialManager) {
   IMGUI_CHECKVERSION();
   ImGui::StyleColorsDark();
   ImGui_ImplSDL2_InitForOpenGL(window.getWindow(), window.getContext("rendering"));
@@ -18,6 +18,7 @@ ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::stri
   panels.emplace_back(&fpsPanel);
   panels.emplace_back(&renderSettingsPanel);
   panels.emplace_back(&cameraPanel);
+  panels.emplace_back(&materialPanel);
 }
 
 auto ui::UI::onFrame() -> void {
@@ -49,3 +50,5 @@ auto ui::UI::getRenderSettingsPanel() const -> const ui::RenderSettingsPanel & {
 auto ui::UI::getRenderSettingsPanel() -> ui::RenderSettingsPanel & { return renderSettingsPanel; }
 auto ui::UI::getCameraPanel() const -> const CameraPanel & { return cameraPanel; }
 auto ui::UI::getCameraPanel() -> CameraPanel & { return cameraPanel; }
+auto ui::UI::getMaterialPanel() const -> const ui::MaterialPanel & { return materialPanel; }
+auto ui::UI::getMaterialPanel() -> ui::MaterialPanel & { return materialPanel; }
