@@ -81,7 +81,7 @@ void ui::MaterialPanel::onFrame() {
     ImGui::SliderFloat("RefractiveFactor", &refractiveFactor, 0, 1);
   }
   if (materialType == Material::Type::Scatter) {
-    ImGui::SliderFloat("Scatter density", &scatterDensity, 0, 1);
+    ImGui::SliderFloat("Scatter density", &scatterDensity, 0.001, 1);
   }
 
   if (color != selectedMaterial->getColor()) {
