@@ -4,6 +4,9 @@
 
 #ifndef RAYMARCHING_RAWCONVERSION_H
 #define RAYMARCHING_RAWCONVERSION_H
+#include <array>
+#include <glm/glm.hpp>
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cppcoreguidelines-pro-type-member-init"
 template <std::size_t DataSize, typename T> inline auto memToBytes(const T &val) -> std::array<uint8_t, DataSize> {

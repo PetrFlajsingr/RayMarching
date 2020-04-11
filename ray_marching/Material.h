@@ -32,7 +32,7 @@ public:
   auto setScatterDensity(float scatterDensity) -> void;
   [[nodiscard]] auto getType() const -> Type;
   [[nodiscard]] auto getName() const -> const std::string &;
-
+  auto setType(Type type) -> void;
   [[nodiscard]] auto raw() const -> std::array<uint8_t, paddedSize>;
 
   friend auto operator<<(std::ostream &ostream, const Material &material) -> std::ostream &;

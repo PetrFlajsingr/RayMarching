@@ -88,3 +88,4 @@ auto Material::raw() const -> std::array<uint8_t, paddedSize> {
 }
 auto Material::getType() const -> Material::Type { return type; }
 auto Material::getName() const -> const std::string & { return name; }
+auto Material::setType(Material::Type type) -> void { Material::type = type; }

@@ -19,6 +19,7 @@ public:
   auto updateSSBO() -> void;
   [[nodiscard]] auto getMaterialBuffer() const -> const ge::gl::Buffer &;
   auto bindBuffer(unsigned int binding) -> void;
+  [[nodiscard]] auto getMaterialMap() -> std::unordered_map<std::string, Material> &;
 
 private:
   mutable std::unordered_map<std::string, Material> materials;

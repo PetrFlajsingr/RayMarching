@@ -28,3 +28,4 @@ auto MaterialManager::updateSSBO() -> void {
 }
 auto MaterialManager::getMaterialBuffer() const -> const ge::gl::Buffer & { return buffer; }
 auto MaterialManager::bindBuffer(unsigned int binding) -> void { buffer.bindBase(GL_SHADER_STORAGE_BUFFER, binding); }
+auto MaterialManager::getMaterialMap() -> std::unordered_map<std::string, Material> & { return materials; }
