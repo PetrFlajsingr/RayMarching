@@ -71,7 +71,7 @@ endif ()
 
 add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST}
         UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp UI/CameraPanel.cpp UI/KeyboardHandler.cpp
-        ray_marching/Scene.cpp
+        ray_marching/Scene.cpp ray_marching/Material.cpp ray_marching/MaterialManager.cpp
         common/gl_utils.cpp common/GlslShaderLoader.cpp common/gl_utils.cpp
         ray_marching/RayMarcher.cpp include/Camera.cpp ray_marching/CSG/CSGTree.cpp ray_marching/CSG/CSGShapes.cpp ray_marching/CSG/CSGOperations.cpp)
 target_link_libraries(RayMarching glm geGL::geGL SDL2CPP::SDL2CPP imgui::imgui tinyxml2 fmt::fmt-header-only -pthread nlohmann_json::nlohmann_json spdlog::spdlog)

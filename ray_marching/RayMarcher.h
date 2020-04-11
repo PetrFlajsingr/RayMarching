@@ -4,6 +4,7 @@
 
 #ifndef RAYMARCHING_RAYMARCHER_H
 #define RAYMARCHING_RAYMARCHER_H
+#include "MaterialManager.h"
 #include <geGL/Buffer.h>
 #include <geGL/Program.h>
 #include <geGL/Texture.h>
@@ -39,6 +40,8 @@ public:
   [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
   void setLightPosition(const glm::vec3 &lightPosition);
 
+  [[nodiscard]] auto getMaterialManager() -> MaterialManager &;
+
   auto reloadShader() -> void;
 
 private:
@@ -70,12 +73,16 @@ private:
   float maxDrawDistance = 10.0f;
   glm::vec3 lightPosition;
 
+  static inline constexpr unsigned int materialBinding = 3;
+
   bool ambientOcclusionEnabled = false;
 
   glm::vec3 cameraPosition;
   glm::vec3 cameraFront;
 
   TextureSize textureSize;
+
+  MaterialManager materialManager;
 
   Shadows shadowType = Shadows::Disabled;
   AntiAliasing aaType = AntiAliasing::Disabled;

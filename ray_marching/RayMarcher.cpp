@@ -76,6 +76,8 @@ auto RayMarcher::render() -> void {
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
+  materialManager.updateSSBO();
+  materialManager.bindBuffer(materialBinding);
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
   scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
@@ -133,3 +135,4 @@ auto RayMarcher::reloadShader() -> void {
 auto RayMarcher::setAntiaAliasingType(AntiAliasing aaType) -> void { RayMarcher::aaType = aaType; }
 auto RayMarcher::getLightPosition() const -> const glm::vec3 & { return lightPosition; }
 auto RayMarcher::setLightPosition(const glm::vec3 &lightPosition) -> void { RayMarcher::lightPosition = lightPosition; }
+auto RayMarcher::getMaterialManager() -> MaterialManager & { return materialManager; }

@@ -15,6 +15,7 @@
 #include <geGL/geGL.h>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <sstream>
 #include <utility>
 #include <various/overload.h>
 
@@ -26,6 +27,30 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   const auto w = static_cast<unsigned int>(displayMode.w * 0.8);
   const auto h = static_cast<unsigned int>(displayMode.h * 0.8);
   return {w, h};
+}
+
+auto addMaterials(MaterialManager &materialManager) -> void {
+  Material normal("normal", Material::Type::Normal);
+  normal.setColor({1, 1, 0});
+  Material reflective("reflective", Material::Type::Reflective);
+  reflective.setColor({1, 0, 0});
+  reflective.setReflectivity(0.5);
+  Material transparent("transparent", Material::Type::Transparent);
+  transparent.setColor({0, 1, 1});
+  transparent.setReflectivity(0.3);
+  transparent.setRefractiveIndex(1.6);
+  transparent.setRefractiveFactor(0.5);
+  Material scatter("scatter", Material::Type::Scatter);
+  scatter.setColor({0, .5, 0});
+  scatter.setScatterDensity(.9);
+  std::stringstream ss;
+  ss << normal << "\n" << reflective << "\n" << transparent << "\n" << scatter << "\n";
+  spdlog::debug("Adding materials:\n");
+  spdlog::debug(ss.str());
+  materialManager.addMaterial(std::move(normal));
+  materialManager.addMaterial(std::move(reflective));
+  materialManager.addMaterial(std::move(transparent));
+  materialManager.addMaterial(std::move(scatter));
 }
 
 auto maketree() -> CSGTree {
@@ -141,6 +166,8 @@ auto main() -> int {
 
   glm::vec3 lastCamPos = camera.Position;
   ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
+
+  addMaterials(rayMarcher.getMaterialManager());
 
   camera.Position = glm::vec3{0, 400, 0};
   mainLoop->setIdleCallback([&]() {

@@ -4,6 +4,24 @@ layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
 
+const int MatNormal = 0;
+const int MatReflective = 1;
+const int MatTransparent = 2;
+const int MatScatter = 3;
+struct Material {
+    vec4 color;
+    int type;
+    float reflectivity;
+    float refractiveIndex;
+    float refractiveFactor;
+    float scatterDensity;
+    float _padding[3];
+};
+
+layout (std430, binding=3) buffer MaterialData {
+    Material materials[];
+};
+
 uniform int shadowType;
 
 uniform ivec2 resolution;
@@ -53,11 +71,13 @@ struct IntersectionResult {
 struct ShadowResult {
     float shadow;
     bool isSelfShadowed;
+    int rmSteps;
 };
 struct ShadingResult {
     bool isInShadow;
     bool isSelfShadowed;
     vec4 color;
+    int rmSteps;
 };
 struct MapResult {
     float distance;
@@ -70,27 +90,10 @@ struct Ray {
 struct RayHitCheckResult {
     bool hit;
     float distance;
+    int rmSteps;
 };
 
-const int MatNormal = 0;
-const int MatReflective = 1;
-const int MatTransparent = 2;
-const int MatScatter = 3;
-struct Material {
-    int type;
-    vec3 color;
-    float reflectivity;
-    float refractiveIndex;
-    float refractiveFactor;
-    float scatterDensity;
-};
 
-Material materials[4] = Material[4](
-Material(MatNormal, vec3(1, 1, 0), 0, 0, 0, 0),
-Material(MatReflective, vec3(1, 0, 0), .5, 0, 0, 0),
-Material(MatTransparent, vec3(0, 1, 1), 0.3, 1.6, 0.5, 0),
-Material(MatScatter, vec3(0, .5, 0), 0, 0, 0, .9)
-);
 /**
  * Calculate backroung color based on a ray.
  */
@@ -136,6 +139,7 @@ MapResult map(vec3 camPos) {
     } else if (origPos.x > 0 && origPos.z > 0) {
         result.materialIndex = 3;
     }
+    // result.materialIndex = 3;
 
     return result;
 }
@@ -146,17 +150,18 @@ MapResult map(vec3 camPos) {
 RayHitCheckResult checkRayHit(Ray ray, float distanceFactor) {
     float travelDistance = 0.0;
     const float boundOptimisation = 1;
-    for (uint i = 0; i < shadowStepLimit; i++) {
+    int i;
+    for (i = 0; i < shadowStepLimit; i++) {
         MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
         res.distance *= distanceFactor;
         travelDistance += res.distance;
         if (res.distance < EPSILON) {
-            return RayHitCheckResult(true, travelDistance);
+            return RayHitCheckResult(true, travelDistance, i);
         } else if (travelDistance > maxDrawDistance) {
-            return RayHitCheckResult(false, travelDistance);
+            return RayHitCheckResult(false, travelDistance, i);
         }
     }
-    return RayHitCheckResult(false, travelDistance);
+    return RayHitCheckResult(false, travelDistance, i);
 }
 /**
  * Calculate normal of the scene on position via tethrahedron (4 map calls instead of 6 using usual gradient approximation)
@@ -183,7 +188,7 @@ ShadowResult softshadow(Ray ray, float minTravel, float maxTravel, float k) {
     for (t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
         const float h = map(ray.origin + ray.direction * t).distance;
         if (h < EPSILON) {
-            return ShadowResult(0.0, t < 1);
+            return ShadowResult(0.0, t < 1, i);
         }
         const float y = h * h / (2.0 * ph);
         const float d = sqrt(h * h - y * y);
@@ -191,7 +196,7 @@ ShadowResult softshadow(Ray ray, float minTravel, float maxTravel, float k) {
         ph = h;
         t += h;
     }
-    return ShadowResult(clamp(res, 0.0, 1.0), t < 1);
+    return ShadowResult(clamp(res, 0.0, 1.0), t < 1, i);
 }
 /**
  * Calculate soft shadow based on distance to object while passing it.
@@ -210,11 +215,11 @@ ShadowResult getHardShadowMultiplier(Ray ray, vec3 normal) {
     for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
         const float h = map(ray.origin + ray.direction * t).distance;
         if (h < EPSILON) {
-            return ShadowResult(0.0, t < 1);
+            return ShadowResult(0.0, t < 1, i);
         }
         t += h;
     }
-    return ShadowResult(1.0, false);
+    return ShadowResult(1.0, false, i);
 }
 /**
  * 'Ray tracing style' shadow calculation.
@@ -223,6 +228,7 @@ ShadowResult getMultiRayShadowMultiplier(Ray ray, vec3 lightDir) {
     float minHitDist = FLT_MAX;
     float shadow = 0;
     const float shadowRayCount = 2;
+    int stepCount = 0;
     for (float s = 0.0; s < shadowRayCount; s++)
     {
         float r = rand(vec2(ray.direction.xy)) * 2.0 - 1.0;
@@ -230,6 +236,7 @@ ShadowResult getMultiRayShadowMultiplier(Ray ray, vec3 lightDir) {
         shadowRay.origin = ray.origin;
         shadowRay.direction = lightDir + vec3(1.0 * SHADOW_FALLOFF) * r;
         RayHitCheckResult rayhitCheckResult = checkRayHit(shadowRay, 1.0);
+        stepCount += rayhitCheckResult.rmSteps;
         if (rayhitCheckResult.hit) {
             shadow += 1.0;
         }
@@ -237,13 +244,14 @@ ShadowResult getMultiRayShadowMultiplier(Ray ray, vec3 lightDir) {
     }
     shadow /= shadowRayCount;
     shadow = 1 - shadow;
-    return ShadowResult(shadow, minHitDist < 1);
+    return ShadowResult(shadow, minHitDist < 1, stepCount);
 }
 /**
  * Calculate color for object.
  */
 ShadingResult shading(Ray ray, vec3 normal, vec3 lightDir, Material material, bool checkShadow) {
     ShadingResult result;
+    result.rmSteps = 0;
     result.isInShadow = false;
     vec3 col;
     float shadow = 1.0;
@@ -256,6 +264,7 @@ ShadingResult shading(Ray ray, vec3 normal, vec3 lightDir, Material material, bo
             result.isSelfShadowed = shadowResult.isSelfShadowed;
             shadow = shadowResult.shadow;
             result.isInShadow = shadow < 1;
+            result.rmSteps += shadowResult.rmSteps;
         } else if (shadowType == 2) {
             Ray shadowRay;
             shadowRay.origin = ray.origin;
@@ -264,6 +273,7 @@ ShadingResult shading(Ray ray, vec3 normal, vec3 lightDir, Material material, bo
             result.isSelfShadowed = shadowResult.isSelfShadowed;
             shadow = shadowResult.shadow;
             result.isInShadow = shadow < 1;
+            result.rmSteps += shadowResult.rmSteps;
         } else if (shadowType == 3) {
             Ray shadowRay;
             shadowRay.origin = ray.origin;
@@ -272,10 +282,11 @@ ShadingResult shading(Ray ray, vec3 normal, vec3 lightDir, Material material, bo
             result.isSelfShadowed = shadowResult.isSelfShadowed;
             shadow = shadowResult.shadow;
             result.isInShadow = shadow < 1;
+            result.rmSteps += shadowResult.rmSteps;
         }
     }
 
-    vec3 objectSurfaceColour = material.color;
+    vec3 objectSurfaceColour = material.color.rgb;
     float NoL = max(dot(normal, lightDir), 0.0);
     vec3 LDirectional = vec3(0.9, 0.9, 0.8) * NoL;
     vec3 LAmbient = vec3(0.03, 0.04, 0.1);
@@ -324,6 +335,7 @@ IntersectionResult castRay(Ray ray, float distanceFactor) {
             result.color = shadingResult.color;
             result.isInShadow = shadingResult.isInShadow;
             result.isSelfShadowed = shadingResult.isSelfShadowed;
+            result.rmSteps += shadingResult.rmSteps;
             return result;
         } else if (travelDistance > maxDrawDistance) {
             result.material = -1;
@@ -361,7 +373,7 @@ vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 v
  */
 const int scatterRayLimit = 50;
 vec3 castScatterRay(Ray ray, Material material) {
-    vec3 density = pow(material.color, vec3(material.scatterDensity));
+    vec3 density = pow(material.color.rgb, vec3(material.scatterDensity));
     vec3 visibility = vec3(1.);
 
     float lastVal = map(ray.origin).distance;

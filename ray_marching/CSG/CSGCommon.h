@@ -5,6 +5,7 @@
 #ifndef RAYMARCHING_CSGCOMMON_H
 #define RAYMARCHING_CSGCOMMON_H
 
+#include "../RawConversion.h"
 #include <array>
 #include <glm/glm.hpp>
 #include <vector>
@@ -18,21 +19,6 @@ constexpr uint8_t shapeFlag = 0b10000000;
 template <typename T> concept C_Shape = std::is_base_of_v<Shape, T>;
 template <typename T> concept C_Operation = std::is_base_of_v<BinaryOperation, T>;
 template <typename T> concept C_WarpOperation = std::is_base_of_v<SpaceWarpOperation, T>;
-
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-member-init"
-template <std::size_t DataSize, typename T> inline auto memToBytes(const T &val) -> std::array<uint8_t, DataSize> {
-  auto raw = reinterpret_cast<uint8_t const *>(&val);
-  std::array<uint8_t, DataSize> result;
-  for (std::size_t i = 0; i < DataSize; ++i) {
-    result[i] = raw[i];
-  }
-  return result;
-}
-inline auto vec3ToBytes(const glm::vec3 &vec) -> std::array<uint8_t, 12> { return memToBytes<12>(vec); }
-inline auto vec4ToBytes(const glm::vec4 &vec) -> std::array<uint8_t, 16> { return memToBytes<16>(vec); }
-inline auto floatToBytes(float val) -> std::array<uint8_t, 4> { return memToBytes<4>(val); }
-#pragma clang diagnostic pop
 
 struct CSGRawData {
   [[nodiscard]] virtual auto getRaw() const -> std::vector<uint8_t> = 0;
