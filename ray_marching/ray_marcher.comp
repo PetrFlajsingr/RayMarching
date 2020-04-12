@@ -412,6 +412,7 @@ RenderResult renderMarching(Ray ray) {
     float distanceFactor = 1.0;
     const float airRefractionIndex = 1;
     float refractionRatio;
+    bool wasLastReflection = true;
     while (intersected) {
         result.rmSteps += intersection.rmSteps;
         const vec3 rayEndPos = ray.origin + intersection.distance * ray.direction;
@@ -452,41 +453,45 @@ RenderResult renderMarching(Ray ray) {
                 ray.origin = rayEndPos;
                 vec3 normal = distanceFactor * normal;
 
+                //todo: reflection/refraction
                 if (distanceFactor > 0) {
+                    const float factor = int(wasLastReflection) * materials[intersection.material].reflectivity + int(!wasLastReflection) * materials[intersection.material].refractiveFactor;
                     refractionRatio = airRefractionIndex / materials[intersection.material].refractiveIndex;
                     const vec3 objColor = intersection.color.rgb;
-                    const float refractiveFactor = materials[intersection.material].refractiveFactor;
-                    result.color = vec4(result.color.rgb * colorModifier + objColor * (1 - refractiveFactor), 1);
-                    colorModifier *= refractiveFactor;
+                    //const float refractiveFactor = materials[intersection.material].refractiveFactor;
+                    result.color = vec4(result.color.rgb * colorModifier + objColor * (1 - factor), 1);
+                    colorModifier *= factor;
                 }
                 followUpRayCount++;
 
-                if (followUpRayCount == followUpRayLimit) { ;
+                if (followUpRayCount == followUpRayLimit) {
                     return result;
                 }
                 // pro unreadable optimisation, actually adds 10 fps in refraction only environment
                 const vec3 refraction = refract(ray.direction, normal, refractionRatio);
                 const vec3 reflection = reflect(ray.direction, normal);
 
-                const bool hihi = dot(refraction, refraction) < EPSILON;
-                const int isReflection = int(hihi);
-                const int isRefraction = int(!hihi);
+                const bool isReflected = dot(refraction, refraction) < EPSILON;
+                const int isReflection = int(isReflected);
+                const int isRefraction = int(!isReflected);
                 const int sign = -isRefraction + isReflection;
                 ray.direction = isReflection * reflection + isRefraction * refraction;
-                ray.origin += -sign * ray.direction * EPSILON * 15;
-                distanceFactor =  distanceFactor * -isRefraction + distanceFactor * isReflection;
+                ray.origin += -sign * ray.direction;
+                distanceFactor =  distanceFactor * sign;
 
                 refractionRatio = isRefraction * (1.0 / refractionRatio) + isReflection * refractionRatio;
 
-                //if (dot(refraction, refraction) < EPSILON) {
-                //    ray.direction = reflect(ray.direction, normal);
-                //    ray.origin += -ray.direction * EPSILON * 2;
-                //} else {
-                //    ray.direction = refraction;
-                //    ray.origin += ray.direction * EPSILON * 5;
-                //    distanceFactor = -distanceFactor;
-                //    refractionRatio = 1.0 / refractionRatio;
-                //}
+                wasLastReflection = isReflected;
+
+                /*if (dot(refraction, refraction) < EPSILON) {
+                    ray.direction = reflect(ray.direction, normal);
+                    ray.origin += -ray.direction * EPSILON * 2;
+                } else {
+                    ray.direction = refraction;
+                    ray.origin += ray.direction * EPSILON * 5;
+                    distanceFactor = -distanceFactor;
+                    refractionRatio = 1.0 / refractionRatio;
+                }*/
                 intersection = castRay(ray, distanceFactor);
                 break;
             }
