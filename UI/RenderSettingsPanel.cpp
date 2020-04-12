@@ -43,7 +43,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     }
     ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
     ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 1.0f, 100000.f);
-    ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 100.f);
+    ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 1.f);
     ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
     if (ImGui::BeginCombo("Shadows", currentShadowItem)) {
       for (auto &choice : shadowChoiceItems) {
@@ -79,6 +79,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
       ImGui::SliderInt("SSAAx", &aaX, 1, 8);
       break;
     default:
+      aaX = 1;
       break;
     }
     ImGui::SliderInt("Max reflections/refractions", &maxReflections, 0, 50);

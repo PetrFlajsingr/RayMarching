@@ -5,6 +5,8 @@
 #include "common/GlslShaderLoader.h"
 #include "ray_marching/CSG/CSGTree.h"
 #include "ray_marching/RayMarcher.h"
+#include "simulation/PhysicsObject.h"
+#include "simulation/PhysicsSimulator.h"
 #include <Camera.h>
 #include <SDL2CPP/MainLoop.h>
 #include <SDL2CPP/Window.h>
@@ -18,6 +20,13 @@
 #include <sstream>
 #include <utility>
 #include <various/overload.h>
+
+class SphereCollisionObject : public SDFCollisionObject {
+public:
+  SphereCollisionObject(const glm::vec3 &position, float mass) : SDFCollisionObject(position, mass) {}
+};
+
+PhysicsSimulator simulation{nullptr};
 
 auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   SDL_DisplayMode displayMode;
@@ -43,10 +52,14 @@ auto addMaterials(MaterialManager &materialManager) -> void {
   Material scatter("Mat4", Material::Type::Scatter);
   scatter.setColor({0, .5, 0});
   scatter.setScatterDensity(.9);
+  Material sphere("Sphere", Material::Type::Reflective);
+  sphere.setColor({0, 0, 1});
+  sphere.setReflectivity(0.5);
   materialManager.addMaterial(std::move(normal));
   materialManager.addMaterial(std::move(reflective));
   materialManager.addMaterial(std::move(transparent));
   materialManager.addMaterial(std::move(scatter));
+  materialManager.addMaterial(std::move(sphere));
 }
 
 auto maketree() -> CSGTree {
@@ -65,7 +78,8 @@ auto maketree() -> CSGTree {
   tower.setLeftChild<SphereShape>(glm::vec3{0, 500, 0}, 10);
   op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
 
-  firstOp.setRightChild<BoxShape>(glm::vec3{0, -10, 0}, glm::vec3{100000.0, 15, 100000.0});
+  firstOp.setRightChild<BoxShape>(glm::vec3{0, -10, 0}, glm::vec3{100000.0, 50, 100000.0});
+  // firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
 
   std::cout << tree.src() << std::endl;
   return tree;
@@ -91,11 +105,11 @@ auto main() -> int {
 
   setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
-  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager()};
 
   float time = 0;
 
   Camera camera{PerspectiveProjection{0, 0, 0, 0}};
+  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager(), camera};
   bool isCameraControlled = false;
   window->setEventCallback(SDL_MOUSEMOTION, [&isCameraControlled, &camera](const SDL_Event &event) {
     if (isCameraControlled) {
@@ -117,8 +131,8 @@ auto main() -> int {
   });
 
   // glm::vec3 velocity{0};
-  window->setEventCallback(SDL_KEYDOWN, [&camera](const SDL_Event &event) {
-    constexpr auto movementSpeed = 10.0f;
+  auto movementSpeed = 10.0f;
+  window->setEventCallback(SDL_KEYDOWN, [&movementSpeed, &camera](const SDL_Event &event) {
     const auto pressedKey = event.key.keysym.sym;
     const Uint8 *keyboard_state_array = SDL_GetKeyboardState(NULL);
 
@@ -143,6 +157,11 @@ auto main() -> int {
       // velocity += glm::vec3{0, 0.5f, 0};
       camera.Position += camera.Up * movementSpeed;
       break;
+    case SDLK_TAB:
+      auto obj = std::make_shared<SphereCollisionObject>(camera.Position + camera.Front * 20.0f, 100);
+      obj->setVelocity(camera.Front * 1000.0f);
+      simulation.addObject(obj);
+      break;
     }
 
     return true;
@@ -164,10 +183,14 @@ auto main() -> int {
 
   addMaterials(rayMarcher.getMaterialManager());
 
+  simulation.tree = &tree;
+
   camera.Position = glm::vec3{0, 400, 0};
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    simulation.update(time);
 
+    movementSpeed = ui.getCameraPanel().getMovementSpeed();
     // velocity += glm::vec3{0, -0.009, 0};
     // camera.Position += velocity;
     // if (glm::length(velocity) > 10) {
@@ -198,6 +221,15 @@ auto main() -> int {
     SDL_GL_SetSwapInterval(swapInterval);
 
     const auto currentFps = ui.getFPSPanel().getFPSCounter().current();
+
+    std::vector<glm::vec4> spherePositions;
+    for (auto &obj : simulation.getObjects()) {
+      spherePositions.emplace_back(glm::vec4{obj->getPosition(), 1});
+    }
+    rayMarcher.physicsSphereCount = spherePositions.size();
+    if (rayMarcher.physicsSphereCount > 0) {
+      rayMarcher.buffer.setData(spherePositions);
+    }
 
     rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
     rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());

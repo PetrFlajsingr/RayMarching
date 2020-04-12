@@ -7,8 +7,9 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_sdl.h>
 
-ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion, MaterialManager &materialManager)
-    : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), window(window), materialPanel(materialManager) {
+ui::UI::UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion, MaterialManager &materialManager,
+           Camera &camera)
+    : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), window(window), cameraPanel(camera), materialPanel(materialManager) {
   IMGUI_CHECKVERSION();
   ImGui::StyleColorsDark();
   ImGui_ImplSDL2_InitForOpenGL(window.getWindow(), window.getContext("rendering"));

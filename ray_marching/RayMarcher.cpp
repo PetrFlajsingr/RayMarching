@@ -12,9 +12,7 @@ using namespace ShaderLiterals;
 using namespace ray_march;
 
 RayMarcher::RayMarcher(const TextureSize &textureSize)
-    : csProgram(std::make_shared<ge::gl::Program>(loadShader(
-          GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils"))),
-      renderProgram("render"_vert, "render"_frag),
+    : renderProgram("render"_vert, "render"_frag),
       renderTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second)),
       stepCountTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second)),
       depthTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second)),
@@ -23,6 +21,7 @@ RayMarcher::RayMarcher(const TextureSize &textureSize)
           1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
       }),
       quadVBO(sizeof(float) * quadVertices.size(), quadVertices.data()), textureSize(textureSize) {
+  reloadShader();
   quadVAO.addAttrib(&quadVBO, 0, 3, GL_FLOAT, 5 * sizeof(float), 0);
   quadVAO.addAttrib(&quadVBO, 1, 2, GL_FLOAT, 5 * sizeof(float), (3 * sizeof(float)));
   spdlog::debug("[Ray_marcher]Creating with texture size {}x{}", textureSize.first, textureSize.second);
@@ -66,20 +65,24 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  scopedProgram->set("enableAmbientOcclusion", ambientOcclusionEnabled);
-  scopedProgram->set("enableAntiAliasing", aaType == AntiAliasing::SSAA);
   // scopedProgram->set("enableEdgeAntiAliasing", aaType == AntiAliasing::EdgeAA);
   scopedProgram->set("maxReflections", maxReflections);
-  scopedProgram->set("shadowType", static_cast<int>(shadowType));
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
+  scopedProgram->set("physicsSphereCount", physicsSphereCount);
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
+  buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 4);
   materialManager.updateSSBO();
   materialManager.bindBuffer(materialBinding);
   const auto [dispatchX, dispatchY] = getComputeDispatchSize();
-  scopedProgram->dispatch(dispatchX, dispatchY);
+  const std::array<GLuint, 3> subroutineIndices{shadowSubroutineIndices[static_cast<int>(shadowType)],
+                                                ambientOcclusionEnabled ? aoSubroutineIndices[1] : aoSubroutineIndices[0],
+                                                shadowIntensitySubroutineIndices[static_cast<int>(shadowType)]};
+  ge::gl::glUniformSubroutinesuiv(GL_COMPUTE_SHADER, subroutineIndices.size(), subroutineIndices.data());
+  ge::gl::glDispatchCompute(dispatchX, dispatchY, 1);
+  // scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
 }
 auto RayMarcher::show(Tex tex) -> void {
@@ -104,7 +107,7 @@ auto RayMarcher::show(Tex tex) -> void {
 
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
   constexpr double groupSize = 32;
-  return {renderTexture->getWidth(0) / groupSize + 1, renderTexture->getHeight(0) / groupSize + 1};
+  return {renderTexture->getWidth(0) / 64 + 1, renderTexture->getHeight(0) / 1 + 1};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
 auto RayMarcher::setShadowRayStepLimit(int limit) -> void { shadowRayStepLimit = limit; }
@@ -128,6 +131,25 @@ auto RayMarcher::reloadShader() -> void {
   auto tmpProgram = std::make_shared<ge::gl::Program>(tmpShader);
   if (tmpProgram->getLinkStatus()) {
     csProgram = tmpProgram;
+    shadowSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noShadow");
+    shadowSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "rayShadow");
+    shadowSubroutineIndices[2] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadow");
+    shadowSubroutineIndices[3] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadow");
+    shadowSubroutineLocation = ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateShadow");
+    shadowIntensitySubroutineIndices[0] =
+        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noShadowIntensity");
+    shadowIntensitySubroutineIndices[1] =
+        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "rayShadowIntensity");
+    shadowIntensitySubroutineIndices[2] =
+        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadowIntensity");
+    shadowIntensitySubroutineIndices[3] =
+        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadowIntensity");
+    shadowIntensitySubroutineLocation =
+        ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateShadowIntensity");
+    aoSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noAO");
+    aoSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "calcAO");
+    aoSubroutineLocation =
+        ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateAmbientOcclusion");
   } else {
     spdlog::error("Shader loading failed");
   }

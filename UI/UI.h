@@ -16,7 +16,8 @@
 namespace ui {
 class UI {
 public:
-  UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion, MaterialManager &materialManager);
+  UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion, MaterialManager &materialManager,
+     Camera &camera);
   ~UI();
   UI(UI &&other) = delete;
   UI(const UI &other) = delete;

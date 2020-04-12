@@ -44,6 +44,9 @@ public:
 
   auto reloadShader() -> void;
 
+  int physicsSphereCount = 0;
+  ge::gl::Buffer buffer{1000 * sizeof(int)};
+
 private:
   std::shared_ptr<ge::gl::Program> csProgram;
   ge::gl::Program renderProgram;
@@ -87,6 +90,13 @@ private:
   Shadows shadowType = Shadows::Disabled;
   AntiAliasing aaType = AntiAliasing::Disabled;
   int aaSize;
+
+  std::array<GLuint, 4> shadowSubroutineIndices;
+  std::array<GLuint, 4> aoSubroutineIndices;
+  std::array<GLuint, 4> shadowIntensitySubroutineIndices;
+  GLuint shadowSubroutineLocation;
+  GLuint aoSubroutineLocation;
+  GLuint shadowIntensitySubroutineLocation;
 };
 } // namespace ray_march
 
