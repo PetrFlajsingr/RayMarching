@@ -116,8 +116,7 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const vec3 camRight = normalize(cross(vec3(0.0, 1.0, 0.0), camForward));
     const vec3 camUp = normalize(cross(camForward, camRight));
     const float fPersp = 2;
-    const vec3 viewDirection = normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
-    return viewDirection;
+    return normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
 }
 /**
  * Calculate distance of a point to the scene.
@@ -277,48 +276,47 @@ IntersectionResult castRay(Ray ray, float distanceFactor) {
  * Different shading for subsurface scattering enabled materials.
  */
 vec4 subSurfaceShading(vec3 pos, vec3 normal, vec3 lightDir, vec3 rayDir, vec3 visibility) {
-    vec3 albedo = vec3(1);
+    const vec3 albedo = vec3(1);
     const vec3 fillLightDir = lightDir;
     const vec3 lightColour = vec3(1, 1, 1);
     const vec3 fillLightColour = vec3(1, 1, 1);
-    vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
-    vec3 fl = fillLightColour*(dot(normal, normalize(fillLightDir))*.5+.5);
+    const vec3 l = lightColour*mix(visibility, vec3(1)*max(0.0, dot(normal, normalize(lightDir))), .0);
+    const vec3 fl = fillLightColour*(dot(normal, normalize(fillLightDir))*.5+.5);
 
-    vec3 view = normalize(-rayDir);
-    vec3 h = normalize(view+lightDir);
-    float specular = pow(max(0.0, dot(h, normal)), 2000.0);
+    const vec3 view = normalize(-rayDir);
+    const vec3 h = normalize(view+lightDir);
+    const float specular = pow(max(0.0, dot(h, normal)), 2000.0);
 
     float fresnel = pow(1.0 - dot(view, normal), 5.0);
     fresnel = mix(.01, 1.0, min(1.0, fresnel));
-
-    //fresnel = 0.0;
 
     return vec4(albedo*(l+fl)*(1.0-fresnel) + visibility*specular*32.0*lightColour, fresnel);
 }
 /**
  * Subsurface ray casting.
  */
-const int scatterRayLimit = 50;
+const int scatterRayLimit = 10;
 vec3 castScatterRay(Ray ray, Material material) {
-    vec3 density = pow(material.color.rgb, vec3(material.scatterDensity));
+    const vec3 density = pow(material.color.rgb, vec3(material.scatterDensity));
     vec3 visibility = vec3(1.);
 
     float lastVal = map(ray.origin).distance;
     float soft = 0.0;
     for (int i = 0; i < scatterRayLimit; i++) {
-        if (visibility.x < EPSILON)
-        continue;
+        if (visibility.x < EPSILON) {
+            break;
+        }
 
-        float val = map(ray.origin).distance;
-        vec3 softened = pow(density, vec3(smoothstep(soft, -soft, val)));
+        const float val = map(ray.origin).distance;
+        const vec3 softened = pow(density, vec3(smoothstep(soft, -soft, val)));
         if ((val - soft) * lastVal < 0.0){
-            float transition = -min(val-soft, lastVal)/abs(val-soft-lastVal);
+            const float transition = -min(val-soft, lastVal)/abs(val-soft-lastVal);
             visibility *= pow(softened, vec3(transition));
         } else if (val-soft < 0.0) {
             visibility *= softened;
         }
 
-        soft += .1;
+        soft += 0.1;
         lastVal = val + soft;
         ray.origin += ray.direction * .4;
     }
@@ -384,10 +382,9 @@ IntersectionResult castEdgeAARay(Ray ray) {
 
 RenderResult renderEdgeAA(Ray ray) {
     IntersectionResult intersectionResult = castEdgeAARay(ray);
-    vec3 col;
     int steps = intersectionResult.rmSteps;
     float depth = intersectionResult.distance;
-    col = intersectionResult.color.rgb;
+    const vec3 col = intersectionResult.color.rgb;
 
     RenderResult result;
     result.color = vec4(col, 1);
@@ -411,7 +408,7 @@ RenderResult renderMarching(Ray ray) {
     float colorModifier = 1.0;
     float distanceFactor = 1.0;
     const float airRefractionIndex = 1;
-    float refractionRatio;
+    float refractionRatio = airRefractionIndex;
     bool wasLastReflection = true;
     while (intersected) {
         result.rmSteps += intersection.rmSteps;
@@ -451,14 +448,15 @@ RenderResult renderMarching(Ray ray) {
             }
             case MatTransparent:{
                 ray.origin = rayEndPos;
-                vec3 normal = distanceFactor * normal;
+                const vec3 normal = distanceFactor * normal;
 
-                //todo: reflection/refraction
                 if (distanceFactor > 0) {
                     const float factor = int(wasLastReflection) * materials[intersection.material].reflectivity + int(!wasLastReflection) * materials[intersection.material].refractiveFactor;
-                    refractionRatio = airRefractionIndex / materials[intersection.material].refractiveIndex;
+                    //refractionRatio = airRefractionIndex / materials[intersection.material].refractiveIndex;
+                    refractionRatio =
+                    int(wasLastReflection) * airRefractionIndex / materials[intersection.material].refractiveIndex
+                    + int(!wasLastReflection) * refractionRatio;
                     const vec3 objColor = intersection.color.rgb;
-                    //const float refractiveFactor = materials[intersection.material].refractiveFactor;
                     result.color = vec4(result.color.rgb * colorModifier + objColor * (1 - factor), 1);
                     colorModifier *= factor;
                 }
@@ -495,9 +493,10 @@ RenderResult renderMarching(Ray ray) {
                 intersection = castRay(ray, distanceFactor);
                 break;
             }
-            default :
-            result.color = vec4(1);
-            return result;
+            default : {
+                result.color = vec4(1);
+                return result;
+            }
         }
         intersected = intersection.distance >= 0;
         if (colorModifier < COLOR_EPSILON) {
