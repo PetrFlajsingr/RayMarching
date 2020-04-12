@@ -464,16 +464,29 @@ RenderResult renderMarching(Ray ray) {
                 if (followUpRayCount == followUpRayLimit) { ;
                     return result;
                 }
-                vec3 refraction = refract(ray.direction, normal, refractionRatio);
-                if (dot(refraction, refraction) < EPSILON) {
-                    ray.direction = reflect(ray.direction, normal);
-                    ray.origin += -normal * EPSILON * 2;
-                } else {
-                    ray.direction = refraction;
-                    ray.origin += ray.direction * EPSILON * 5;
-                    distanceFactor = -distanceFactor;
-                    refractionRatio = 1.0 / refractionRatio;
-                }
+                // pro unreadable optimisation, actually adds 10 fps in refraction only environment
+                const vec3 refraction = refract(ray.direction, normal, refractionRatio);
+                const vec3 reflection = reflect(ray.direction, normal);
+
+                const bool hihi = dot(refraction, refraction) < EPSILON;
+                const int isReflection = int(hihi);
+                const int isRefraction = int(!hihi);
+                const int sign = -isRefraction + isReflection;
+                ray.direction = isReflection * reflection + isRefraction * refraction;
+                ray.origin += -sign * ray.direction * EPSILON * 15;
+                distanceFactor =  distanceFactor * -isRefraction + distanceFactor * isReflection;
+
+                refractionRatio = isRefraction * (1.0 / refractionRatio) + isReflection * refractionRatio;
+
+                //if (dot(refraction, refraction) < EPSILON) {
+                //    ray.direction = reflect(ray.direction, normal);
+                //    ray.origin += -ray.direction * EPSILON * 2;
+                //} else {
+                //    ray.direction = refraction;
+                //    ray.origin += ray.direction * EPSILON * 5;
+                //    distanceFactor = -distanceFactor;
+                //    refractionRatio = 1.0 / refractionRatio;
+                //}
                 intersection = castRay(ray, distanceFactor);
                 break;
             }

@@ -5,11 +5,9 @@ float rand(vec2 co) {
 }
 
 float logNormalize(float enteredValue, float minEntry, float maxEntry, float normalizedMin, float normalizedMax) {
-
-    float mx = (log((enteredValue-minEntry))/(log(maxEntry-minEntry)));
-    float preshiftNormalized = mx*(normalizedMax-normalizedMin);
-    float shiftedNormalized = preshiftNormalized + normalizedMin;
-
+    const float mx = (log((enteredValue-minEntry))/(log(maxEntry-minEntry)));
+    const float preshiftNormalized = mx*(normalizedMax-normalizedMin);
+    const float shiftedNormalized = preshiftNormalized + normalizedMin;
     return shiftedNormalized;
 }
 
