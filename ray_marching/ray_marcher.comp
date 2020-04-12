@@ -70,12 +70,14 @@ subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
 subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);
 subroutine vec3 shadowIntensityCalc(vec3 diffuse, float specular, float shadow);
 
-subroutine uniform shadowCalc calculateShadow;
-subroutine uniform ambientOcclusionCalc calculateAmbientOcclusion;
-subroutine uniform shadowIntensityCalc calculateShadowIntensity;
+
+layout (location=0) subroutine uniform shadowCalc calculateShadow;
+layout (location=1) subroutine uniform ambientOcclusionCalc calculateAmbientOcclusion;
+layout (location=2) subroutine uniform shadowIntensityCalc calculateShadowIntensity;
 
 uniform int physicsSphereCount;
 
+uniform bool enableEdgeAA;
 uniform ivec2 resolution;
 uniform int stepLimit;
 uniform int shadowStepLimit;
@@ -86,12 +88,9 @@ uniform float maxDrawDistance;
 uniform vec3 cameraPosition;
 uniform vec3 cameraFront;
 
-uniform bool enableEdgeAntiAliasing;
-
 uniform vec3 lightPos;
 
 uniform int maxReflections;
-
 uniform float AA_size;
 
 
@@ -238,40 +237,7 @@ ShadingResult shadingWithShadow(Ray ray, vec3 normal, vec3 lightDir, Material ma
     result.color = vec4(col, 1);
     return result;
 }
-/**
- * Cast ray marching ray. Distance factor allows for marching inside an object.
- */
-IntersectionResult castRay(Ray ray, float distanceFactor) {
-    float travelDistance = 0.0;
-    const float boundOptimisation = 1;
-    IntersectionResult result;
-    result.isInShadow = false;
-    result.material = -1;
-    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
-        MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
-        res.distance *= distanceFactor;
-        travelDistance += res.distance;
-        result.material = res.materialIndex;
-        if (res.distance < EPSILON) {
-            break;
-        } else if (travelDistance > maxDrawDistance) {
-            result.material = -1;
-            result.distance = -1.0;
-            return result;
-        }
-    }
-    Ray shadingRay;
-    shadingRay.origin = ray.origin + ray.direction * travelDistance;
-    shadingRay.direction = ray.direction;
-    result.normal = calcNormal(shadingRay.origin);
-    ShadingResult shadingResult = shadingWithShadow(shadingRay, result.normal, normalize(lightPos), materials[result.material]);
-    result.color = shadingResult.color;
-    result.isInShadow = shadingResult.isInShadow;
-    result.isSelfShadowed = shadingResult.isSelfShadowed;
-    result.rmSteps += shadingResult.rmSteps;
-    result.distance = travelDistance;
-    return result;
-}
+
 /**
  * Different shading for subsurface scattering enabled materials.
  */
@@ -324,10 +290,43 @@ vec3 castScatterRay(Ray ray, Material material) {
     return visibility;
 }
 
-IntersectionResult castEdgeAARay(Ray ray) {
+
+IntersectionResult castRay(Ray ray, float distanceFactor) {
     float travelDistance = 0.0;
-    const float boundOptimisation = 1;
     IntersectionResult result;
+    result.isInShadow = false;
+    result.material = -1;
+    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
+        MapResult res = map(ray.origin + ray.direction * travelDistance);
+        res.distance *= distanceFactor;
+        travelDistance += res.distance;
+        result.material = res.materialIndex;
+        if (res.distance < EPSILON) {
+            break;
+        } else if (travelDistance > maxDrawDistance) {
+            result.material = -1;
+            result.distance = -1.0;
+            return result;
+        }
+    }
+    Ray shadingRay;
+    shadingRay.origin = ray.origin + ray.direction * travelDistance;
+    shadingRay.direction = ray.direction;
+    result.normal = calcNormal(shadingRay.origin);
+    ShadingResult shadingResult = shadingWithShadow(shadingRay, result.normal, normalize(lightPos), materials[result.material]);
+    result.color = shadingResult.color;
+    result.isInShadow = shadingResult.isInShadow;
+    result.isSelfShadowed = shadingResult.isSelfShadowed;
+    result.rmSteps += shadingResult.rmSteps;
+    result.distance = travelDistance;
+    return result;
+}
+
+
+IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
+    float travelDistance = 0.0;
+    IntersectionResult result;
+    result.isInShadow = false;
     result.material = -1;
     result.color = vec4(0);
 
@@ -338,24 +337,26 @@ IntersectionResult castEdgeAARay(Ray ray) {
     vec3 lightDir = normalize(lightPos);
 
     for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
-        MapResult res = map(ray.origin + ray.direction * travelDistance * boundOptimisation);
+        MapResult res = map(ray.origin + ray.direction * travelDistance);
+        res.distance *= distanceFactor;
         travelDistance += res.distance;
         result.material = res.materialIndex;
         if (res.distance < EPSILON) {
-            result.distance = travelDistance;
-
             Ray shadingRay;
             shadingRay.origin = ray.origin + ray.direction * travelDistance;
             shadingRay.direction = ray.direction;
             vec3 normal = calcNormal(shadingRay.origin);
-            vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[0]).color.rgb;
+            vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
             result.color = blend(result.color, vec4(color, 1));
-
+            result.distance = travelDistance;
             return result;
         } else if (travelDistance > maxDrawDistance) {
             result.material = -1;
             result.distance = -1.0;
-            result.color = blend(result.color, vec4(vec3(0.30, 0.36, 0.60) - (ray.direction.y * 0.7), 1));
+            Ray shadingRay;
+            shadingRay.origin = ray.origin + ray.direction * travelDistance;
+            shadingRay.direction = ray.direction;
+            result.color = blend(result.color, vec4(backgroundColor(shadingRay), 1));
             return result;
         }
         if (res.distance < lastDistance) {
@@ -371,30 +372,17 @@ IntersectionResult castEdgeAARay(Ray ray) {
                 shadingRay.origin = ray.origin + ray.direction * travelDistance;
                 shadingRay.direction = ray.direction;
                 vec3 normal = calcNormal(shadingRay.origin);
-                vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[0]).color.rgb;
+                vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
                 result.color = blend(result.color, vec4(color.rgb * a, a));
             }
         }
     }
     result.distance = travelDistance;
+    result.color = blend(result.color, vec4(backgroundColor(ray), 1));
     return result;
 }
 
-RenderResult renderEdgeAA(Ray ray) {
-    IntersectionResult intersectionResult = castEdgeAARay(ray);
-    int steps = intersectionResult.rmSteps;
-    float depth = intersectionResult.distance;
-    const vec3 col = intersectionResult.color.rgb;
 
-    RenderResult result;
-    result.color = vec4(col, 1);
-    result.rmSteps = steps;
-    result.fragmentDepth = depth;
-    return result;
-}
-/**
- *
- */
 RenderResult renderMarching(Ray ray) {
     RenderResult result;
     IntersectionResult intersection = castRay(ray, 1.0);
@@ -509,8 +497,132 @@ RenderResult renderMarching(Ray ray) {
     return result;
 }
 
+
+RenderResult renderMarchingEdgeAA(Ray ray) {
+    RenderResult result;
+    IntersectionResult intersection = castEdgeAARay(ray, 1.0);
+    result.fragmentDepth = intersection.distance;
+    result.rmSteps = 0;
+    bool intersected = intersection.distance >= 0.0;
+    const vec3 lightDir = normalize(lightPos);
+    const uint followUpRayLimit = uint(maxReflections) + 1;
+    uint followUpRayCount = 0;
+    result.color = vec4(0, 0, 0, 1);
+    float colorModifier = 1.0;
+    float distanceFactor = 1.0;
+    const float airRefractionIndex = 1;
+    float refractionRatio = airRefractionIndex;
+    bool wasLastReflection = true;
+    if (intersected) {
+        while (intersected) {
+            result.rmSteps += intersection.rmSteps;
+            const vec3 rayEndPos = ray.origin + intersection.distance * ray.direction;
+            const uint materialType = materials[intersection.material].type;
+            const vec3 normal = calcNormal(rayEndPos);
+            result.endPos = rayEndPos;
+            result.normal = normal;
+            switch (materialType) {
+                case MatNormal:{
+                    result.color += vec4((colorModifier * intersection.color).rgb, 0);
+                    return result;
+                }
+                case MatScatter:{
+                    ray.origin = rayEndPos + ray.direction;
+                    const vec3 originalRayDirection = ray.direction;
+                    ray.direction = lightDir;
+                    if (intersection.isInShadow && !intersection.isSelfShadowed) {
+                        result.color += vec4((colorModifier * intersection.color).rgb, 0);
+                    } else {
+                        vec3 visibility = castScatterRay(ray, materials[intersection.material]);
+                        result.color += vec4((colorModifier * subSurfaceShading(ray.origin, normal, lightDir, originalRayDirection, visibility)).rgb, 0);
+                    }
+                    return result;
+                }
+                case MatReflective:{
+                    ray.direction = reflect(ray.direction, normal);
+                    ray.origin = rayEndPos + ray.direction * EPSILON * 2;
+                    result.color += vec4((colorModifier * intersection.color.rgb * (1 - materials[intersection.material].reflectivity)).rgb, 0);
+                    colorModifier *= materials[intersection.material].reflectivity;;
+                    followUpRayCount++;
+                    if (followUpRayCount == followUpRayLimit) {
+                        return result;
+                    }
+                    intersection = castEdgeAARay(ray, distanceFactor);
+                    break;
+                }
+                case MatTransparent:{
+                    ray.origin = rayEndPos;
+                    const vec3 normal = distanceFactor * normal;
+
+                    if (distanceFactor > 0) {
+                        const float factor = int(wasLastReflection) * materials[intersection.material].reflectivity + int(!wasLastReflection) * materials[intersection.material].refractiveFactor;
+                        //refractionRatio = airRefractionIndex / materials[intersection.material].refractiveIndex;
+                        refractionRatio =
+                        int(wasLastReflection) * airRefractionIndex / materials[intersection.material].refractiveIndex
+                        + int(!wasLastReflection) * refractionRatio;
+                        const vec3 objColor = intersection.color.rgb;
+                        result.color = vec4(result.color.rgb * colorModifier + objColor * (1 - factor), 1);
+                        colorModifier *= factor;
+                    }
+                    followUpRayCount++;
+
+                    if (followUpRayCount == followUpRayLimit) {
+                        return result;
+                    }
+                    // pro unreadable optimisation, actually adds 10 fps in refraction only environment
+                    const vec3 refraction = refract(ray.direction, normal, refractionRatio);
+                    const vec3 reflection = reflect(ray.direction, normal);
+
+                    const bool isReflected = dot(refraction, refraction) < EPSILON;
+                    const int isReflection = int(isReflected);
+                    const int isRefraction = int(!isReflected);
+                    const int sign = -isRefraction + isReflection;
+                    ray.direction = isReflection * reflection + isRefraction * refraction;
+                    ray.origin += -sign * ray.direction;
+                    distanceFactor =  distanceFactor * sign;
+
+                    refractionRatio = isRefraction * (1.0 / refractionRatio) + isReflection * refractionRatio;
+
+                    wasLastReflection = isReflected;
+
+                    /*if (dot(refraction, refraction) < EPSILON) {
+                    ray.direction = reflect(ray.direction, normal);
+                    ray.origin += -ray.direction * EPSILON * 2;
+                } else {
+                    ray.direction = refraction;
+                    ray.origin += ray.direction * EPSILON * 5;
+                    distanceFactor = -distanceFactor;
+                    refractionRatio = 1.0 / refractionRatio;
+                }*/
+                    intersection = castEdgeAARay(ray, distanceFactor);
+                    break;
+                }
+                default : {
+                    result.color = vec4(1);
+                    return result;
+                }
+            }
+            intersected = intersection.distance >= 0;
+            if (colorModifier < COLOR_EPSILON) {
+                break;
+            }
+        }
+        if (!intersected) {
+            result.color += colorModifier * vec4(backgroundColor(ray), 0.0);
+        }
+    } else {
+        result.color = intersection.color;
+    }
+    return result;
+}
+
 RenderResult render(Ray ray) {
-    RenderResult result = renderMarching(ray);
+    RenderResult result;
+    if (enableEdgeAA) {
+        result = renderMarchingEdgeAA(ray);
+    } else {
+        result = renderMarching(ray);
+    }
     result.color.rgb *= calculateAmbientOcclusion(result.endPos, result.normal);
     return result;
 }
@@ -655,10 +767,10 @@ subroutine (shadowIntensityCalc) vec3 noShadowIntensity(vec3 diffuse, float spec
 subroutine (shadowIntensityCalc) vec3 rayShadowIntensity(vec3 diffuse, float specular, float shadow) {
     return diffuse + vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
 }
-subroutine (shadowIntensityCalc) vec3 hardShadowIntensity(vec3 diffuse, float specular, float shadow) {
+subroutine (shadowIntensityCalc) vec3 softShadowIntensity(vec3 diffuse, float specular, float shadow) {
     return diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
 }
-subroutine (shadowIntensityCalc) vec3 softShadowIntensity(vec3 diffuse, float specular, float shadow) {
+subroutine (shadowIntensityCalc) vec3 hardShadowIntensity(vec3 diffuse, float specular, float shadow) {
     return diffuse + clamp(shadow - 0.5, 0, 1)  * vec3(1.0)*(0.25*pow(clamp(specular, 0.0, 1.0), 200.0));
 }
 
@@ -682,3 +794,5 @@ subroutine (ambientOcclusionCalc) float calcAO(vec3 pos, vec3 nor) {
 subroutine (ambientOcclusionCalc) float noAO(vec3 pos, vec3 nor) {
     return 1.0;
 }
+
+

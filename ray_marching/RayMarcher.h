@@ -92,7 +92,7 @@ private:
   int aaSize;
 
   std::array<GLuint, 4> shadowSubroutineIndices;
-  std::array<GLuint, 4> aoSubroutineIndices;
+  std::array<GLuint, 2> aoSubroutineIndices;
   std::array<GLuint, 4> shadowIntensitySubroutineIndices;
   GLuint shadowSubroutineLocation;
   GLuint aoSubroutineLocation;

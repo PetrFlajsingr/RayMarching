@@ -69,6 +69,7 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("maxReflections", maxReflections);
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set("physicsSphereCount", physicsSphereCount);
+  scopedProgram->set("enableEdgeAA", aaType == AntiAliasing::EdgeAA);
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
