@@ -4,6 +4,8 @@ layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
 
+#define ENABLE_FOG 0
+
 
 struct RenderResult {
     vec4 color;
@@ -153,6 +155,7 @@ MapResult map(vec3 camPos) {
 
     return result;
 }
+
 /**
  * Check for ray intersection with the scene.
  * @return true/false if ray intersected, distance to scene
@@ -174,7 +177,7 @@ RayHitCheckResult checkRayHit(Ray ray, float distanceFactor) {
  * Calculate normal of the scene on position via tethrahedron (4 map calls instead of 6 using usual gradient approximation)
  */
 vec3 calcNormal(vec3 pos) {
-    const float h = 0.001;
+    const float h = 0.01;
     const vec2 k = vec2(1, -1);
     return normalize(
     k.xyy * map(pos + k.xyy * h).distance +
@@ -290,22 +293,39 @@ vec3 castScatterRay(Ray ray, Material material) {
     return visibility;
 }
 
+float fogmap(in vec3 p, in float d)
+{
+    p /= 100;
+    p.xz -= time*7.+sin(p.z*.3)*3.;
+    p.y -= time*.5;
+    return (max(Noise3d(p*.008+.1, time)-.1, 0.0)*Noise3d(p*.1, time))*.3;
+}
+
 
 IntersectionResult castRay(Ray ray, float distanceFactor) {
     float travelDistance = 0.0;
     IntersectionResult result;
     result.isInShadow = false;
     result.material = -1;
+    #if ENABLE_FOG==1
+    float fog = 0;
+    #endif
     for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
         MapResult res = map(ray.origin + ray.direction * travelDistance);
         res.distance *= distanceFactor;
         travelDistance += res.distance;
         result.material = res.materialIndex;
+        #if ENABLE_FOG==1
+        fog += fogmap(ray.origin + ray.direction * travelDistance, travelDistance);
+        #endif
         if (res.distance < EPSILON) {
             break;
         } else if (travelDistance > maxDrawDistance) {
             result.material = -1;
             result.distance = -1.0;
+            #if ENABLE_FOG==1
+            result.color.a = min(fog, 1.0);
+            #endif
             return result;
         }
     }
@@ -319,6 +339,11 @@ IntersectionResult castRay(Ray ray, float distanceFactor) {
     result.isSelfShadowed = shadingResult.isSelfShadowed;
     result.rmSteps += shadingResult.rmSteps;
     result.distance = travelDistance;
+
+    #if ENABLE_FOG==1
+    fog = min(fog, 1.0);
+    result.color = vec4(mix(result.color.rgb, vec3(0.7, .7, .7), fog), 1);
+    #endif
     return result;
 }
 
@@ -401,6 +426,7 @@ RenderResult renderMarching(Ray ray) {
     while (intersected) {
         result.rmSteps += intersection.rmSteps;
         const vec3 rayEndPos = ray.origin + intersection.distance * ray.direction;
+
         const uint materialType = materials[intersection.material].type;
         const vec3 normal = calcNormal(rayEndPos);
         result.endPos = rayEndPos;
@@ -492,7 +518,11 @@ RenderResult renderMarching(Ray ray) {
         }
     }
     if (!intersected) {
+        #if ENABLE_FOG==1
+        result.color += colorModifier * vec4(mix(backgroundColor(ray), vec3(0.7, .7, .7), intersection.color.a), 1);
+        #else
         result.color += colorModifier * vec4(backgroundColor(ray), 0.0);
+        #endif
     }
     return result;
 }

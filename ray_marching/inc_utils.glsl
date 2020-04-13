@@ -30,8 +30,7 @@ float noise(in vec2 x) {
     mix(hash(n+157.0), hash(n+158.0), f.x), f.y);
 }
 
-float noise(vec3 p)
-{
+float noise(vec3 p) {
     vec3 ip=floor(p);
     p-=ip;
     vec3 s=vec3(7, 157, 113);
@@ -40,6 +39,10 @@ float noise(vec3 p)
     h=mix(fract(sin(h)*43758.5), fract(sin(h+s.x)*43758.5), p.x);
     h.xy=mix(h.xz, h.yw, p.y);
     return mix(h.x, h.y, p.z);
+}
+
+float noise(vec3 p, float time) {
+    return noise(p + 0.2 * time);
 }
 
 
@@ -113,4 +116,53 @@ float cnoise(vec3 P){
     vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
     float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
     return 2.2 * n_xyz;
+}
+
+
+    #define MOD2 vec2(.16632, .17369)
+    #define MOD3 vec3(.16532, .17369, .15787)
+float tri(in float x){ return abs(fract(x)-.5); }
+
+float hash12(vec2 p)
+{
+    p  = fract(p * MOD2);
+    p += dot(p.xy, p.yx+19.19);
+    return fract(p.x * p.y);
+}
+float vine(vec3 p, in float c, in float h)
+{
+    p.y += sin(p.z*.5625+1.3)*3.5-.5;
+    p.x += cos(p.z*2.)*1.;
+    vec2 q = vec2(mod(p.x, c)-c/2., p.y);
+    return length(q) - h*1.4 -sin(p.z*3.+sin(p.x*7.)*0.5)*0.1;
+}
+
+vec3 tri3(in vec3 p){ return vec3(tri(p.z+tri(p.y)), tri(p.z+tri(p.x)), tri(p.y+tri(p.x))); }
+float Hash(vec3 p)
+{
+    p  = fract(p * MOD3);
+    p += dot(p.xyz, p.yzx + 19.19);
+    return fract(p.x * p.y * p.z);
+}
+vec4 quad(in vec4 p){ return abs(fract(p.yzwx+p.wzxy)-.5); }
+
+float Noise3d(in vec3 q, float time)
+{
+    float z=1.4;
+    vec4 p = vec4(q, time*.1);
+    float rz = 0.;
+    vec4 bp = p;
+    for (float i=0.; i<= 2.; i++)
+    {
+        vec4 dg = quad(bp);
+        p += (dg);
+
+        z *= 1.5;
+        p *= 1.3;
+
+        rz+= (tri(p.z+tri(p.w+tri(p.y+tri(p.x)))))/z;
+
+        bp = bp.yxzw*2.0+.14;
+    }
+    return rz;
 }
