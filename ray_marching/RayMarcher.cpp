@@ -107,8 +107,8 @@ auto RayMarcher::show(Tex tex) -> void {
 }
 
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
-  constexpr double groupSize = 32;
-  return {renderTexture->getWidth(0) / 64 + 1, renderTexture->getHeight(0) / 1 + 1};
+  constexpr double groupSize = 8;
+  return {renderTexture->getWidth(0) / groupSize + 1, renderTexture->getHeight(0) / groupSize + 1};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
 auto RayMarcher::setShadowRayStepLimit(int limit) -> void { shadowRayStepLimit = limit; }
@@ -134,17 +134,17 @@ auto RayMarcher::reloadShader() -> void {
     csProgram = tmpProgram;
     shadowSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noShadow");
     shadowSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "rayShadow");
-    shadowSubroutineIndices[2] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadow");
-    shadowSubroutineIndices[3] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadow");
+    shadowSubroutineIndices[2] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadow");
+    shadowSubroutineIndices[3] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadow");
     shadowSubroutineLocation = ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateShadow");
     shadowIntensitySubroutineIndices[0] =
         ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noShadowIntensity");
     shadowIntensitySubroutineIndices[1] =
         ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "rayShadowIntensity");
     shadowIntensitySubroutineIndices[2] =
-        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadowIntensity");
-    shadowIntensitySubroutineIndices[3] =
         ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadowIntensity");
+    shadowIntensitySubroutineIndices[3] =
+        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadowIntensity");
     shadowIntensitySubroutineLocation =
         ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateShadowIntensity");
     aoSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noAO");

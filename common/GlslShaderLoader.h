@@ -61,6 +61,7 @@ template <typename... IncPaths> inline auto loadShader(GLenum type, const std::s
     mainShaderSrc.insert(incPos, toInsert);
   }
   // std::cout << mainShaderSrc << std::endl;
+
   return std::make_shared<ge::gl::Shader>(type, mainShaderSrc);
 }
 
