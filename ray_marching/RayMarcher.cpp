@@ -5,7 +5,6 @@
 #include "RayMarcher.h"
 #include "../common/gl_utils.h"
 #include "../common/shader_literals.h"
-#include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace ShaderLiterals;
@@ -57,8 +56,7 @@ auto RayMarcher::unBindTextures() -> void {
   stepCountTexture->unbind(stepCountTextureBinding);
   depthTexture->unbind(depthTextureBinding);
 }
-
-auto RayMarcher::render() -> void {
+auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
   ScopedShaderProgramUsage scopedProgram{*csProgram};
   bindTextures();
   scopedProgram->set("stepLimit", rayStepLimit);
@@ -71,7 +69,9 @@ auto RayMarcher::render() -> void {
   scopedProgram->set("physicsSphereCount", physicsSphereCount);
   scopedProgram->set("enableEdgeAA", aaType == AntiAliasing::EdgeAA);
   scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
+  const auto cameraPosition = scene->getCamera().Position;
   scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+  const auto cameraFront = scene->getCamera().Front;
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
   buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 4);
@@ -86,6 +86,7 @@ auto RayMarcher::render() -> void {
   // scopedProgram->dispatch(dispatchX, dispatchY);
   unBindTextures();
 }
+
 auto RayMarcher::show(Tex tex) -> void {
   ScopedShaderProgramUsage scopedProgram{renderProgram};
   ge::gl::glViewport(0, 0, textureSize.first, textureSize.second);
@@ -105,27 +106,24 @@ auto RayMarcher::show(Tex tex) -> void {
 
   ge::gl::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
-
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
-  constexpr double groupSize = 8;
-  return {renderTexture->getWidth(0) / groupSize + 1, renderTexture->getHeight(0) / groupSize + 1};
+  constexpr double groupSizeX = 8;
+  constexpr double groupSizeY = 8;
+  constexpr double groupSizeZ = 1;
+  return {std::ceil(renderTexture->getWidth(0) / groupSizeX), std::ceil(renderTexture->getHeight(0) / groupSizeY)};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }
 auto RayMarcher::setShadowRayStepLimit(int limit) -> void { shadowRayStepLimit = limit; }
 auto RayMarcher::setTime(float time) -> void { RayMarcher::time = time; }
 auto RayMarcher::setMaxDrawDistance(float distance) -> void { maxDrawDistance = distance; }
-auto RayMarcher::setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void {
-  RayMarcher::cameraPosition = cameraPosition;
-  RayMarcher::cameraFront = cameraFront;
-}
+
 auto RayMarcher::setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void {
   ambientOcclusionEnabled = isAmbientOcclusionEnabled;
 }
-
 auto RayMarcher::setShadowType(Shadows shadowType) -> void { RayMarcher::shadowType = shadowType; }
 auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
-auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
 
+auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
 auto RayMarcher::reloadShader() -> void {
   auto tmpShader = loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
                               "inc_CSG_operations", "inc_utils");

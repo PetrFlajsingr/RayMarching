@@ -20,14 +20,12 @@ public:
   auto setGravity(const glm::vec3 &gravity) -> void;
 
   auto update(float time) -> void;
-  CSGTree *tree;
 
 private:
   float time = 0;
   std::shared_ptr<Scene> scene;
   std::list<std::shared_ptr<PhysicsObject>> physicsObjects;
   glm::vec3 gravity{0, -9.8, 0};
-  auto computeForceAndTorque(PhysicsObject &object) -> void;
 };
 
 #endif // RAYMARCHING_PHYSICSSIMULATOR_H

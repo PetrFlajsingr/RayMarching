@@ -5,6 +5,7 @@
 #ifndef RAYMARCHING_RAYMARCHER_H
 #define RAYMARCHING_RAYMARCHER_H
 #include "MaterialManager.h"
+#include "Scene.h"
 #include <geGL/Buffer.h>
 #include <geGL/Program.h>
 #include <geGL/Texture.h>
@@ -23,15 +24,13 @@ public:
   explicit RayMarcher(const TextureSize &textureSize);
 
   auto changeRenderSize(const TextureSize &textureSize) -> void;
-
-  auto render() -> void;
+  auto render(const std::shared_ptr<Scene> &scene) -> void;
   auto show(Tex tex) -> void;
 
   auto setRayStepLimit(int limit) -> void;
   auto setShadowRayStepLimit(int limit) -> void;
   auto setTime(float time) -> void;
   auto setMaxDrawDistance(float distance) -> void;
-  auto setCameraVec(const glm::vec3 &cameraPosition, const glm::vec3 &cameraFront) -> void;
   auto setAmbientOcclusionEnabled(bool isAmbientOcclusionEnabled) -> void;
   auto setShadowType(Shadows shadowType) -> void;
   auto setAASize(int aaSize) -> void;
@@ -79,9 +78,6 @@ private:
   static inline constexpr unsigned int materialBinding = 3;
 
   bool ambientOcclusionEnabled = false;
-
-  glm::vec3 cameraPosition;
-  glm::vec3 cameraFront;
 
   TextureSize textureSize;
 

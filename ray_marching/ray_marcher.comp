@@ -5,7 +5,8 @@ layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
 
 #define ENABLE_FOG 0
-
+const float fogDensityMultiplier = 1.0;
+const float fogSpeedMultiplier = 1;
 
 struct RenderResult {
     vec4 color;
@@ -293,12 +294,12 @@ vec3 castScatterRay(Ray ray, Material material) {
     return visibility;
 }
 
-float fogmap(in vec3 p, in float d)
-{
+float fogmap(in vec3 p, in float d) {
+    const float t = time * fogSpeedMultiplier;
     p /= 100;
-    p.xz -= time*7.+sin(p.z*.3)*3.;
-    p.y -= time*.5;
-    return (max(Noise3d(p*.008+.1, time)-.1, 0.0)*Noise3d(p*.1, time))*.3;
+    p.xz -= t * 7. + sin(p.z * .3) * 3.;
+    p.y -= t * .5;
+    return fogDensityMultiplier * (max(Noise3d(p * .008 + .1, t) - .1, 0.0) * Noise3d(p * .1, t)) * .3;
 }
 
 
@@ -359,7 +360,7 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
     float lastDistance = 1e20;
     float lastTotalDistance = 0.0;
 
-    vec3 lightDir = normalize(lightPos);
+    const vec3 lightDir = normalize(lightPos);
 
     for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
         MapResult res = map(ray.origin + ray.direction * travelDistance);
@@ -370,8 +371,8 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
             Ray shadingRay;
             shadingRay.origin = ray.origin + ray.direction * travelDistance;
             shadingRay.direction = ray.direction;
-            vec3 normal = calcNormal(shadingRay.origin);
-            vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+            const vec3 normal = calcNormal(shadingRay.origin);
+            const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
             result.color = blend(result.color, vec4(color, 1));
             result.distance = travelDistance;
             return result;
@@ -390,14 +391,14 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
             lastTotalDistance = travelDistance;
         } else if (direction > 0.0) {
             direction = 0.0;
-            float s = (lastTotalDistance + 1.0) / resolution.y;
+            const float s = (lastTotalDistance + 1.0) / resolution.y;
             if (lastDistance < s) {
-                float a = 1.0 - (lastDistance / s);
+                const float a = 1.0 - (lastDistance / s);
                 Ray shadingRay;
                 shadingRay.origin = ray.origin + ray.direction * travelDistance;
                 shadingRay.direction = ray.direction;
-                vec3 normal = calcNormal(shadingRay.origin);
-                vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+                const vec3 normal = calcNormal(shadingRay.origin);
+                const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
                 result.color = blend(result.color, vec4(color.rgb * a, a));
             }
         }
@@ -466,7 +467,6 @@ RenderResult renderMarching(Ray ray) {
 
                 if (distanceFactor > 0) {
                     const float factor = int(wasLastReflection) * materials[intersection.material].reflectivity + int(!wasLastReflection) * materials[intersection.material].refractiveFactor;
-                    //refractionRatio = airRefractionIndex / materials[intersection.material].refractiveIndex;
                     refractionRatio =
                     int(wasLastReflection) * airRefractionIndex / materials[intersection.material].refractiveIndex
                     + int(!wasLastReflection) * refractionRatio;
@@ -693,7 +693,6 @@ void main() {
     vec2 q = vec2(texCoord) / vec2(resolution.xy);
     renderResult.color = vec4(renderResult.color.xyz * (0.8 + 0.3*sqrt(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y))), renderResult.color.w);
 
-
     float logStepColor = logNormalize(renderResult.rmSteps, 0, stepLimit, 0, 1) + time * 0.0000001;
     float logDepth = logNormalize(renderResult.fragmentDepth, 0, maxDrawDistance, 0, 1);
     float stepColor = renderResult.rmSteps / float(64);
@@ -735,8 +734,8 @@ ShadowResult getSoftShadowMultiplier(Ray ray, vec3 normal){
  */
 ShadowResult getHardShadowMultiplier(Ray ray, vec3 normal) {
     ray.direction = normalize(ray.direction);
-    float minTravel = 0.01;
-    float maxTravel = maxDrawDistance;
+    const float minTravel = 0.01;
+    const float maxTravel = maxDrawDistance;
     int i = 0;
     for (float t = minTravel; i < shadowStepLimit && t < maxTravel; i++) {
         const float h = map(ray.origin + ray.direction * t).distance;

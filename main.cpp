@@ -26,8 +26,6 @@ public:
   SphereCollisionObject(const glm::vec3 &position, float mass) : SDFCollisionObject(position, mass) {}
 };
 
-PhysicsSimulator simulation{nullptr};
-
 auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   SDL_DisplayMode displayMode;
   if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
@@ -62,8 +60,9 @@ auto addMaterials(MaterialManager &materialManager) -> void {
   materialManager.addMaterial(std::move(sphere));
 }
 
-auto maketree() -> CSGTree {
-  CSGTree tree;
+auto maketree() -> std::unique_ptr<CSGTree> {
+  auto result = std::make_unique<CSGTree>();
+  auto &tree = *result;
   tree.root = std::make_unique<WarpOperationNode>(
       std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{500.0, 1000.0, 500.0}, glm::vec3{10.0, 0.0, 10.0}));
   auto &first = dynamic_cast<WarpOperationNode &>(*tree.root);
@@ -82,11 +81,10 @@ auto maketree() -> CSGTree {
   // firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
 
   std::cout << tree.src() << std::endl;
-  return tree;
+  return result;
 }
 
 auto main() -> int {
-  auto tree = maketree();
 
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
@@ -105,15 +103,17 @@ auto main() -> int {
 
   setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
+  auto mainScene = std::make_shared<Scene>(Camera{PerspectiveProjection{0, 0, 0, 0}});
+  mainScene->addObject("ground", maketree());
+  PhysicsSimulator simulation{mainScene};
 
   float time = 0;
 
-  Camera camera{PerspectiveProjection{0, 0, 0, 0}};
-  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager(), camera};
+  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager(), mainScene->getCamera()};
   bool isCameraControlled = false;
-  window->setEventCallback(SDL_MOUSEMOTION, [&isCameraControlled, &camera](const SDL_Event &event) {
+  window->setEventCallback(SDL_MOUSEMOTION, [&isCameraControlled, &mainScene](const SDL_Event &event) {
     if (isCameraControlled) {
-      camera.ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
+      mainScene->getCamera().ProcessMouseMovement(event.motion.xrel, event.motion.yrel);
       return true;
     }
     return false;
@@ -132,34 +132,35 @@ auto main() -> int {
 
   // glm::vec3 velocity{0};
   auto movementSpeed = 10.0f;
-  window->setEventCallback(SDL_KEYDOWN, [&movementSpeed, &camera](const SDL_Event &event) {
+  window->setEventCallback(SDL_KEYDOWN, [&movementSpeed, &mainScene, &simulation](const SDL_Event &event) {
     const auto pressedKey = event.key.keysym.sym;
     const Uint8 *keyboard_state_array = SDL_GetKeyboardState(NULL);
 
     switch (pressedKey) {
     case SDLK_w:
       // velocity += 0.01f * camera.Front;
-      camera.ProcessKeyboard(Camera_Movement::FORWARD, movementSpeed);
+      mainScene->getCamera().ProcessKeyboard(Camera_Movement::FORWARD, movementSpeed);
       break;
     case SDLK_a:
       // velocity += -0.01f * camera.Right;
-      camera.ProcessKeyboard(Camera_Movement::RIGHT, movementSpeed);
+      mainScene->getCamera().ProcessKeyboard(Camera_Movement::RIGHT, movementSpeed);
       break;
     case SDLK_s:
       // velocity += 0.01f * camera.Front;
-      camera.ProcessKeyboard(Camera_Movement::BACKWARD, movementSpeed);
+      mainScene->getCamera().ProcessKeyboard(Camera_Movement::BACKWARD, movementSpeed);
       break;
     case SDLK_d:
       // velocity += 0.01f * camera.Right;
-      camera.ProcessKeyboard(Camera_Movement::LEFT, movementSpeed);
+      mainScene->getCamera().ProcessKeyboard(Camera_Movement::LEFT, movementSpeed);
       break;
     case SDLK_SPACE:
       // velocity += glm::vec3{0, 0.5f, 0};
-      camera.Position += camera.Up * movementSpeed;
+      mainScene->getCamera().Position += mainScene->getCamera().Up * movementSpeed;
       break;
     case SDLK_TAB:
-      auto obj = std::make_shared<SphereCollisionObject>(camera.Position + camera.Front * 20.0f, 100);
-      obj->setVelocity(camera.Front * 1000.0f);
+      auto obj =
+          std::make_shared<SphereCollisionObject>(mainScene->getCamera().Position + mainScene->getCamera().Front * 20.0f, 100);
+      obj->setVelocity(mainScene->getCamera().Front * 1000.0f);
       simulation.addObject(obj);
       break;
     }
@@ -178,14 +179,12 @@ auto main() -> int {
     return true;
   });
 
-  glm::vec3 lastCamPos = camera.Position;
+  glm::vec3 lastCamPos = mainScene->getCamera().Position;
   ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
 
   addMaterials(rayMarcher.getMaterialManager());
 
-  simulation.tree = &tree;
-
-  camera.Position = glm::vec3{0, 400, 0};
+  mainScene->getCamera().Position = glm::vec3{0, 400, 0};
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     simulation.update(time);
@@ -197,15 +196,15 @@ auto main() -> int {
     //  velocity = glm::normalize(velocity) * 10.0f;
     //}
 
-    float currentDistance = tree.eval(camera.Position);
+    float currentDistance = mainScene->getDistanceToScene(mainScene->getCamera().Position);
     if (!ui.getCameraPanel().isClippingEnabled()) {
       unsigned int iterationCount = 0;
       while (currentDistance < 0) {
-        const auto surfaceNormal = tree.getNormal(camera.Position);
-        const auto delta = surfaceNormal * glm::dot(lastCamPos - camera.Position, surfaceNormal);
-        camera.Position += delta;
-        camera.Position += surfaceNormal * 0.0001f * float(iterationCount);
-        currentDistance = tree.eval(camera.Position);
+        const auto surfaceNormal = mainScene->getNormal(mainScene->getCamera().Position);
+        const auto delta = surfaceNormal * glm::dot(lastCamPos - mainScene->getCamera().Position, surfaceNormal);
+        mainScene->getCamera().Position += delta;
+        mainScene->getCamera().Position += surfaceNormal * 0.0001f * float(iterationCount);
+        currentDistance = mainScene->getDistanceToScene(mainScene->getCamera().Position);
         iterationCount += 100;
         // if (-velocity.y > 0.1f) {
         // velocity = glm::reflect(velocity, surfaceNormal) * 0.8f;
@@ -213,7 +212,7 @@ auto main() -> int {
         // velocity -= surfaceNormal * glm::dot(velocity, surfaceNormal);
         //}
       }
-      lastCamPos = camera.Position;
+      lastCamPos = mainScene->getCamera().Position;
     }
     ui.getCameraPanel().setDistance(currentDistance);
 
@@ -235,14 +234,13 @@ auto main() -> int {
     rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
     rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
     rayMarcher.setTime(time);
-    rayMarcher.setCameraVec(camera.Position, camera.Front);
     rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
     rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
     rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
     rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
     rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
     rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
-    rayMarcher.render();
+    rayMarcher.render(mainScene);
     rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
     ui.onFrame();
     window->swap();

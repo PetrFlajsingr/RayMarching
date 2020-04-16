@@ -29,11 +29,11 @@ auto PhysicsSimulator::update(float time) -> void {
     obj.setVelocity(velocity);
     obj.setPosition(position + velocity * deltaTime);
 
-    const auto distanceToScene = tree->eval(obj.getPosition()) - 10;
+    const auto distanceToScene = scene->getDistanceToScene(obj.getPosition()) - 10;
     if (distanceToScene < 0) {
       const auto distanceToSurface = distanceToScene;
       const auto positionDifference = obj.getPosition() - position;
-      const auto normal = tree->getNormal(position + (distanceToSurface)*positionDifference);
+      const auto normal = scene->getNormal(position + (distanceToSurface)*positionDifference);
       const auto dist = glm::distance(obj.getPosition(), position);
       glm::vec3 newPosition;
       glm::vec3 newVelocity;

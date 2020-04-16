@@ -6,25 +6,27 @@
 #define RAYMARCHING_SCENE_H
 
 #include "CSG/CSGTree.h"
-
-using SceneObject = CSGTree;
+#include <Camera.h>
 
 class Scene {
 public:
+  using SceneObject = CSGTree;
   using ObjectId = std::string;
 
-  auto addObject(const ObjectId &id, std::unique_ptr<SceneObject> &&object) { objects[id] = std::move(object); }
+  explicit Scene(Camera &&camera);
 
-  [[nodiscard]] auto getObject(const ObjectId &id) -> SceneObject & {
-    if (!objects.contains(id)) {
-      // TODO:
-      throw "TODO: not found";
-    }
-    return *objects[id];
-  }
+  auto addObject(const ObjectId &id, std::unique_ptr<SceneObject> &&object) -> void;
+  [[nodiscard]] auto getObject(const ObjectId &id) -> SceneObject &;
+  [[nodiscard]] auto getObjects() -> std::vector<std::reference_wrapper<SceneObject>>;
+  [[nodiscard]] auto getObjects() const -> std::vector<std::reference_wrapper<const SceneObject>>;
+  [[nodiscard]] auto getCamera() -> Camera &;
+  [[nodiscard]] auto getCamera() const -> const Camera &;
+  [[nodiscard]] auto getDistanceToScene(const glm::vec3 &pos) -> float;
+  [[nodiscard]] auto getNormal(const glm::vec3 &pos) -> glm::vec3;
 
 private:
   std::unordered_map<ObjectId, std::unique_ptr<SceneObject>> objects;
+  Camera camera;
 };
 
 #endif // RAYMARCHING_SCENE_H
