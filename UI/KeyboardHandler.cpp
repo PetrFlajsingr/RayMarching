@@ -4,4 +4,4 @@
 
 #include "KeyboardHandler.h"
 
-auto KeyboardHandler::operator()(const SDL_Event &event) -> bool { return false; }
+auto KeyboardHandler::operator()([[maybe_unused]] const SDL_Event &event) -> bool { return false; }

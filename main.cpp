@@ -84,6 +84,23 @@ auto maketree() -> std::unique_ptr<CSGTree> {
   return result;
 }
 
+auto maketree2() -> std::unique_ptr<CSGTree> {
+  auto result = std::make_unique<CSGTree>();
+  auto &tree = *result;
+  tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
+  auto &first = dynamic_cast<OperationCSGNode &>(*tree.root);
+
+  first.setLeftChild<SphereShape>(glm::vec3{0, 3000, 500}, 200);
+  auto &firstOp = first.setRightChild<OperationSubstraction>();
+
+  firstOp.setLeftChild<BoxShape>(glm::vec3{0, 4000, 0}, glm::vec3{100, 100, 100});
+  firstOp.setRightChild<SphereShape>(glm::vec3{0, 4000, 0}, 110);
+  // firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
+
+  std::cout << tree.src() << std::endl;
+  return result;
+}
+
 auto main() -> int {
 
   spdlog::set_level(spdlog::level::debug);
@@ -105,6 +122,7 @@ auto main() -> int {
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
   auto mainScene = std::make_shared<Scene>(Camera{PerspectiveProjection{0, 0, 0, 0}});
   mainScene->addObject("ground", maketree());
+  mainScene->addObject("sphere", maketree2());
   PhysicsSimulator simulation{mainScene};
 
   float time = 0;
@@ -134,7 +152,7 @@ auto main() -> int {
   auto movementSpeed = 10.0f;
   window->setEventCallback(SDL_KEYDOWN, [&movementSpeed, &mainScene, &simulation](const SDL_Event &event) {
     const auto pressedKey = event.key.keysym.sym;
-    const Uint8 *keyboard_state_array = SDL_GetKeyboardState(NULL);
+    // const Uint8 *keyboard_state_array = SDL_GetKeyboardState(NULL);
 
     switch (pressedKey) {
     case SDLK_w:

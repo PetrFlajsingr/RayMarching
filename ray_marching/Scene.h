@@ -16,7 +16,8 @@ public:
   explicit Scene(Camera &&camera);
 
   auto addObject(const ObjectId &id, std::unique_ptr<SceneObject> &&object) -> void;
-  [[nodiscard]] auto getObject(const ObjectId &id) -> SceneObject &;
+  [[nodiscard]] auto getObject(const ObjectId &id) -> std::optional<std::reference_wrapper<SceneObject>>;
+  [[nodiscard]] auto getObject(const ObjectId &id) const -> std::optional<std::reference_wrapper<const SceneObject>>;
   [[nodiscard]] auto getObjects() -> std::vector<std::reference_wrapper<SceneObject>>;
   [[nodiscard]] auto getObjects() const -> std::vector<std::reference_wrapper<const SceneObject>>;
   [[nodiscard]] auto getCamera() -> Camera &;
@@ -25,8 +26,11 @@ public:
   [[nodiscard]] auto getNormal(const glm::vec3 &pos) -> glm::vec3;
 
 private:
-  std::unordered_map<ObjectId, std::unique_ptr<SceneObject>> objects;
+  mutable std::unordered_map<ObjectId, std::unique_ptr<SceneObject>> objects;
   Camera camera;
+
+  std::shared_ptr<ge::gl::Buffer> treeBuffer;
+  std::shared_ptr<ge::gl::Buffer> paramBuffer;
 };
 
 #endif // RAYMARCHING_SCENE_H

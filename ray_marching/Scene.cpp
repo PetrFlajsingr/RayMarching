@@ -8,10 +8,15 @@ Scene::Scene(Camera &&camera) : camera(std::move(camera)) {}
 auto Scene::addObject(const Scene::ObjectId &id, std::unique_ptr<SceneObject> &&object) -> void {
   objects[id] = std::move(object);
 }
-auto Scene::getObject(const Scene::ObjectId &id) -> SceneObject & {
+auto Scene::getObject(const Scene::ObjectId &id) -> std::optional<std::reference_wrapper<SceneObject>> {
   if (!objects.contains(id)) {
-    // TODO:
-    throw "TODO: not found";
+    return std::nullopt;
+  }
+  return *objects[id];
+}
+auto Scene::getObject(const Scene::ObjectId &id) const -> std::optional<std::reference_wrapper<const SceneObject>> {
+  if (!objects.contains(id)) {
+    return std::nullopt;
   }
   return *objects[id];
 }
@@ -46,7 +51,8 @@ auto Scene::getNormal(const glm::vec3 &pos) -> glm::vec3 {
     const auto distToObject = object->eval(pos);
     if (distToObject < minDistance) {
       nearestId = id;
+      minDistance = distToObject;
     }
   }
-  return getObject(nearestId).getNormal(pos);
+  return getObject(nearestId)->get().getNormal(pos);
 }

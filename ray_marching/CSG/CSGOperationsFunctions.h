@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 
 namespace csg_op {
-inline auto opMinus(float d1, float d2) -> float { return glm::max(-d2, d1); }
+inline auto opMinus(float d1, float d2) -> float { return glm::max(-d1, d2); }
 
 inline auto opUnion(float d1, float d2) -> float { return (d1 < d2) ? d1 : d2; }
 

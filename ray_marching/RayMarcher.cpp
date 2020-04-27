@@ -109,7 +109,6 @@ auto RayMarcher::show(Tex tex) -> void {
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {
   constexpr double groupSizeX = 8;
   constexpr double groupSizeY = 8;
-  constexpr double groupSizeZ = 1;
   return {std::ceil(renderTexture->getWidth(0) / groupSizeX), std::ceil(renderTexture->getHeight(0) / groupSizeY)};
 }
 auto RayMarcher::setRayStepLimit(int limit) -> void { rayStepLimit = limit; }

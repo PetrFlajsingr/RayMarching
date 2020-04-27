@@ -35,7 +35,7 @@ ScopedShaderProgramUsage::ScopedShaderProgramUsage(ge::gl::Program &program) : p
 ScopedShaderProgramUsage::~ScopedShaderProgramUsage() {
   GLint id;
   ge::gl::glGetIntegerv(GL_CURRENT_PROGRAM, &id);
-  if (id == program.getId()) {
+  if (id == static_cast<GLint>(program.getId())) {
     ge::gl::glUseProgram(0);
   }
 }

@@ -14,7 +14,7 @@ project(RayMarching)
 add_compile_definitions(GLM_FORCE_SWIZZLE)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror=return-type -fconcepts -Wno-unknown-pragmas")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror=return-type -fconcepts -Wno-unknown-pragmas -pedantic")
 
 hunter_add_package(fmt)
 find_package(fmt CONFIG REQUIRED)

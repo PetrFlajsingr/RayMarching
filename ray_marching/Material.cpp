@@ -51,13 +51,13 @@ auto Material::raw() const -> std::array<uint8_t, paddedSize> {
   const auto refractiveIndexRaw = floatToBytes(refractiveIndex);
   const auto refractiveFactorRaw = floatToBytes(refractiveFactor);
   const auto scatterDensityRaw = floatToBytes(scatterDensity);
-  std::array<uint8_t, paddedSize> result;
+  std::array<uint8_t, paddedSize> result{};
   std::size_t pos = 0;
   for (auto byte : colorRaw) {
     result[pos] = byte;
     ++pos;
   }
-  for (auto i : range(4)) {
+  for ([[maybe_unused]] auto i : range(4)) {
     result[pos] = 0;
     ++pos;
   }
