@@ -1,0 +1,53 @@
+[
+  {
+    "name": "Mat1",
+    "type": "Normal",
+    "color": {
+      "r": 1,
+      "g": 1,
+      "b": 0
+    }
+  },
+  {
+    "name": "Mat2",
+    "type": "Reflective",
+    "color": {
+      "r": 1,
+      "g": 0,
+      "b": 0
+    },
+    "reflectivity": 0.5
+  },
+  {
+    "name": "Mat3",
+    "type": "Transparent",
+    "color": {
+      "r": 0,
+      "g": 1,
+      "b": 1
+    },
+    "reflectivity": 0.3,
+    "refractiveIndex": 1.6,
+    "refractiveFactor": 0.5
+  },
+  {
+    "name": "Mat4",
+    "type": "Scatter",
+    "color": {
+      "r": 0,
+      "g": 0.5,
+      "b": 0
+    },
+    "scatterDensity": 0.9
+  },
+  {
+    "name": "Sphere",
+    "type": "Reflective",
+    "color": {
+      "r": 0,
+      "g": 0,
+      "b": 1
+    },
+    "reflectivity": 0.5
+  }
+]

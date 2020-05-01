@@ -37,32 +37,11 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   return {w, h};
 }
 
-auto addMaterials(MaterialManager &materialManager) -> void {
+auto loadMaterials(MaterialManager &materialManager) -> void {
   auto materialFileStream = std::ifstream{"/home/petr/CLionProjects/RayMarching/assets/materials.json"};
   auto materialJson = nlohmann::json{};
   materialFileStream >> materialJson;
   materialManager.loadFromJson(materialJson);
-  /*Material normal("Mat1", Material::Type::Normal);
-  normal.setColor({1, 1, 0});
-  Material reflective("Mat2", Material::Type::Reflective);
-  reflective.setColor({1, 0, 0});
-  reflective.setReflectivity(0.5);
-  Material transparent("Mat3", Material::Type::Transparent);
-  transparent.setColor({0, 1, 1});
-  transparent.setReflectivity(0.3);
-  transparent.setRefractiveIndex(1.6);
-  transparent.setRefractiveFactor(0.5);
-  Material scatter("Mat4", Material::Type::Scatter);
-  scatter.setColor({0, .5, 0});
-  scatter.setScatterDensity(.9);
-  Material sphere("Sphere", Material::Type::Reflective);
-  sphere.setColor({0, 0, 1});
-  sphere.setReflectivity(0.5);
-  materialManager.addMaterial(std::move(normal));
-  materialManager.addMaterial(std::move(reflective));
-  materialManager.addMaterial(std::move(transparent));
-  materialManager.addMaterial(std::move(scatter));
-  materialManager.addMaterial(std::move(sphere));*/
 }
 
 auto maketree() -> std::unique_ptr<CSGTree> {
@@ -205,7 +184,7 @@ auto main() -> int {
   glm::vec3 lastCamPos = mainScene->getCamera().Position;
   ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
 
-  addMaterials(rayMarcher.getMaterialManager());
+  loadMaterials(rayMarcher.getMaterialManager());
 
   mainScene->getCamera().Position = glm::vec3{0, 400, 0};
   mainLoop->setIdleCallback([&]() {

@@ -1,0 +1,85 @@
+[
+  {
+    "ground": {
+      "nodeType": "WarpOperation",
+      "operationType": "LimitedSpaceRepetition",
+      "domain": {
+        "x": 500,
+        "y": 1000,
+        "z": 500
+      },
+      "limit": {
+        "x": 10,
+        "y": 0,
+        "z": 10
+      },
+      "operand": {
+        "nodeType": "Operation",
+        "operationType": "Blend",
+        "k": 250,
+        "leftOperand": {
+          "nodeType": "Operation",
+          "operationType": "Blend",
+          "k": 100,
+          "leftOperand": {
+            "nodeType": "Shape",
+            "shapeType": "Box",
+            "position": {
+              "x": 0,
+              "y": -15,
+              "z": 0
+            },
+            "dimensions": {
+              "x": 30,
+              "y": 1,
+              "z": 30
+            }
+          },
+          "rightOperand": {
+            "nodeType": "Operation",
+            "operationType": "Blend",
+            "k": 500,
+            "leftOperand": {
+              "nodeType": "Shape",
+              "shapeType": "Sphere",
+              "position": {
+                "x": 0,
+                "y": 500,
+                "z": 0
+              },
+              "radius": 10
+            },
+            "rightOperand": {
+              "nodeType": "Shape",
+              "shapeType": "Box",
+              "position": {
+                "x": 0,
+                "y": -12,
+                "z": 0
+              },
+              "dimensions": {
+                "x": 4,
+                "y": 500,
+                "z": 4
+              }
+            }
+          }
+        },
+        "rightOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Box",
+          "position": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+          },
+          "dimensions": {
+            "x": 100000,
+            "y": 50,
+            "z": 100000
+          }
+        }
+      }
+    }
+  }
+]

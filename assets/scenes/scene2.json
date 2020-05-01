@@ -1,0 +1,46 @@
+[
+  {
+    "sphere": {
+      "nodeType": "Operation",
+      "operationType": "Union",
+      "leftOperand": {
+        "nodeType": "Shape",
+        "shapeType": "Sphere",
+        "position": {
+          "x": 0,
+          "y": 3000,
+          "z": 500
+        },
+        "radius": 200
+      },
+      "rightOperand": {
+        "nodeType": "Operation",
+        "operationType": "Substraction",
+        "leftOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Box",
+          "position": {
+            "x": 0,
+            "y": 4000,
+            "z": 0
+          },
+          "dimensions": {
+            "x": 100,
+            "y": 100,
+            "z": 100
+          }
+        },
+        "rightOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Sphere",
+          "position": {
+            "x": 0,
+            "y": 4000,
+            "z": 0
+          },
+          "radius": 110
+        }
+      }
+    }
+  }
+]
