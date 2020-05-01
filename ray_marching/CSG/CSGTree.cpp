@@ -5,6 +5,8 @@
 #include "CSGTree.h"
 #include <fmt/format.h>
 #include <iostream>
+#include <magic_enum.hpp>
+#include <spdlog/spdlog.h>
 #include <various/overload.h>
 
 OperationCSGNode::OperationCSGNode(std::unique_ptr<BinaryOperation> &&operation) : operation(std::move(operation)) {}
@@ -24,6 +26,14 @@ auto OperationCSGNode::getRawData() -> std::vector<uint8_t> { return operation->
 auto OperationCSGNode::getRawDataSize() -> std::size_t { return operation->getDataSize(); }
 auto OperationCSGNode::eval(float d1, float d2) -> float { return operation->eval(d1, d2); }
 auto OperationCSGNode::isBinary() const -> bool { return true; }
+auto OperationCSGNode::setLeftChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
+  leftChild = std::move(child);
+  return *leftChild;
+}
+auto OperationCSGNode::setRightChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
+  rightChild = std::move(child);
+  return *rightChild;
+}
 
 ShapeCSGNode::ShapeCSGNode(std::unique_ptr<Shape> &&shape) : shape(std::move(shape)) {}
 auto ShapeCSGNode::isLeaf() const -> bool { return true; }
@@ -64,6 +74,7 @@ auto CSGTree::getNormal(const glm::vec3 &camPos) -> glm::vec3 {
                                   eval(camPos + delta.yxy()) - eval(camPos - delta.yxy()),
                                   eval(camPos + delta.yyx()) - eval(camPos - delta.yyx())));
 }
+CSGTree::CSGTree(std::string name) : name(std::move(name)) {}
 auto WarpOperationNode::internalSetChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
   WarpOperationNode::child = std::move(child);
   return *WarpOperationNode::child;
@@ -75,3 +86,178 @@ auto WarpOperationNode::eval(const glm::vec3 &camPos) -> glm::vec3 { return oper
 auto WarpOperationNode::getChild() -> CSGNode & { return *child; }
 auto WarpOperationNode::isBinary() const -> bool { return false; }
 auto WarpOperationNode::getOperation() -> SpaceWarpOperation & { return *operation; }
+auto WarpOperationNode::setChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
+  WarpOperationNode::child = std::move(child);
+  return *WarpOperationNode::child;
+}
+
+auto CSGTree::FromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGTree>> {
+  using namespace std::string_literals;
+  if (!json.contains("id") || !json.contains("csg")) {
+    spdlog::error("Invalid CSG object: "s + json.dump(2));
+    return std::nullopt;
+  }
+
+  auto tree = std::make_unique<CSGTree>(std::string(json["id"]));
+  const auto csgJson = json["csg"];
+  auto root = NodeFromJson(csgJson);
+  if (!root.has_value()) {
+    return std::nullopt;
+  }
+  tree->root = std::move(root.value());
+  return tree;
+}
+
+auto CSGTree::NodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGNode>> {
+  using namespace std::string_literals;
+  if (!json.contains("nodeType")) {
+    spdlog::error("Invalid CSG object: "s + json.dump(2));
+    return std::nullopt;
+  }
+  const auto nodeType = magic_enum::enum_cast<NodeType>(std::string(json["nodeType"]));
+  if (!nodeType.has_value()) {
+    spdlog::error("Invalid CSG node type: "s + json.dump(2));
+    return std::nullopt;
+  }
+  switch (nodeType.value()) {
+  case NodeType::WarpOperation:
+    return WarpNodeFromJson(json);
+  case NodeType::Operation:
+    return OperationNodeFromJson(json);
+  case NodeType::Shape:
+    return ShapeNodeFromJson(json);
+  }
+  return std::nullopt;
+}
+
+auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<WarpOperationNode>> {
+  using namespace std::string_literals;
+  if (!json.contains("operationType")) {
+    spdlog::error("Invalid warp operation: "s + json.dump(2));
+    return std::nullopt;
+  }
+  auto result = std::unique_ptr<WarpOperationNode>{nullptr};
+  if (json["operationType"] == "LimitedSpaceRepetition") {
+    if (!json.contains("domain") || !json.contains("limit")) {
+      spdlog::error("Missing parameters warp operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    const auto domain = glm::vec3{json["domain"]["x"], json["domain"]["y"], json["domain"]["z"]};
+    const auto limit = glm::vec3{json["limit"]["x"], json["limit"]["y"], json["limit"]["z"]};
+    result = std::make_unique<WarpOperationNode>(std::make_unique<LimitedSpaceRepetitionOperation>(domain, limit));
+  }
+  if (json["operationType"] == "SpaceRepetition") {
+    if (!json.contains("domain")) {
+      spdlog::error("Missing parameters warp operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    const auto domain = glm::vec3{json["domain"]["x"], json["domain"]["y"], json["domain"]["z"]};
+    result = std::make_unique<WarpOperationNode>(std::make_unique<SpaceRepetitionOperation>(domain));
+  }
+  if (json["operationType"] == "SpaceStretch") {
+    if (!json.contains("multiplier")) {
+      spdlog::error("Missing parameters warp operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    const auto multiplier = glm::vec3{json["multiplier"]["x"], json["multiplier"]["y"], json["multiplier"]["z"]};
+    result = std::make_unique<WarpOperationNode>(std::make_unique<SpaceStretchOperation>(multiplier));
+  }
+  if (result == nullptr) {
+    spdlog::error("Invalid warp operation type: "s + json.dump(2));
+    return std::nullopt;
+  }
+  if (!json.contains("operand")) {
+    spdlog::error("Missing operand for operation: "s + json.dump(2));
+    return std::nullopt;
+  }
+  auto child = NodeFromJson(json["operand"]);
+  if (!child.has_value()) {
+    return std::nullopt;
+  }
+  result->setChild(std::move(child.value()));
+  return result;
+}
+
+auto CSGTree::OperationNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<OperationCSGNode>> {
+  using namespace std::string_literals;
+  if (!json.contains("operationType")) {
+    spdlog::error("Invalid warp operation: "s + json.dump(2));
+    return std::nullopt;
+  }
+  auto result = std::unique_ptr<OperationCSGNode>{nullptr};
+  if (json["operationType"] == "Union") {
+    result = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
+  }
+  if (json["operationType"] == "Substraction") {
+    result = std::make_unique<OperationCSGNode>(std::make_unique<OperationSubstraction>());
+  }
+  if (json["operationType"] == "Blend") {
+    if (!json.contains("k")) {
+      spdlog::error("Missing parameters for operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    result = std::make_unique<OperationCSGNode>(std::make_unique<OperationBlend>(json["k"]));
+  }
+  if (result == nullptr) {
+    spdlog::error("Invalid operation type: "s + json.dump(2));
+    return std::nullopt;
+  }
+  if (!json.contains("leftOperand") || !json.contains("rightOperand")) {
+    spdlog::error("Missing operands for operation: "s + json.dump(2));
+    return std::nullopt;
+  }
+  auto leftChild = NodeFromJson(json["leftOperand"]);
+  if (!leftChild.has_value()) {
+    return std::nullopt;
+  }
+  auto rightChild = NodeFromJson(json["rightOperand"]);
+  if (!rightChild.has_value()) {
+    return std::nullopt;
+  }
+  result->setLeftChild(std::move(leftChild.value()));
+  result->setRightChild(std::move(rightChild.value()));
+  return result;
+}
+
+auto CSGTree::ShapeNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<ShapeCSGNode>> {
+  using namespace std::string_literals;
+  if (!json.contains("shapeType")) {
+    spdlog::error("Invalid warp operation: "s + json.dump(2));
+    return std::nullopt;
+  }
+  auto result = std::unique_ptr<ShapeCSGNode>{nullptr};
+  if (!json.contains("position")) {
+    spdlog::error("Missing position for shape: "s + json.dump(2));
+    return std::nullopt;
+  }
+  const auto position = glm::vec3{json["position"]["x"], json["position"]["y"], json["position"]["z"]};
+  if (json["shapeType"] == "Box") {
+    if (!json.contains("dimensions")) {
+      spdlog::error("Missing parameters for operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    const auto dimensions = glm::vec3{json["dimensions"]["x"], json["dimensions"]["y"], json["dimensions"]["z"]};
+    result = std::make_unique<ShapeCSGNode>(std::make_unique<BoxShape>(position, dimensions));
+  }
+  if (json["shapeType"] == "Sphere") {
+    if (!json.contains("radius")) {
+      spdlog::error("Missing parameters for operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    const float radius = json["radius"];
+    result = std::make_unique<ShapeCSGNode>(std::make_unique<SphereShape>(position, radius));
+  }
+  if (json["shapeType"] == "Plane") {
+    if (!json.contains("normal")) {
+      spdlog::error("Missing parameters for operation: "s + json.dump(2));
+      return std::nullopt;
+    }
+    const auto normal = glm::vec4{json["normal"]["x"], json["normal"]["y"], json["normal"]["z"], json["normal"]["w"]};
+    result = std::make_unique<ShapeCSGNode>(std::make_unique<PlaneShape>(position, normal));
+  }
+  if (result == nullptr) {
+    spdlog::error("Invalid shape type: "s + json.dump(2));
+    return std::nullopt;
+  }
+  return result;
+}

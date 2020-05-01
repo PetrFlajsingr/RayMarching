@@ -4,7 +4,20 @@
 
 #ifndef RAYMARCHING_SCENEMANAGER_H
 #define RAYMARCHING_SCENEMANAGER_H
+#include "Scene.h"
+#include <nlohmann/json.hpp>
+#include <unordered_map>
 
-class SceneManager {};
+class SceneManager {
+public:
+  SceneManager() = default;
+  auto loadFromJson(const nlohmann::json &json) -> void;
+  auto addScene(Scene &&scene) -> void;
+  [[nodiscard]] auto getScene(const std::string &name) -> std::shared_ptr<Scene> &;
+  [[nodiscard]] auto getScene(const std::string &name) const -> std::shared_ptr<const Scene>;
+
+private:
+  mutable std::unordered_map<std::string, std::shared_ptr<Scene>> scenes;
+};
 
 #endif // RAYMARCHING_SCENEMANAGER_H

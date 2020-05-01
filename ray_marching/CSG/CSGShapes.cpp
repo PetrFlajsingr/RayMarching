@@ -23,7 +23,7 @@ auto BoxShape::getName() const -> std::string { return "box"; }
 auto BoxShape::src() const -> std::string {
   const auto positionStr = fmt::format("vec3({}, {}, {})", position.x, position.y, position.z);
   const auto dimensionsStr = fmt::format("vec3({}, {}, {})", dimensions.x, dimensions.y, dimensions.z);
-  return fmt::format("vec2(sdBox(camPos - {}, {}))", positionStr, dimensionsStr);
+  return fmt::format("sdBox(camPos - {}, {})", positionStr, dimensionsStr);
 }
 auto BoxShape::distance(const glm::vec3 &camPos) const -> float { return sdfForShape<BoxShape>()(camPos - position, dimensions); }
 
@@ -44,7 +44,7 @@ auto SphereShape::getDataSize() const -> std::size_t { return 17; }
 auto SphereShape::getName() const -> std::string { return "sphere"; }
 auto SphereShape::src() const -> std::string {
   const auto positionStr = fmt::format("vec3({}, {}, {})", position.x, position.y, position.z);
-  return fmt::format("vec2(sdSphere(camPos - {}, {}))", positionStr, radius);
+  return fmt::format("sdSphere(camPos - {}, {})", positionStr, radius);
 }
 auto SphereShape::distance(const glm::vec3 &camPos) const -> float {
   return sdfForShape<SphereShape>()(camPos - position, radius);
@@ -70,6 +70,6 @@ auto PlaneShape::getName() const -> std::string { return "plane"; }
 auto PlaneShape::src() const -> std::string {
   const auto positionStr = fmt::format("vec3({}, {}, {})", position.x, position.y, position.z);
   const auto normalStr = fmt::format("vec4({}, {}, {}, {})", normal.x, normal.y, normal.z, normal.w);
-  return fmt::format("vec2(sdPlane(camPos - {}, {}))", positionStr, normalStr);
+  return fmt::format("sdPlane(camPos - {}, {})", positionStr, normalStr);
 }
 auto PlaneShape::distance(const glm::vec3 &camPos) const -> float { return sdfForShape<PlaneShape>()(camPos - position, normal); }

@@ -38,16 +38,16 @@ auto MaterialManager::loadFromJson(const nlohmann::json &json) -> void {
   }
   for (const auto &item : json) {
     if (!item.contains("name") || !item.contains("type") || !item.contains("color")) {
-      spdlog::debug("Invalid definition of material: "s + item.dump(2));
+      spdlog::error("Invalid definition of material: "s + item.dump(2));
       continue;
     }
     const auto materialType = magic_enum::enum_cast<Material::Type>(std::string(item["type"]));
     if (!materialType.has_value()) {
-      spdlog::debug("Invalid definition of material type: "s + item.dump(2));
+      spdlog::error("Invalid definition of material type: "s + item.dump(2));
       continue;
     }
     if (!item["color"].contains("r") || !item["color"].contains("g") || !item["color"].contains("b")) {
-      spdlog::debug("Invalid definition of material color: "s + item.dump(2));
+      spdlog::error("Invalid definition of material color: "s + item.dump(2));
       continue;
     }
     auto material = Material{item["name"], materialType.value()};

@@ -4,7 +4,7 @@
 
 #include "Scene.h"
 
-Scene::Scene(Camera &&camera) : camera(std::move(camera)) {}
+Scene::Scene(std::string name, Camera &&camera) : name(std::move(name)), camera(std::move(camera)) {}
 auto Scene::addObject(const Scene::ObjectId &id, std::unique_ptr<SceneObject> &&object) -> void {
   objects[id] = std::move(object);
 }
@@ -55,4 +55,18 @@ auto Scene::getNormal(const glm::vec3 &pos) -> glm::vec3 {
     }
   }
   return getObject(nearestId)->get().getNormal(pos);
+}
+auto Scene::getName() const -> const std::string & { return name; }
+Scene::Scene(Scene &&other) noexcept : name(std::move(other.name)), camera(std::move(other.camera)) {
+  objects = std::move(other.objects);
+  treeBuffer = std::move(other.treeBuffer);
+  paramBuffer = std::move(other.paramBuffer);
+}
+auto Scene::operator=(Scene &&other) -> Scene & {
+  camera = std::move(other.camera);
+  name = std::move(other.name);
+  objects = std::move(other.objects);
+  treeBuffer = std::move(other.treeBuffer);
+  paramBuffer = std::move(other.paramBuffer);
+  return *this;
 }

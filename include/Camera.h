@@ -18,6 +18,7 @@ class PerspectiveProjection {
 public:
   PerspectiveProjection(float near, float far, float aspectRatio, float fieldOfView);
   PerspectiveProjection(PerspectiveProjection &&other) noexcept;
+  auto operator=(PerspectiveProjection &&other) noexcept -> PerspectiveProjection & = default;
   [[nodiscard]] float getNear() const;
   void setNear(float near);
   [[nodiscard]] float getFar() const;
@@ -53,6 +54,9 @@ public:
   float Zoom;
 
   PerspectiveProjection projection;
+
+  auto operator=(Camera &&other) -> Camera & = default;
+  Camera(Camera &&other) = default;
 
   // Constructor with vectors
   Camera(PerspectiveProjection projection, glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),

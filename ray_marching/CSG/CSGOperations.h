@@ -73,8 +73,6 @@ struct OperationSubstraction : public BinaryOperation {
   [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto eval(float d1, float d2) const -> float override;
-
-private:
   [[nodiscard]] auto getName() const -> std::string override;
 };
 
@@ -85,12 +83,10 @@ struct OperationBlend : public BinaryOperation {
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto eval(float d1, float d2) const -> float override;
   float k;
-
-private:
   [[nodiscard]] auto getName() const -> std::string override;
 };
 
-template <C_Operation T> constexpr uint8_t flagForOperation() {
+template <C_Operation T> constexpr auto flagForOperation() -> uint8_t {
   if constexpr (std::is_same_v<T, OperationUnion>) {
     return 0b00000000;
   } else if constexpr (std::is_same_v<T, OperationSubstraction>) {

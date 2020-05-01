@@ -10,10 +10,13 @@
 #include <functional>
 #include <glm/vec3.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 class OperationCSGNode;
 class ShapeCSGNode;
+
+enum class NodeType { WarpOperation, Operation, Shape };
 
 class CSGNode {
 public:
@@ -40,6 +43,8 @@ public:
     return reinterpret_cast<WarpOperationNode &>(
         internalSetChild(std::make_unique<WarpOperationNode>(std::make_unique<T>(std::forward<Args>(args)...))));
   }
+
+  auto setChild(std::unique_ptr<CSGNode> &&child) -> CSGNode &;
 
   [[nodiscard]] auto isLeaf() const -> bool override;
   [[nodiscard]] auto getRawData() -> std::vector<uint8_t> override;
@@ -99,6 +104,9 @@ public:
         internalSetRightChild(std::make_unique<WarpOperationNode>(std::make_unique<T>(std::forward<Args>(args)...))));
   }
 
+  auto setLeftChild(std::unique_ptr<CSGNode> &&child) -> CSGNode &;
+  auto setRightChild(std::unique_ptr<CSGNode> &&child) -> CSGNode &;
+
   [[nodiscard]] auto getRawData() -> std::vector<uint8_t> override;
   [[nodiscard]] auto getRawDataSize() -> std::size_t override;
 
@@ -119,12 +127,23 @@ private:
 };
 class CSGTree {
 public:
+  explicit CSGTree(std::string name);
+  static auto FromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGTree>>;
+
   std::unique_ptr<CSGNode> root = nullptr;
 
   auto src() -> std::string;
 
   auto eval(const glm::vec3 &camPos) -> float;
   auto getNormal(const glm::vec3 &camPos) -> glm::vec3;
+
+  std::string name;
+
+private:
+  static auto NodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGNode>>;
+  static auto WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<WarpOperationNode>>;
+  static auto OperationNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<OperationCSGNode>>;
+  static auto ShapeNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<ShapeCSGNode>>;
 };
 
 template <typename F> auto csgPreorder(CSGNode &node, F &&callable) -> void {

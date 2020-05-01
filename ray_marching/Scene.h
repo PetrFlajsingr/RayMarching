@@ -13,7 +13,9 @@ public:
   using SceneObject = CSGTree;
   using ObjectId = std::string;
 
-  explicit Scene(Camera &&camera);
+  Scene(std::string name, Camera &&camera);
+  Scene(Scene &&other) noexcept;
+  auto operator=(Scene &&other) -> Scene &;
 
   auto addObject(const ObjectId &id, std::unique_ptr<SceneObject> &&object) -> void;
   [[nodiscard]] auto getObject(const ObjectId &id) -> std::optional<std::reference_wrapper<SceneObject>>;
@@ -24,9 +26,11 @@ public:
   [[nodiscard]] auto getCamera() const -> const Camera &;
   [[nodiscard]] auto getDistanceToScene(const glm::vec3 &pos) -> float;
   [[nodiscard]] auto getNormal(const glm::vec3 &pos) -> glm::vec3;
+  [[nodiscard]] auto getName() const -> const std::string &;
 
 private:
   mutable std::unordered_map<ObjectId, std::unique_ptr<SceneObject>> objects;
+  std::string name;
   Camera camera;
 
   std::shared_ptr<ge::gl::Buffer> treeBuffer;

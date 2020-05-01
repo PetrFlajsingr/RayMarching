@@ -5,6 +5,7 @@
 #include "common/GlslShaderLoader.h"
 #include "ray_marching/CSG/CSGTree.h"
 #include "ray_marching/RayMarcher.h"
+#include "ray_marching/SceneManager.h"
 #include "simulation/PhysicsObject.h"
 #include "simulation/PhysicsSimulator.h"
 #include <Camera.h>
@@ -45,7 +46,7 @@ auto loadMaterials(MaterialManager &materialManager) -> void {
 }
 
 auto maketree() -> std::unique_ptr<CSGTree> {
-  auto result = std::make_unique<CSGTree>();
+  auto result = std::make_unique<CSGTree>("");
   auto &tree = *result;
   tree.root = std::make_unique<WarpOperationNode>(
       std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{500.0, 1000.0, 500.0}, glm::vec3{10.0, 0.0, 10.0}));
@@ -69,7 +70,7 @@ auto maketree() -> std::unique_ptr<CSGTree> {
 }
 
 auto maketree2() -> std::unique_ptr<CSGTree> {
-  auto result = std::make_unique<CSGTree>();
+  auto result = std::make_unique<CSGTree>("a");
   auto &tree = *result;
   tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
   auto &first = dynamic_cast<OperationCSGNode &>(*tree.root);
@@ -104,9 +105,17 @@ auto main() -> int {
 
   setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
-  auto mainScene = std::make_shared<Scene>(Camera{PerspectiveProjection{0, 0, 0, 0}});
-  mainScene->addObject("ground", maketree());
-  mainScene->addObject("sphere", maketree2());
+  SceneManager sceneManager;
+  std::ifstream ifstream{"/home/petr/CLionProjects/RayMarching/assets/scenes/scene3.json"};
+  nlohmann::json sceneJson;
+  ifstream >> sceneJson;
+  sceneManager.loadFromJson(sceneJson);
+  auto mainScene = sceneManager.getScene("scene3");
+  std::cout << mainScene->getObject("ground")->get().src() << std::endl;
+  std::cout << mainScene->getObject("sphere")->get().src() << std::endl;
+  // auto mainScene = std::make_shared<Scene>("Scene", Camera{PerspectiveProjection{0, 0, 0, 0}});
+  // mainScene->addObject("ground", maketree());
+  // mainScene->addObject("sphere", maketree2());
   PhysicsSimulator simulation{mainScene};
 
   float time = 0;
