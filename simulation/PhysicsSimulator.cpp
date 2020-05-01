@@ -1,6 +1,4 @@
 //
-// Created by petr on 4/11/20.
-//
 
 #include "PhysicsSimulator.h"
 #include <glm/ext/matrix_transform.hpp>
@@ -8,11 +6,17 @@
 
 PhysicsSimulator::PhysicsSimulator(std::shared_ptr<Scene> scene) : scene(std::move(scene)) {}
 
+//
+// Created by petr on 4/11/20.
+PhysicsSimulator::PhysicsSimulator() : scene(nullptr) {}
+
 auto PhysicsSimulator::addObject(std::shared_ptr<PhysicsObject> physicsObject) -> void {
   physicsObjects.emplace_back(std::move(physicsObject));
 }
-
 auto PhysicsSimulator::update(float time) -> void {
+  if (scene == nullptr) {
+    return;
+  }
   const float drag = .5;
   const float bounceCoef = 0.2;
   const auto deltaTime = time - PhysicsSimulator::time;
@@ -77,7 +81,8 @@ auto PhysicsSimulator::update(float time) -> void {
 
   PhysicsSimulator::time = time;
 }
-auto PhysicsSimulator::getObjects() -> std::list<std::shared_ptr<PhysicsObject>> & { return physicsObjects; }
 
+auto PhysicsSimulator::getObjects() -> std::list<std::shared_ptr<PhysicsObject>> & { return physicsObjects; }
 auto PhysicsSimulator::getGravity() const -> const glm::vec3 & { return gravity; }
 auto PhysicsSimulator::setGravity(const glm::vec3 &gravity) -> void { PhysicsSimulator::gravity = gravity; }
+void PhysicsSimulator::setScene(const std::shared_ptr<Scene> &scene) { PhysicsSimulator::scene = scene; }

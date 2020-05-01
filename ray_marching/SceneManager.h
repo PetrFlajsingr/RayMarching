@@ -16,6 +16,8 @@ public:
   [[nodiscard]] auto getScene(const std::string &name) -> std::shared_ptr<Scene> &;
   [[nodiscard]] auto getScene(const std::string &name) const -> std::shared_ptr<const Scene>;
 
+  [[nodiscard]] auto getScenes() -> std::unordered_map<std::string, std::shared_ptr<Scene>> &;
+
 private:
   mutable std::unordered_map<std::string, std::shared_ptr<Scene>> scenes;
 };

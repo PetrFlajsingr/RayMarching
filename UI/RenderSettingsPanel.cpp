@@ -24,69 +24,67 @@ ui::RenderSettingsPanel::RenderSettingsPanel() {
 }
 
 auto ui::RenderSettingsPanel::onFrame() -> void {
-  if (isVisible()) {
-    ImGui::Begin("Render settings");
-    if (ImGui::Button("Reload shader")) {
-      onReloadShaderClicked();
-    }
-    if (ImGui::BeginCombo("Texture", currentItem)) {
-      for (auto &choice : textureChoiceItems) {
-        bool isSelected = (currentItem == choice.data());
-        if (ImGui::Selectable(choice.data(), isSelected)) {
-          currentItem = choice.data();
-        }
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-      ImGui::EndCombo();
-    }
-    ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
-    ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 1.0f, 100000.f);
-    ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 1.f);
-    ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
-    if (ImGui::BeginCombo("Shadows", currentShadowItem)) {
-      for (auto &choice : shadowChoiceItems) {
-        bool isSelected = (currentShadowItem == choice.data());
-        if (ImGui::Selectable(choice.data(), isSelected)) {
-          currentShadowItem = choice.data();
-        }
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-      ImGui::EndCombo();
-    }
-    const auto shadowType = getShadowType();
-    if (isIn(shadowType, {ray_march::Shadows::Hard, ray_march::Shadows::Soft, ray_march::Shadows::RayTraced})) {
-      ImGui::SliderInt("Max shadow ray steps", &shadowRayStepLimit, 1, 512);
-    }
-    if (ImGui::BeginCombo("Anti-aliasing", currentAAItem)) {
-      for (auto &choice : aaChoiceItems) {
-        bool isSelected = (currentAAItem == choice.data());
-        if (ImGui::Selectable(choice.data(), isSelected)) {
-          currentAAItem = choice.data();
-        }
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-      ImGui::EndCombo();
-    }
-    const auto aaType = getAAType();
-    switch (aaType) {
-    case ray_march::AntiAliasing::SSAA:
-      ImGui::SliderInt("SSAAx", &aaX, 1, 8);
-      break;
-    default:
-      aaX = 1;
-      break;
-    }
-    ImGui::SliderInt("Max reflections/refractions", &maxReflections, 0, 50);
-    ImGui::SliderFloat3("Light direction", glm::value_ptr(lightPosition), -1, 1.0);
-    lightPosition = glm::normalize(lightPosition);
-    ImGui::End();
+  ImGui::Begin("Render settings");
+  if (ImGui::Button("Reload shader")) {
+    onReloadShaderClicked();
   }
+  if (ImGui::BeginCombo("Texture", currentItem)) {
+    for (auto &choice : textureChoiceItems) {
+      bool isSelected = (currentItem == choice.data());
+      if (ImGui::Selectable(choice.data(), isSelected)) {
+        currentItem = choice.data();
+      }
+      if (isSelected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
+  ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
+  ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 1.0f, 100000.f);
+  ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 1.f);
+  ImGui::Checkbox("Ambient occlusion", &ambientOcclusionEnabled);
+  if (ImGui::BeginCombo("Shadows", currentShadowItem)) {
+    for (auto &choice : shadowChoiceItems) {
+      bool isSelected = (currentShadowItem == choice.data());
+      if (ImGui::Selectable(choice.data(), isSelected)) {
+        currentShadowItem = choice.data();
+      }
+      if (isSelected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
+  const auto shadowType = getShadowType();
+  if (isIn(shadowType, {ray_march::Shadows::Hard, ray_march::Shadows::Soft, ray_march::Shadows::RayTraced})) {
+    ImGui::SliderInt("Max shadow ray steps", &shadowRayStepLimit, 1, 512);
+  }
+  if (ImGui::BeginCombo("Anti-aliasing", currentAAItem)) {
+    for (auto &choice : aaChoiceItems) {
+      bool isSelected = (currentAAItem == choice.data());
+      if (ImGui::Selectable(choice.data(), isSelected)) {
+        currentAAItem = choice.data();
+      }
+      if (isSelected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
+  const auto aaType = getAAType();
+  switch (aaType) {
+  case ray_march::AntiAliasing::SSAA:
+    ImGui::SliderInt("SSAAx", &aaX, 1, 8);
+    break;
+  default:
+    aaX = 1;
+    break;
+  }
+  ImGui::SliderInt("Max reflections/refractions", &maxReflections, 0, 50);
+  ImGui::SliderFloat3("Light direction", glm::value_ptr(lightPosition), -1, 1.0);
+  lightPosition = glm::normalize(lightPosition);
+  ImGui::End();
 }
 
 auto ui::RenderSettingsPanel::getSelectedTextureType() const -> ray_march::Tex {

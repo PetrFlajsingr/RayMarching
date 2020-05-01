@@ -7,15 +7,13 @@
 
 auto ui::FPSPanel::onFrame() -> void {
   fpsCounter.frame();
-  if (isVisible()) {
-    ImGui::Begin("FPS");
-    ImGui::Text("FPS (avg): %.2f\nFPS (cur): %.2f", fpsCounter.average(), fpsCounter.current());
-    ImGui::Checkbox("VSync", &vsyncEnabled);
-    if (ImGui::Button("Reset")) {
-      reset();
-    }
-    ImGui::End();
+  ImGui::Begin("FPS");
+  ImGui::Text("FPS (avg): %.2f\nFPS (cur): %.2f", fpsCounter.average(), fpsCounter.current());
+  ImGui::Checkbox("VSync", &vsyncEnabled);
+  if (ImGui::Button("Reset")) {
+    reset();
   }
+  ImGui::End();
 }
 
 auto ui::FPSPanel::reset() -> void { fpsCounter.restart(); }

@@ -14,6 +14,8 @@
 class PhysicsSimulator {
 public:
   explicit PhysicsSimulator(std::shared_ptr<Scene> scene);
+  PhysicsSimulator();
+  void setScene(const std::shared_ptr<Scene> &scene);
   auto addObject(std::shared_ptr<PhysicsObject> physicsObject) -> void;
   [[nodiscard]] auto getObjects() -> std::list<std::shared_ptr<PhysicsObject>> &;
   [[nodiscard]] auto getGravity() const -> const glm::vec3 &;

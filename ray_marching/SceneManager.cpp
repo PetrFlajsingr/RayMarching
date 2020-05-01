@@ -26,3 +26,4 @@ auto SceneManager::loadFromJson(const nlohmann::json &json) -> void {
   }
   addScene(std::move(scene));
 }
+auto SceneManager::getScenes() -> std::unordered_map<std::string, std::shared_ptr<Scene>> & { return scenes; }

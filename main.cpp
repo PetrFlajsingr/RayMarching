@@ -20,8 +20,10 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <types/Range.h>
 #include <utility>
 #include <various/overload.h>
+using namespace std::string_literals;
 
 class SphereCollisionObject : public SDFCollisionObject {
 public:
@@ -45,47 +47,6 @@ auto loadMaterials(MaterialManager &materialManager) -> void {
   materialManager.loadFromJson(materialJson);
 }
 
-auto maketree() -> std::unique_ptr<CSGTree> {
-  auto result = std::make_unique<CSGTree>("");
-  auto &tree = *result;
-  tree.root = std::make_unique<WarpOperationNode>(
-      std::make_unique<LimitedSpaceRepetitionOperation>(glm::vec3{500.0, 1000.0, 500.0}, glm::vec3{10.0, 0.0, 10.0}));
-  auto &first = dynamic_cast<WarpOperationNode &>(*tree.root);
-
-  auto &firstOp = first.setChild<OperationBlend>(250);
-
-  auto &op = dynamic_cast<OperationCSGNode &>(firstOp.setLeftChild<OperationBlend>(100));
-
-  auto &tower = op.setRightChild<OperationBlend>(500);
-
-  tower.setRightChild<BoxShape>(glm::vec3{0, -12, 0}, glm::vec3{4, 500, 4});
-  tower.setLeftChild<SphereShape>(glm::vec3{0, 500, 0}, 10);
-  op.setLeftChild<BoxShape>(glm::vec3{0, -15, 0}, glm::vec3{30, 1, 30});
-
-  firstOp.setRightChild<BoxShape>(glm::vec3{0, -10, 0}, glm::vec3{100000.0, 50, 100000.0});
-  // firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
-
-  std::cout << tree.src() << std::endl;
-  return result;
-}
-
-auto maketree2() -> std::unique_ptr<CSGTree> {
-  auto result = std::make_unique<CSGTree>("a");
-  auto &tree = *result;
-  tree.root = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
-  auto &first = dynamic_cast<OperationCSGNode &>(*tree.root);
-
-  first.setLeftChild<SphereShape>(glm::vec3{0, 3000, 500}, 200);
-  auto &firstOp = first.setRightChild<OperationSubstraction>();
-
-  firstOp.setLeftChild<BoxShape>(glm::vec3{0, 4000, 0}, glm::vec3{100, 100, 100});
-  firstOp.setRightChild<SphereShape>(glm::vec3{0, 4000, 0}, 110);
-  // firstOp.setRightChild<PlaneShape>(glm::vec3{0, -10, 0}, glm::vec4{0, 1.4, 0, 10});
-
-  std::cout << tree.src() << std::endl;
-  return result;
-}
-
 auto main() -> int {
 
   spdlog::set_level(spdlog::level::debug);
@@ -106,21 +67,18 @@ auto main() -> int {
   setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
   SceneManager sceneManager;
-  std::ifstream ifstream{"/home/petr/CLionProjects/RayMarching/assets/scenes/scene3.json"};
-  nlohmann::json sceneJson;
-  ifstream >> sceneJson;
-  sceneManager.loadFromJson(sceneJson);
+  for (auto i : MakeRange::range('1', '3')) {
+    std::ifstream ifstream{"/home/petr/CLionProjects/RayMarching/assets/scenes/scene"s + i + ".json"};
+    nlohmann::json sceneJson;
+    ifstream >> sceneJson;
+    sceneManager.loadFromJson(sceneJson);
+  }
   auto mainScene = sceneManager.getScene("scene3");
-  std::cout << mainScene->getObject("ground")->get().src() << std::endl;
-  std::cout << mainScene->getObject("sphere")->get().src() << std::endl;
-  // auto mainScene = std::make_shared<Scene>("Scene", Camera{PerspectiveProjection{0, 0, 0, 0}});
-  // mainScene->addObject("ground", maketree());
-  // mainScene->addObject("sphere", maketree2());
-  PhysicsSimulator simulation{mainScene};
+  PhysicsSimulator simulation{};
 
   float time = 0;
 
-  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager(), mainScene->getCamera()};
+  ui::UI ui{*window, *mainLoop, "450", rayMarcher.getMaterialManager(), mainScene->getCamera(), sceneManager};
   bool isCameraControlled = false;
   window->setEventCallback(SDL_MOUSEMOTION, [&isCameraControlled, &mainScene](const SDL_Event &event) {
     if (isCameraControlled) {
@@ -196,65 +154,80 @@ auto main() -> int {
   loadMaterials(rayMarcher.getMaterialManager());
 
   mainScene->getCamera().Position = glm::vec3{0, 400, 0};
+  ui.onFrame();
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    simulation.update(time);
-
-    movementSpeed = ui.getCameraPanel().getMovementSpeed();
-    // velocity += glm::vec3{0, -0.009, 0};
-    // camera.Position += velocity;
-    // if (glm::length(velocity) > 10) {
-    //  velocity = glm::normalize(velocity) * 10.0f;
-    //}
-
-    float currentDistance = mainScene->getDistanceToScene(mainScene->getCamera().Position);
-    if (!ui.getCameraPanel().isClippingEnabled()) {
-      unsigned int iterationCount = 0;
-      while (currentDistance < 0) {
-        const auto surfaceNormal = mainScene->getNormal(mainScene->getCamera().Position);
-        const auto delta = surfaceNormal * glm::dot(lastCamPos - mainScene->getCamera().Position, surfaceNormal);
-        mainScene->getCamera().Position += delta;
-        mainScene->getCamera().Position += surfaceNormal * 0.0001f * float(iterationCount);
-        currentDistance = mainScene->getDistanceToScene(mainScene->getCamera().Position);
-        iterationCount += 100;
-        // if (-velocity.y > 0.1f) {
-        // velocity = glm::reflect(velocity, surfaceNormal) * 0.8f;
-        //} else {
-        // velocity -= surfaceNormal * glm::dot(velocity, surfaceNormal);
-        //}
-      }
-      lastCamPos = mainScene->getCamera().Position;
+    std::chrono::microseconds simTime;
+    if (ui.getScenePanel().isChoiceChanged()) {
+      simulation.setScene(ui.getScenePanel().getSelectedScene());
     }
-    ui.getCameraPanel().setDistance(currentDistance);
+    {
+      const auto begin = std::chrono::steady_clock::now();
+      simulation.update(time);
+      std::vector<glm::vec4> spherePositions;
+      for (auto &obj : simulation.getObjects()) {
+        spherePositions.emplace_back(glm::vec4{obj->getPosition(), 1});
+      }
+      rayMarcher.physicsSphereCount = spherePositions.size();
+      if (rayMarcher.physicsSphereCount > 0) {
+        rayMarcher.buffer.setData(spherePositions);
+      }
+
+      movementSpeed = ui.getCameraPanel().getMovementSpeed();
+      // velocity += glm::vec3{0, -0.009, 0};
+      // camera.Position += velocity;
+      // if (glm::length(velocity) > 10) {
+      //  velocity = glm::normalize(velocity) * 10.0f;
+      //}
+
+      float currentDistance = mainScene->getDistanceToScene(mainScene->getCamera().Position);
+      if (!ui.getCameraPanel().isClippingEnabled()) {
+        unsigned int iterationCount = 0;
+        while (currentDistance < 0) {
+          const auto surfaceNormal = mainScene->getNormal(mainScene->getCamera().Position);
+          const auto delta = surfaceNormal * glm::dot(lastCamPos - mainScene->getCamera().Position, surfaceNormal);
+          mainScene->getCamera().Position += delta;
+          mainScene->getCamera().Position += surfaceNormal * 0.0001f * float(iterationCount);
+          currentDistance = mainScene->getDistanceToScene(mainScene->getCamera().Position);
+          iterationCount += 100;
+          // if (-velocity.y > 0.1f) {
+          // velocity = glm::reflect(velocity, surfaceNormal) * 0.8f;
+          //} else {
+          // velocity -= surfaceNormal * glm::dot(velocity, surfaceNormal);
+          //}
+        }
+        lastCamPos = mainScene->getCamera().Position;
+      }
+      ui.getCameraPanel().setDistance(currentDistance);
+      const auto end = std::chrono::steady_clock::now();
+      simTime = std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
+    }
 
     const auto swapInterval = ui.getFPSPanel().isVsyncEnabled() ? 1 : 0;
     SDL_GL_SetSwapInterval(swapInterval);
 
     const auto currentFps = ui.getFPSPanel().getFPSCounter().current();
 
-    std::vector<glm::vec4> spherePositions;
-    for (auto &obj : simulation.getObjects()) {
-      spherePositions.emplace_back(glm::vec4{obj->getPosition(), 1});
+    std::chrono::microseconds renderTime;
+    {
+      const auto begin = std::chrono::steady_clock::now();
+      rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
+      rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
+      rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
+      rayMarcher.setTime(time);
+      rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
+      rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
+      rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
+      rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
+      rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
+      rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
+      rayMarcher.render(mainScene);
+      rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
+      ui.onFrame();
+      window->swap();
+      const auto end = std::chrono::steady_clock::now();
+      renderTime = std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
     }
-    rayMarcher.physicsSphereCount = spherePositions.size();
-    if (rayMarcher.physicsSphereCount > 0) {
-      rayMarcher.buffer.setData(spherePositions);
-    }
-
-    rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
-    rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
-    rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
-    rayMarcher.setTime(time);
-    rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
-    rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
-    rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
-    rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
-    rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
-    rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
-    rayMarcher.render(mainScene);
-    rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
-    ui.onFrame();
-    window->swap();
     time += 1 / currentFps * ui.getRenderSettingsPanel().getTimeScale();
   });
   spdlog::info("Starting main loop");

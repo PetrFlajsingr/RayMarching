@@ -9,6 +9,7 @@
 #include "GPUPanel.h"
 #include "MaterialPanel.h"
 #include "RenderSettingsPanel.h"
+#include "ScenePanel.h"
 #include <SDL2CPP/Window.h>
 #include <imconfig.h>
 #include <imgui/imgui.h>
@@ -17,7 +18,7 @@ namespace ui {
 class UI {
 public:
   UI(sdl2cpp::Window &window, sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion, MaterialManager &materialManager,
-     Camera &camera);
+     Camera &camera, SceneManager &sceneManager);
   ~UI();
   UI(UI &&other) = delete;
   UI(const UI &other) = delete;
@@ -41,6 +42,9 @@ public:
   [[nodiscard]] auto getMaterialPanel() const -> const MaterialPanel &;
   [[nodiscard]] auto getMaterialPanel() -> MaterialPanel &;
 
+  [[nodiscard]] auto getScenePanel() const -> const ScenePanel &;
+  [[nodiscard]] auto getScenePanel() -> ScenePanel &;
+
 private:
   ImGuiContext *ctx;
   ImGuiIO &io;
@@ -49,6 +53,7 @@ private:
   RenderSettingsPanel renderSettingsPanel;
   CameraPanel cameraPanel;
   MaterialPanel materialPanel;
+  ScenePanel scenePanel;
 
   std::vector<Panel *> panels;
   sdl2cpp::Window &window;
