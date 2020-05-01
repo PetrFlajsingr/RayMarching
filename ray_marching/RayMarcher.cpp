@@ -74,6 +74,12 @@ auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
   const auto cameraFront = scene->getCamera().Front;
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
+
+  if (useOptimisedMarching) {
+    scopedProgram->set("pixelRadius", pixelRadius);
+    scopedProgram->set("relaxationParameter", relaxationParameter);
+  }
+
   buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 4);
   materialManager.updateSSBO();
   materialManager.bindBuffer(materialBinding);
@@ -170,3 +176,5 @@ void RayMarcher::setUseOptimisedMarching(bool useOptimisedMarching) {
     reloadShader();
   }
 }
+void RayMarcher::setRelaxationParameter(float relaxationParameter) { RayMarcher::relaxationParameter = relaxationParameter; }
+void RayMarcher::setPixelRadius(float pixelRadius) { RayMarcher::pixelRadius = pixelRadius; }

@@ -29,6 +29,10 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     onReloadShaderClicked();
   }
   ImGui::Checkbox("Optimised ray marching", &tmpUseOptimisedRayMarching);
+  if (useOptimisedRayMarching) {
+    ImGui::SliderFloat("Relaxation parameter", &relaxationParameter, 1.0f, 2.f);
+    ImGui::SliderFloat("Pixel radius", &pixelRadius, 0.000001f, 0.001f, "%e");
+  }
   if (tmpUseOptimisedRayMarching != useOptimisedRayMarching)
     ImGui::OpenPopup("Reload shader");
   if (ImGui::BeginPopupModal("Reload shader")) {
@@ -123,3 +127,5 @@ auto ui::RenderSettingsPanel::getAAType() const -> ray_march::AntiAliasing {
 }
 auto ui::RenderSettingsPanel::getLightPosition() const -> const glm::vec3 & { return lightPosition; }
 auto ui::RenderSettingsPanel::isUseOptimisedRayMarching() const -> bool { return useOptimisedRayMarching; }
+auto ui::RenderSettingsPanel::getRelaxationParameter() const -> float { return relaxationParameter; }
+auto ui::RenderSettingsPanel::getPixelRadius() const -> float { return pixelRadius; }

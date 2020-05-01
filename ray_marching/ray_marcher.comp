@@ -103,6 +103,8 @@ uniform vec3 lightPos;
 uniform int maxReflections;
 uniform float AA_size;
 
+uniform float relaxationParameter;
+uniform float pixelRadius;
 
 
 /**
@@ -151,11 +153,11 @@ MapResult map(vec3 camPos) {
 
     result.distance = min(minSphereDist, min(result.distance, dist1));
     result.materialIndex =
-    int(minSphereDist >= EPSILON) * (
+    int(minSphereDist > result.distance) * (
     int(origPos.x > 0 && origPos.z < 0) * 1 +
     int(origPos.x < 0 && origPos.z > 0) * 2 +
     int(origPos.x > 0 && origPos.z > 0) * 3)
-    + int(minSphereDist < EPSILON) * 4;
+    + int(minSphereDist <= result.distance) * 4;
 
     return result;
 }
@@ -359,12 +361,11 @@ IntersectionResult castRayOpti(Ray ray, float distanceFactor) {
     result.material = -1;
 
 
-    float omega = 1.4;
     float candidate_error = FLT_MAX;
     float candidate_t = 0;
     float previousDistance = 0;
     float stepLength = 0;
-    float pixelRadius = 0.0001;
+    float omega = relaxationParameter;
 
     #if ENABLE_FOG==1
     float fog = 0;
@@ -499,13 +500,11 @@ IntersectionResult castEdgeAARayOpti(Ray ray, float distanceFactor) {
     float lastDistance = 1e20;
     float lastTotalDistance = 0.0;
 
-    float omega = 1.4;
     float candidate_error = FLT_MAX;
     float candidate_t = 0;
     float previousDistance = 0;
     float stepLength = 0;
-    float pixelRadius = 0.0001;
-
+    float omega = relaxationParameter;
 
     const vec3 lightDir = normalize(lightPos);
 

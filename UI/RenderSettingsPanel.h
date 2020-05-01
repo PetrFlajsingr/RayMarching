@@ -30,6 +30,8 @@ public:
   [[nodiscard]] auto getMaxReflections() const -> int;
   [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
   [[nodiscard]] auto isUseOptimisedRayMarching() const -> bool;
+  [[nodiscard]] auto getRelaxationParameter() const -> float;
+  [[nodiscard]] auto getPixelRadius() const -> float;
 
 private:
   const char *currentItem;
@@ -41,6 +43,8 @@ private:
   int rayStepLimit = 512;
   int shadowRayStepLimit = 64;
   float maxDrawDistance = 10000.0f;
+  float relaxationParameter = 1.4f;
+  float pixelRadius = 0.00001f;
   float timeScale = 1.0f;
   int aaX = 2;
   int maxReflections = 1;

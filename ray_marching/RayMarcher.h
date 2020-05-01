@@ -39,6 +39,9 @@ public:
   [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
   void setLightPosition(const glm::vec3 &lightPosition);
 
+  void setRelaxationParameter(float relaxationParameter);
+  void setPixelRadius(float pixelRadius);
+
   [[nodiscard]] auto isUseOptimisedMarching() const -> bool;
   void setUseOptimisedMarching(bool useOptimisedMarching);
 
@@ -77,6 +80,8 @@ private:
   float time = 0;
   float maxDrawDistance = 10.0f;
   glm::vec3 lightPosition;
+  float relaxationParameter = 1.4f;
+  float pixelRadius = 0.00001f;
 
   bool useOptimisedMarching = false;
 
