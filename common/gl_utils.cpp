@@ -42,4 +42,4 @@ ScopedShaderProgramUsage::~ScopedShaderProgramUsage() {
 
 auto ScopedShaderProgramUsage::operator*() -> ge::gl::Program & { return program; }
 
-auto ScopedShaderProgramUsage::operator-> () -> ge::gl::Program * { return &program; }
+auto ScopedShaderProgramUsage::operator->() -> ge::gl::Program * { return &program; }

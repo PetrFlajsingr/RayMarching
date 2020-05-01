@@ -4,6 +4,13 @@ layout (rgba32f, binding = 0) uniform image2D renderTexture;
 layout (r32f, binding = 1) uniform image2D stepCountTexture;
 layout (r32f, binding = 2) uniform image2D depthTexture;
 
+#define SHADES 0
+
+#define EPSILON  0.001
+#define COLOR_EPSILON  0.000001
+#define SHADOW_FALLOFF 0.1
+#define SHADOW_OPACITY 0.8
+
 #define ENABLE_FOG 0
 const float fogDensityMultiplier = 1.0;
 const float fogSpeedMultiplier = 1;
@@ -97,13 +104,6 @@ uniform int maxReflections;
 uniform float AA_size;
 
 
-#define SHADES 0
-
-#define EPSILON  0.001
-#define COLOR_EPSILON  0.000001
-#define SHADOW_FALLOFF 0.1
-#define SHADOW_OPACITY 0.8
-
 
 /**
  * Calculate backroung color based on a ray.
@@ -120,6 +120,8 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const float fPersp = 2;
     return normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
 }
+
+
 /**
  * Calculate distance of a point to the scene.
  */
@@ -350,6 +352,83 @@ IntersectionResult castRay(Ray ray, float distanceFactor) {
 }
 
 
+IntersectionResult castRayOpti(Ray ray, float distanceFactor) {
+    float travelDistance = 0.0;
+    IntersectionResult result;
+    result.isInShadow = false;
+    result.material = -1;
+
+
+    float omega = 1.4;
+    float candidate_error = FLT_MAX;
+    float candidate_t = 0;
+    float previousDistance = 0;
+    float stepLength = 0;
+    float pixelRadius = 0.0001;
+
+    #if ENABLE_FOG==1
+    float fog = 0;
+    #endif
+    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
+        MapResult res = map(ray.origin + ray.direction * travelDistance);
+        res.distance *= distanceFactor;
+
+        const float distance = abs(res.distance);
+        const bool sorFail = omega > 1 &&
+        (distance + previousDistance) < stepLength;
+
+        if (sorFail) {
+            stepLength -= omega * stepLength;
+            omega = 1;
+        } else {
+            stepLength = res.distance * omega;
+        }
+
+        previousDistance = distance;
+        const float error = distance / travelDistance;
+
+        if (!sorFail && error < candidate_error) {
+            candidate_t = travelDistance;
+            candidate_error = error;
+        }
+
+        travelDistance += stepLength;
+        result.material = res.materialIndex;
+
+        #if ENABLE_FOG==1
+        fog += fogmap(ray.origin + ray.direction * travelDistance, travelDistance);
+        #endif
+        if (!sorFail && error < pixelRadius) {
+            break;
+        } else if (travelDistance > maxDrawDistance) {
+            result.material = -1;
+            result.distance = -1.0;
+            #if ENABLE_FOG==1
+            result.color.a = min(fog, 1.0);
+            #endif
+            return result;
+        }
+    }
+    Ray shadingRay;
+    shadingRay.origin = ray.origin + ray.direction * travelDistance;
+    shadingRay.direction = ray.direction;
+    result.normal = calcNormal(shadingRay.origin);
+    ShadingResult shadingResult = shadingWithShadow(shadingRay, result.normal, normalize(lightPos), materials[result.material]);
+    result.color = shadingResult.color;
+    result.isInShadow = shadingResult.isInShadow;
+    result.isSelfShadowed = shadingResult.isSelfShadowed;
+    result.rmSteps += shadingResult.rmSteps;
+    result.distance = travelDistance;
+
+    #if ENABLE_FOG==1
+    fog = min(fog, 1.0);
+    result.color = vec4(mix(result.color.rgb, vec3(0.7, .7, .7), fog), 1);
+    #endif
+
+    return result;
+}
+
+
 IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
     float travelDistance = 0.0;
     IntersectionResult result;
@@ -408,6 +487,96 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
     result.color = blend(result.color, vec4(backgroundColor(ray), 1));
     return result;
 }
+
+IntersectionResult castEdgeAARayOpti(Ray ray, float distanceFactor) {
+    float travelDistance = 0.0;
+    IntersectionResult result;
+    result.isInShadow = false;
+    result.material = -1;
+    result.color = vec4(0);
+
+    float direction = 1.0;
+    float lastDistance = 1e20;
+    float lastTotalDistance = 0.0;
+
+    float omega = 1.4;
+    float candidate_error = FLT_MAX;
+    float candidate_t = 0;
+    float previousDistance = 0;
+    float stepLength = 0;
+    float pixelRadius = 0.0001;
+
+
+    const vec3 lightDir = normalize(lightPos);
+
+    for (result.rmSteps = 0; result.rmSteps < stepLimit; result.rmSteps++) {
+        MapResult res = map(ray.origin + ray.direction * travelDistance);
+        res.distance *= distanceFactor;
+
+        const float distance = abs(res.distance);
+        const bool sorFail = omega > 1 &&
+        (distance + previousDistance) < stepLength;
+
+        if (sorFail) {
+            stepLength -= omega * stepLength;
+            omega = 1;
+        } else {
+            stepLength = res.distance * omega;
+        }
+
+        previousDistance = distance;
+        const float error = distance / travelDistance;
+
+        if (!sorFail && error < candidate_error) {
+            candidate_t = travelDistance;
+            candidate_error = error;
+        }
+
+        travelDistance += stepLength;
+        result.material = res.materialIndex;
+
+
+        if (!sorFail && error < pixelRadius) {
+            Ray shadingRay;
+            shadingRay.origin = ray.origin + ray.direction * travelDistance;
+            shadingRay.direction = ray.direction;
+            const vec3 normal = calcNormal(shadingRay.origin);
+            const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+            result.color = blend(result.color, vec4(color, 1));
+            result.distance = travelDistance;
+            return result;
+        } else if (travelDistance > maxDrawDistance) {
+            result.material = -1;
+            result.distance = -1.0;
+            Ray shadingRay;
+            shadingRay.origin = ray.origin + ray.direction * travelDistance;
+            shadingRay.direction = ray.direction;
+            result.color = blend(result.color, vec4(backgroundColor(shadingRay), 1));
+            return result;
+        }
+        if (!sorFail && res.distance < lastDistance) {
+            direction = 1.0;
+            lastDistance = res.distance;
+            lastTotalDistance = travelDistance;
+        } else if (!sorFail && direction > 0.0) {
+            direction = 0.0;
+            const float s = (lastTotalDistance + 1.0) / resolution.y;
+            if (lastDistance < s) {
+                const float a = 1.0 - (lastDistance / s);
+                Ray shadingRay;
+                shadingRay.origin = ray.origin + ray.direction * travelDistance;
+                shadingRay.direction = ray.direction;
+                const vec3 normal = calcNormal(shadingRay.origin);
+                const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+                result.color = blend(result.color, vec4(color.rgb * a, a));
+            }
+        }
+    }
+    result.distance = travelDistance;
+    result.color = blend(result.color, vec4(backgroundColor(ray), 1));
+    return result;
+}
+
 
 
 RenderResult renderMarching(Ray ray) {

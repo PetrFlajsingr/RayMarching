@@ -17,7 +17,7 @@ public:
   explicit ScopedShaderProgramUsage(ge::gl::Program &program);
 
   auto operator*() -> ge::gl::Program &;
-  auto operator-> () -> ge::gl::Program *;
+  auto operator->() -> ge::gl::Program *;
 
   ~ScopedShaderProgramUsage();
 
