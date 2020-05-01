@@ -4,7 +4,6 @@
 
 #include "Material.h"
 #include "RawConversion.h"
-#include <magic_enum.hpp>
 #include <types/Range.h>
 using namespace MakeRange;
 
@@ -33,16 +32,6 @@ auto Material::getScatterDensity() const -> float { return scatterDensity; }
 auto Material::setScatterDensity(float scatterDensity) -> void {
   Material::scatterDensity = scatterDensity;
   wasModified = true;
-}
-auto operator<<(std::ostream &ostream, const Material &material) -> std::ostream & {
-  return ostream << "[Material info]\n: "
-                 << "Name: " << material.name << "\n"
-                 << "Type: " << magic_enum::enum_name(material.type) << "\n"
-                 << "Color: " << material.color.r << " " << material.color.g << " " << material.color.b << "\n"
-                 << "Reflectivity: " << material.reflectivity << "\n"
-                 << "Refractive index: " << material.refractiveIndex << "\n"
-                 << "Refractive factor: " << material.refractiveFactor << "\n"
-                 << "Scatter density: " << material.scatterDensity << "\n";
 }
 auto Material::raw() const -> std::array<uint8_t, paddedSize> {
   const auto typeRaw = intToBytes(static_cast<int>(type));

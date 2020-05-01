@@ -12,6 +12,7 @@
 #include <SDL2CPP/Window.h>
 #include <SDL_video.h>
 #include <error_handling/exceptions.h>
+#include <fstream>
 #include <geGL/DebugMessage.h>
 #include <geGL/StaticCalls.h>
 #include <geGL/geGL.h>
@@ -37,7 +38,11 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
 }
 
 auto addMaterials(MaterialManager &materialManager) -> void {
-  Material normal("Mat1", Material::Type::Normal);
+  auto materialFileStream = std::ifstream{"/home/petr/CLionProjects/RayMarching/assets/materials.json"};
+  auto materialJson = nlohmann::json{};
+  materialFileStream >> materialJson;
+  materialManager.loadFromJson(materialJson);
+  /*Material normal("Mat1", Material::Type::Normal);
   normal.setColor({1, 1, 0});
   Material reflective("Mat2", Material::Type::Reflective);
   reflective.setColor({1, 0, 0});
@@ -57,7 +62,7 @@ auto addMaterials(MaterialManager &materialManager) -> void {
   materialManager.addMaterial(std::move(reflective));
   materialManager.addMaterial(std::move(transparent));
   materialManager.addMaterial(std::move(scatter));
-  materialManager.addMaterial(std::move(sphere));
+  materialManager.addMaterial(std::move(sphere));*/
 }
 
 auto maketree() -> std::unique_ptr<CSGTree> {

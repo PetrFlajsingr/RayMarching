@@ -3,6 +3,8 @@
 //
 
 #include "MaterialManager.h"
+#include <magic_enum.hpp>
+#include <spdlog/spdlog.h>
 
 auto MaterialManager::addMaterial(Material &&material) -> void {
   const auto name = material.getName();
@@ -29,3 +31,41 @@ auto MaterialManager::updateSSBO() -> void {
 auto MaterialManager::getMaterialBuffer() const -> const ge::gl::Buffer & { return buffer; }
 auto MaterialManager::bindBuffer(unsigned int binding) -> void { buffer.bindBase(GL_SHADER_STORAGE_BUFFER, binding); }
 auto MaterialManager::getMaterialMap() -> std::unordered_map<std::string, Material> & { return materials; }
+auto MaterialManager::loadFromJson(const nlohmann::json &json) -> void {
+  using namespace std::string_literals;
+  if (!json.is_array()) {
+    return;
+  }
+  for (const auto &item : json) {
+    if (!item.contains("name") || !item.contains("type") || !item.contains("color")) {
+      spdlog::debug("Invalid definition of material: "s + item.dump(2));
+      continue;
+    }
+    const auto materialType = magic_enum::enum_cast<Material::Type>(std::string(item["type"]));
+    if (!materialType.has_value()) {
+      spdlog::debug("Invalid definition of material type: "s + item.dump(2));
+      continue;
+    }
+    if (!item["color"].contains("r") || !item["color"].contains("g") || !item["color"].contains("b")) {
+      spdlog::debug("Invalid definition of material color: "s + item.dump(2));
+      continue;
+    }
+    auto material = Material{item["name"], materialType.value()};
+    const auto materialColor = glm::vec3{item["color"]["r"], item["color"]["g"], item["color"]["b"]};
+    material.setColor(materialColor);
+    if (item.contains("reflectivity")) {
+      material.setReflectivity(item["reflectivity"]);
+    }
+    if (item.contains("refractiveIndex")) {
+      material.setRefractiveIndex(item["refractiveIndex"]);
+    }
+    if (item.contains("refractiveFactor")) {
+      material.setRefractiveFactor(item["refractiveFactor"]);
+    }
+    if (item.contains("scatterDensity")) {
+      material.setScatterDensity(item["scatterDensity"]);
+    }
+    spdlog::info("Loaded material: {}", material);
+    addMaterial(std::move(material));
+  }
+}

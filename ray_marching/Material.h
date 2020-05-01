@@ -7,7 +7,9 @@
 
 #include <array>
 #include <glm/glm.hpp>
+#include <magic_enum.hpp>
 #include <ostream>
+#include <spdlog/fmt/ostr.h>
 #include <string>
 
 class MaterialManager;
@@ -35,7 +37,16 @@ public:
   auto setType(Type type) -> void;
   [[nodiscard]] auto raw() const -> std::array<uint8_t, paddedSize>;
 
-  friend auto operator<<(std::ostream &ostream, const Material &material) -> std::ostream &;
+  template <typename OStream> friend auto operator<<(OStream &ostream, const Material &material) -> OStream & {
+    return ostream << "[Material info]\n: "
+                   << "Name: " << material.name << "\n"
+                   << "Type: " << magic_enum::enum_name(material.type) << "\n"
+                   << "Color: " << material.color.r << " " << material.color.g << " " << material.color.b << "\n"
+                   << "Reflectivity: " << material.reflectivity << "\n"
+                   << "Refractive index: " << material.refractiveIndex << "\n"
+                   << "Refractive factor: " << material.refractiveFactor << "\n"
+                   << "Scatter density: " << material.scatterDensity << "\n";
+  }
 
 private:
   Type type;

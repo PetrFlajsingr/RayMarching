@@ -6,6 +6,7 @@
 #define RAYMARCHING_MATERIALMANAGER_H
 #include "Material.h"
 #include <geGL/Buffer.h>
+#include <nlohmann/json.hpp>
 #include <unordered_map>
 
 class MaterialManager {
@@ -13,6 +14,7 @@ class MaterialManager {
 
 public:
   MaterialManager() : buffer(maxMats * Material::paddedSize) {}
+  auto loadFromJson(const nlohmann::json &json) -> void;
   auto addMaterial(Material &&material) -> void;
   [[nodiscard]] auto getMaterial(const std::string &name) -> Material &;
   [[nodiscard]] auto getMaterial(const std::string &name) const -> const Material &;
