@@ -29,6 +29,7 @@ public:
   [[nodiscard]] auto getAA() const -> int;
   [[nodiscard]] auto getMaxReflections() const -> int;
   [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
+  [[nodiscard]] auto isUseOptimisedRayMarching() const -> bool;
 
 private:
   const char *currentItem;
@@ -46,6 +47,8 @@ private:
   bool ambientOcclusionEnabled = false;
   glm::vec3 lightPosition{0, 1, 0};
   std::function<void()> onReloadShaderClicked;
+  bool useOptimisedRayMarching = false;
+  bool tmpUseOptimisedRayMarching = false;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

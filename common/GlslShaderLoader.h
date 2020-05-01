@@ -37,8 +37,8 @@ auto setTempShaderLocation(std::string_view newShaderLocation) -> LocationResett
 
 auto loadShaderFile(std::string_view name, ShaderType type) -> std::string;
 
-template <typename... IncPaths> inline auto loadShader(GLenum type, const std::string &shaderPath, const IncPaths &... incPaths)
-    -> ShaderPtr {
+template <typename... IncPaths> inline auto loadShader(GLenum type, const std::string &shaderPath, const std::string &defines,
+                                                       const IncPaths &... incPaths) -> ShaderPtr {
   using namespace std::string_literals;
   const auto shaderType = glEnumToShaderType(type);
   auto mainShaderSrc = loadShaderFile(shaderPath, shaderType);
@@ -56,6 +56,8 @@ template <typename... IncPaths> inline auto loadShader(GLenum type, const std::s
     incPos += line.length();
     line = *splitSrcIter++;
   }
+  mainShaderSrc.insert(incPos, "\n"s + defines + "\n");
+  incPos += defines.size() + 2;
   for (const auto &incSrc : includeSrcs) {
     std::string toInsert{"\n"s + incSrc + "\n"};
     mainShaderSrc.insert(incPos, toInsert);

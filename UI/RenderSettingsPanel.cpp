@@ -28,6 +28,23 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
   if (ImGui::Button("Reload shader")) {
     onReloadShaderClicked();
   }
+  ImGui::Checkbox("Optimised ray marching", &tmpUseOptimisedRayMarching);
+  if (tmpUseOptimisedRayMarching != useOptimisedRayMarching)
+    ImGui::OpenPopup("Reload shader");
+  if (ImGui::BeginPopupModal("Reload shader")) {
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("Shader needs to be reloaded");
+    if (ImGui::Button("Proceed")) {
+      useOptimisedRayMarching = tmpUseOptimisedRayMarching;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+      tmpUseOptimisedRayMarching = !tmpUseOptimisedRayMarching;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
   if (ImGui::BeginCombo("Texture", currentItem)) {
     for (auto &choice : textureChoiceItems) {
       bool isSelected = (currentItem == choice.data());
@@ -105,3 +122,4 @@ auto ui::RenderSettingsPanel::getAAType() const -> ray_march::AntiAliasing {
   return magic_enum::enum_cast<ray_march::AntiAliasing>(currentAAItem).value();
 }
 auto ui::RenderSettingsPanel::getLightPosition() const -> const glm::vec3 & { return lightPosition; }
+auto ui::RenderSettingsPanel::isUseOptimisedRayMarching() const -> bool { return useOptimisedRayMarching; }

@@ -39,6 +39,9 @@ public:
   [[nodiscard]] auto getLightPosition() const -> const glm::vec3 &;
   void setLightPosition(const glm::vec3 &lightPosition);
 
+  [[nodiscard]] auto isUseOptimisedMarching() const -> bool;
+  void setUseOptimisedMarching(bool useOptimisedMarching);
+
   [[nodiscard]] auto getMaterialManager() -> MaterialManager &;
 
   auto reloadShader() -> void;
@@ -74,6 +77,8 @@ private:
   float time = 0;
   float maxDrawDistance = 10.0f;
   glm::vec3 lightPosition;
+
+  bool useOptimisedMarching = false;
 
   static inline constexpr unsigned int materialBinding = 3;
 

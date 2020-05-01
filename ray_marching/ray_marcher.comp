@@ -581,7 +581,7 @@ IntersectionResult castEdgeAARayOpti(Ray ray, float distanceFactor) {
 
 RenderResult renderMarching(Ray ray) {
     RenderResult result;
-    IntersectionResult intersection = castRay(ray, 1.0);
+    IntersectionResult intersection = CAST_RAY(ray, 1.0);
     result.fragmentDepth = intersection.distance;
     result.rmSteps = 0;
     bool intersected = intersection.distance >= 0.0;
@@ -628,7 +628,7 @@ RenderResult renderMarching(Ray ray) {
                 if (followUpRayCount == followUpRayLimit) {
                     return result;
                 }
-                intersection = castRay(ray, distanceFactor);
+                intersection = CAST_RAY(ray, distanceFactor);
                 break;
             }
             case MatTransparent:{
@@ -674,7 +674,7 @@ RenderResult renderMarching(Ray ray) {
                     distanceFactor = -distanceFactor;
                     refractionRatio = 1.0 / refractionRatio;
                 }*/
-                intersection = castRay(ray, distanceFactor);
+                intersection = CAST_RAY(ray, distanceFactor);
                 break;
             }
             default : {
@@ -700,7 +700,7 @@ RenderResult renderMarching(Ray ray) {
 
 RenderResult renderMarchingEdgeAA(Ray ray) {
     RenderResult result;
-    IntersectionResult intersection = castEdgeAARay(ray, 1.0);
+    IntersectionResult intersection = CAST_RAY_EDGEAA(ray, 1.0);
     result.fragmentDepth = intersection.distance;
     result.rmSteps = 0;
     bool intersected = intersection.distance >= 0.0;
@@ -747,7 +747,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
                     if (followUpRayCount == followUpRayLimit) {
                         return result;
                     }
-                    intersection = castEdgeAARay(ray, distanceFactor);
+                    intersection = CAST_RAY_EDGEAA(ray, distanceFactor);
                     break;
                 }
                 case MatTransparent:{
@@ -794,7 +794,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
                     distanceFactor = -distanceFactor;
                     refractionRatio = 1.0 / refractionRatio;
                 }*/
-                    intersection = castEdgeAARay(ray, distanceFactor);
+                    intersection = CAST_RAY_EDGEAA(ray, distanceFactor);
                     break;
                 }
                 default : {

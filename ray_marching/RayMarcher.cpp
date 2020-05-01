@@ -124,8 +124,15 @@ auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
 
 auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
 auto RayMarcher::reloadShader() -> void {
-  auto tmpShader = loadShader(GL_COMPUTE_SHADER, "ray_marcher", "inc_fractals", "inc_signed_distance_functions",
-                              "inc_CSG_operations", "inc_utils");
+  auto tmpShader = useOptimisedMarching
+                       ? loadShader(GL_COMPUTE_SHADER, "ray_marcher",
+                                    "#define CAST_RAY(ray, distanceFactor) castRayOpti(ray, distanceFactor)\n"
+                                    "#define CAST_RAY_EDGEAA(ray, distanceFactor) castEdgeAARayOpti(ray, distanceFactor)",
+                                    "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils")
+                       : loadShader(GL_COMPUTE_SHADER, "ray_marcher",
+                                    "#define CAST_RAY(ray, distanceFactor) castRay(ray, distanceFactor)\n"
+                                    "#define CAST_RAY_EDGEAA(ray, distanceFactor) castEdgeAARay(ray, distanceFactor)",
+                                    "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils");
   auto tmpProgram = std::make_shared<ge::gl::Program>(tmpShader);
   if (tmpProgram->getLinkStatus()) {
     csProgram = tmpProgram;
@@ -156,3 +163,10 @@ auto RayMarcher::setAntiaAliasingType(AntiAliasing aaType) -> void { RayMarcher:
 auto RayMarcher::getLightPosition() const -> const glm::vec3 & { return lightPosition; }
 auto RayMarcher::setLightPosition(const glm::vec3 &lightPosition) -> void { RayMarcher::lightPosition = lightPosition; }
 auto RayMarcher::getMaterialManager() -> MaterialManager & { return materialManager; }
+auto RayMarcher::isUseOptimisedMarching() const -> bool { return useOptimisedMarching; }
+void RayMarcher::setUseOptimisedMarching(bool useOptimisedMarching) {
+  if (useOptimisedMarching != RayMarcher::useOptimisedMarching) {
+    RayMarcher::useOptimisedMarching = useOptimisedMarching;
+    reloadShader();
+  }
+}

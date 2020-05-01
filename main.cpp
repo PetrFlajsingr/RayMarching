@@ -221,6 +221,7 @@ auto main() -> int {
       rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
       rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
       rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
+      rayMarcher.setUseOptimisedMarching(ui.getRenderSettingsPanel().isUseOptimisedRayMarching());
       rayMarcher.render(mainScene);
       rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
       ui.onFrame();
