@@ -6,19 +6,7 @@
 #include <fmt/format.h>
 
 BoxShape::BoxShape(const glm::vec3 &position, const glm::vec3 &dimensions) : Shape(position), dimensions(dimensions) {}
-auto BoxShape::getRaw() const -> std::vector<uint8_t> {
-  const auto positionRaw = vec3ToBytes(position);
-  const auto dimensionsRaw = vec3ToBytes(dimensions);
-  std::vector<uint8_t> result = {shapeFlag | flagForShape<BoxShape>()};
-  for (auto byte : positionRaw) {
-    result.emplace_back(byte);
-  }
-  for (auto byte : dimensionsRaw) {
-    result.emplace_back(byte);
-  }
-  return result;
-}
-auto BoxShape::getDataSize() const -> std::size_t { return 25; }
+
 auto BoxShape::getName() const -> std::string { return "box"; }
 auto BoxShape::src() const -> std::string {
   const auto positionStr = fmt::format("vec3({}, {}, {})", position.x, position.y, position.z);
@@ -26,21 +14,15 @@ auto BoxShape::src() const -> std::string {
   return fmt::format("sdBox(camPos - {}, {})", positionStr, dimensionsStr);
 }
 auto BoxShape::distance(const glm::vec3 &camPos) const -> float { return sdfForShape<BoxShape>()(camPos - position, dimensions); }
+auto BoxShape::rawTypeInfo() const -> uint32_t {
+  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+}
+auto BoxShape::rawParameters() const -> std::vector<float> {
+  return std::vector<float>{position.x, position.y, position.z, dimensions.x, dimensions.y, dimensions.z};
+}
 
 SphereShape::SphereShape(const glm::vec3 &position, float radius) : Shape(position), radius(radius) {}
-auto SphereShape::getRaw() const -> std::vector<uint8_t> {
-  const auto positionRaw = vec3ToBytes(position);
-  const auto radiusRaw = floatToBytes(radius);
-  std::vector<uint8_t> result = {shapeFlag | flagForShape<BoxShape>()};
-  for (auto byte : positionRaw) {
-    result.emplace_back(byte);
-  }
-  for (auto byte : radiusRaw) {
-    result.emplace_back(byte);
-  }
-  return result;
-}
-auto SphereShape::getDataSize() const -> std::size_t { return 17; }
+
 auto SphereShape::getName() const -> std::string { return "sphere"; }
 auto SphereShape::src() const -> std::string {
   const auto positionStr = fmt::format("vec3({}, {}, {})", position.x, position.y, position.z);
@@ -49,23 +31,17 @@ auto SphereShape::src() const -> std::string {
 auto SphereShape::distance(const glm::vec3 &camPos) const -> float {
   return sdfForShape<SphereShape>()(camPos - position, radius);
 }
+auto SphereShape::rawTypeInfo() const -> uint32_t {
+  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+}
+auto SphereShape::rawParameters() const -> std::vector<float> {
+  return std::vector<float>{position.x, position.y, position.z, radius};
+}
 
 PlaneShape::PlaneShape(const glm::vec3 &position, const glm::vec4 &normal) : Shape(position), normal(glm::normalize(normal)) {}
 auto PlaneShape::getNormal() const -> const glm::vec4 & { return normal; }
 auto PlaneShape::setNormal(const glm::vec4 &normal) { PlaneShape::normal = glm::normalize(normal); }
-auto PlaneShape::getRaw() const -> std::vector<uint8_t> {
-  const auto positionRaw = vec3ToBytes(position);
-  const auto normalRaw = vec4ToBytes(normal);
-  std::vector<uint8_t> result = {shapeFlag | flagForShape<BoxShape>()};
-  for (auto byte : positionRaw) {
-    result.emplace_back(byte);
-  }
-  for (auto byte : normalRaw) {
-    result.emplace_back(byte);
-  }
-  return result;
-}
-auto PlaneShape::getDataSize() const -> std::size_t { return 26; }
+
 auto PlaneShape::getName() const -> std::string { return "plane"; }
 auto PlaneShape::src() const -> std::string {
   const auto positionStr = fmt::format("vec3({}, {}, {})", position.x, position.y, position.z);
@@ -73,3 +49,9 @@ auto PlaneShape::src() const -> std::string {
   return fmt::format("sdPlane(camPos - {}, {})", positionStr, normalStr);
 }
 auto PlaneShape::distance(const glm::vec3 &camPos) const -> float { return sdfForShape<PlaneShape>()(camPos - position, normal); }
+auto PlaneShape::rawTypeInfo() const -> uint32_t {
+  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+}
+auto PlaneShape::rawParameters() const -> std::vector<float> {
+  return std::vector<float>{position.x, position.y, position.z, normal.x, normal.y, normal.z, normal.w};
+}

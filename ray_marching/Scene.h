@@ -28,6 +28,8 @@ public:
   [[nodiscard]] auto getNormal(const glm::vec3 &pos) -> glm::vec3;
   [[nodiscard]] auto getName() const -> const std::string &;
 
+  [[nodiscard]] auto raw() const -> CSGTree::Raw;
+
   void updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation);
 
 private:

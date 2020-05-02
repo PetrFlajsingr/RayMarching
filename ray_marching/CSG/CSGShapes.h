@@ -22,33 +22,36 @@ public:
 struct BoxShape : public Shape {
   BoxShape(const glm::vec3 &position, const glm::vec3 &dimensions);
   glm::vec3 dimensions;
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto getName() const -> std::string override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto distance(const glm::vec3 &camPos) const -> float override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 };
 
 struct SphereShape : public Shape {
   SphereShape(const glm::vec3 &position, float radius);
   float radius;
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto getName() const -> std::string override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto distance(const glm::vec3 &camPos) const -> float override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 };
 
 class PlaneShape : public Shape {
 public:
   PlaneShape(const glm::vec3 &position, const glm::vec4 &normal);
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto getName() const -> std::string override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto getNormal() const -> const glm::vec4 &;
   auto setNormal(const glm::vec4 &normal);
   [[nodiscard]] auto distance(const glm::vec3 &camPos) const -> float override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 
 private:
   glm::vec4 normal;
@@ -62,7 +65,6 @@ template <C_Shape T> constexpr auto flagForShape() -> uint8_t {
   } else if constexpr (std::is_same_v<T, PlaneShape>) {
     return flagForShape<SphereShape>() + 0b00000001;
   }
-  throw "invalid operation type";
 }
 
 template <C_Shape T> constexpr auto sdfForShape() {

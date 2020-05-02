@@ -26,11 +26,11 @@ public:
 class SpaceRepetitionOperation : public SpaceWarpOperation {
 public:
   explicit SpaceRepetitionOperation(const glm::vec3 &domain);
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto getName() const -> std::string override;
   [[nodiscard]] auto eval(const glm::vec3 &camPos) const -> glm::vec3 override;
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 
   glm::vec3 domain;
 };
@@ -38,11 +38,12 @@ public:
 class LimitedSpaceRepetitionOperation : public SpaceWarpOperation {
 public:
   LimitedSpaceRepetitionOperation(const glm::vec3 &domain, const glm::vec3 &limit);
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto getName() const -> std::string override;
   [[nodiscard]] auto eval(const glm::vec3 &camPos) const -> glm::vec3 override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 
   glm::vec3 domain;
   glm::vec3 limit;
@@ -51,50 +52,63 @@ public:
 class SpaceStretchOperation : public SpaceWarpOperation {
 public:
   explicit SpaceStretchOperation(const glm::vec3 &multiplier);
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto getName() const -> std::string override;
   [[nodiscard]] auto eval(const glm::vec3 &camPos) const -> glm::vec3 override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 
   glm::vec3 multiplier;
 };
 
 struct OperationUnion : public BinaryOperation {
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto eval(float d1, float d2) const -> float override;
   [[nodiscard]] auto getName() const -> std::string override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 };
 
 struct OperationSubstraction : public BinaryOperation {
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto eval(float d1, float d2) const -> float override;
   [[nodiscard]] auto getName() const -> std::string override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 };
 
 struct OperationBlend : public BinaryOperation {
   explicit OperationBlend(float k);
-  [[nodiscard]] auto getRaw() const -> std::vector<uint8_t> override;
-  [[nodiscard]] auto getDataSize() const -> std::size_t override;
   [[nodiscard]] auto src() const -> std::string override;
   [[nodiscard]] auto eval(float d1, float d2) const -> float override;
   float k;
   [[nodiscard]] auto getName() const -> std::string override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 };
 
 template <C_Operation T> constexpr auto flagForOperation() -> uint8_t {
   if constexpr (std::is_same_v<T, OperationUnion>) {
-    return 0b00000000;
+    return 0b0;
   } else if constexpr (std::is_same_v<T, OperationSubstraction>) {
     return flagForOperation<OperationUnion>() + 0b00000001;
   } else if constexpr (std::is_same_v<T, OperationBlend>) {
     return flagForOperation<OperationSubstraction>() + 0b00000001;
   }
-  throw "invalid operation type";
+}
+
+template <C_WarpOperation T> constexpr auto flagForOperation() -> uint8_t {
+  if constexpr (std::is_same_v<T, SpaceRepetitionOperation>) {
+    return 0b0;
+  } else if constexpr (std::is_same_v<T, LimitedSpaceRepetitionOperation>) {
+    return flagForOperation<SpaceRepetitionOperation>() + 0b00000001;
+  } else if constexpr (std::is_same_v<T, SpaceStretchOperation>) {
+    return flagForOperation<LimitedSpaceRepetitionOperation>() + 0b00000001;
+  }
 }
 
 template <C_Operation T> constexpr auto fncForOp() {

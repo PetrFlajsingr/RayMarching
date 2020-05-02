@@ -90,3 +90,12 @@ void Scene::updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation) {
   ssboTree->bindBase(GL_SHADER_STORAGE_BUFFER, treeBindLocation);
   ssboParams->bindBase(GL_SHADER_STORAGE_BUFFER, paramsBindLocation);
 }
+auto Scene::raw() const -> CSGTree::Raw {
+  CSGTree::Raw result;
+  for (auto &[id, object] : objects) {
+    const auto rawObject = object->raw(result.treeData.size() / 3, result.paramData.size());
+    result.treeData.insert(result.treeData.end(), rawObject.treeData.begin(), rawObject.treeData.end());
+    result.paramData.insert(result.paramData.end(), rawObject.paramData.begin(), rawObject.paramData.end());
+  }
+  return result;
+}

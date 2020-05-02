@@ -13,17 +13,24 @@ class BinaryOperation;
 class SpaceWarpOperation;
 class Shape;
 
-constexpr uint8_t operationFlag = 0b00000000;
-constexpr uint8_t shapeFlag = 0b10000000;
-
 template <typename T> concept C_Shape = std::is_base_of_v<Shape, T>;
 template <typename T> concept C_Operation = std::is_base_of_v<BinaryOperation, T>;
 template <typename T> concept C_WarpOperation = std::is_base_of_v<SpaceWarpOperation, T>;
 
+template <typename T> requires(C_Shape<T> || C_Operation<T> || C_WarpOperation<T>) auto rawCategory() -> uint32_t {
+  if constexpr (C_Shape<T>) {
+    return 0b00000000000000000000000000000000;
+  } else if constexpr (C_Operation<T>) {
+    return 0b01000000000000000000000000000000;
+  } else if constexpr (C_WarpOperation<T>) {
+    return 0b10000000000000000000000000000000;
+  }
+}
+
 struct CSGRawData {
-  [[nodiscard]] virtual auto getRaw() const -> std::vector<uint8_t> = 0;
-  [[nodiscard]] virtual auto getDataSize() const -> std::size_t = 0;
   [[nodiscard]] virtual auto src() const -> std::string = 0;
+  [[nodiscard]] virtual auto rawTypeInfo() const -> uint32_t = 0;
+  [[nodiscard]] virtual auto rawParameters() const -> std::vector<float> = 0;
   virtual ~CSGRawData() = default;
 };
 

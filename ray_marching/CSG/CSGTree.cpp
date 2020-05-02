@@ -22,8 +22,6 @@ auto OperationCSGNode::internalSetRightChild(std::unique_ptr<CSGNode> &&rightChi
   OperationCSGNode::rightChild = std::move(rightChild);
   return *OperationCSGNode::rightChild;
 }
-auto OperationCSGNode::getRawData() -> std::vector<uint8_t> { return operation->getRaw(); }
-auto OperationCSGNode::getRawDataSize() -> std::size_t { return operation->getDataSize(); }
 auto OperationCSGNode::eval(float d1, float d2) -> float { return operation->eval(d1, d2); }
 auto OperationCSGNode::isBinary() const -> bool { return true; }
 auto OperationCSGNode::setLeftChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
@@ -34,19 +32,25 @@ auto OperationCSGNode::setRightChild(std::unique_ptr<CSGNode> &&child) -> CSGNod
   rightChild = std::move(child);
   return *rightChild;
 }
+auto OperationCSGNode::getOperation() const -> const BinaryOperation & { return *operation; }
+auto OperationCSGNode::getCSGData() -> CSGRawData & { return getOperation(); }
+auto OperationCSGNode::getCSGData() const -> const CSGRawData & { return getOperation(); }
+auto OperationCSGNode::getLeftChild() const -> const CSGNode & { return *leftChild; }
+auto OperationCSGNode::getRightChild() const -> const CSGNode & { return *rightChild; }
 
 ShapeCSGNode::ShapeCSGNode(std::unique_ptr<Shape> &&shape) : shape(std::move(shape)) {}
 auto ShapeCSGNode::isLeaf() const -> bool { return true; }
 auto ShapeCSGNode::getShape() -> Shape & { return *shape; }
-auto ShapeCSGNode::getRawData() -> std::vector<uint8_t> { return shape->getRaw(); }
-auto ShapeCSGNode::getRawDataSize() -> std::size_t { return shape->getDataSize(); }
 auto ShapeCSGNode::eval(const glm::vec3 &camPos) -> float { return shape->distance(camPos); }
 auto ShapeCSGNode::isBinary() const -> bool { return false; }
+auto ShapeCSGNode::getShape() const -> const Shape & { return *shape; }
+auto ShapeCSGNode::getCSGData() -> CSGRawData & { return getShape(); }
+auto ShapeCSGNode::getCSGData() const -> const CSGRawData & { return getShape(); }
 
 auto CSGTree::src() -> std::string {
   std::string result = "{}";
   csgInorder(*root, overload{[&result](OperationCSGNode &node) { result = replace(result, "{}", node.getOperation().src()); },
-                             [&result](WarpOperationNode &node) { result = replace(result, "{}", node.getOperation().src()); },
+                             [&result](WarpOperationCSGNode &node) { result = replace(result, "{}", node.getOperation().src()); },
                              [&result](ShapeCSGNode &node) { result = replace(result, "{}", node.getShape().src()); }});
   return result;
 }
@@ -61,7 +65,7 @@ auto evalSubtree(CSGNode &node, const glm::vec3 &camPos) -> float {
     const auto right = evalSubtree(operationNode.getLeftChild(), camPos);
     return operationNode.eval(left, right);
   } else {
-    auto &warpOperationNode = reinterpret_cast<WarpOperationNode &>(node);
+    auto &warpOperationNode = reinterpret_cast<WarpOperationCSGNode &>(node);
     const auto warpedCamPos = warpOperationNode.eval(camPos);
     return evalSubtree(warpOperationNode.getChild(), warpedCamPos);
   }
@@ -75,21 +79,23 @@ auto CSGTree::getNormal(const glm::vec3 &camPos) -> glm::vec3 {
                                   eval(camPos + delta.yyx()) - eval(camPos - delta.yyx())));
 }
 CSGTree::CSGTree(std::string name) : name(std::move(name)) {}
-auto WarpOperationNode::internalSetChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
-  WarpOperationNode::child = std::move(child);
-  return *WarpOperationNode::child;
+auto WarpOperationCSGNode::internalSetChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
+  WarpOperationCSGNode::child = std::move(child);
+  return *WarpOperationCSGNode::child;
 }
-auto WarpOperationNode::isLeaf() const -> bool { return false; }
-auto WarpOperationNode::getRawData() -> std::vector<uint8_t> { return std::vector<uint8_t>(); }
-auto WarpOperationNode::getRawDataSize() -> std::size_t { return 0; }
-auto WarpOperationNode::eval(const glm::vec3 &camPos) -> glm::vec3 { return operation->eval(camPos); }
-auto WarpOperationNode::getChild() -> CSGNode & { return *child; }
-auto WarpOperationNode::isBinary() const -> bool { return false; }
-auto WarpOperationNode::getOperation() -> SpaceWarpOperation & { return *operation; }
-auto WarpOperationNode::setChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
-  WarpOperationNode::child = std::move(child);
-  return *WarpOperationNode::child;
+auto WarpOperationCSGNode::isLeaf() const -> bool { return false; }
+auto WarpOperationCSGNode::eval(const glm::vec3 &camPos) -> glm::vec3 { return operation->eval(camPos); }
+auto WarpOperationCSGNode::getChild() -> CSGNode & { return *child; }
+auto WarpOperationCSGNode::isBinary() const -> bool { return false; }
+auto WarpOperationCSGNode::getOperation() -> SpaceWarpOperation & { return *operation; }
+auto WarpOperationCSGNode::setChild(std::unique_ptr<CSGNode> &&child) -> CSGNode & {
+  WarpOperationCSGNode::child = std::move(child);
+  return *WarpOperationCSGNode::child;
 }
+auto WarpOperationCSGNode::getOperation() const -> const SpaceWarpOperation & { return *operation; }
+auto WarpOperationCSGNode::getCSGData() -> CSGRawData & { return getOperation(); }
+auto WarpOperationCSGNode::getCSGData() const -> const CSGRawData & { return getOperation(); }
+auto WarpOperationCSGNode::getChild() const -> const CSGNode & { return *child; }
 
 auto CSGTree::FromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGTree>> {
   using namespace std::string_literals;
@@ -130,13 +136,13 @@ auto CSGTree::NodeFromJson(const nlohmann::json &json) -> std::optional<std::uni
   return std::nullopt;
 }
 
-auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<WarpOperationNode>> {
+auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<WarpOperationCSGNode>> {
   using namespace std::string_literals;
   if (!json.contains("operationType")) {
     spdlog::error("Invalid warp operation: "s + json.dump(2));
     return std::nullopt;
   }
-  auto result = std::unique_ptr<WarpOperationNode>{nullptr};
+  auto result = std::unique_ptr<WarpOperationCSGNode>{nullptr};
   if (json["operationType"] == "LimitedSpaceRepetition") {
     if (!json.contains("domain") || !json.contains("limit")) {
       spdlog::error("Missing parameters warp operation: "s + json.dump(2));
@@ -144,7 +150,7 @@ auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std:
     }
     const auto domain = glm::vec3{json["domain"]["x"], json["domain"]["y"], json["domain"]["z"]};
     const auto limit = glm::vec3{json["limit"]["x"], json["limit"]["y"], json["limit"]["z"]};
-    result = std::make_unique<WarpOperationNode>(std::make_unique<LimitedSpaceRepetitionOperation>(domain, limit));
+    result = std::make_unique<WarpOperationCSGNode>(std::make_unique<LimitedSpaceRepetitionOperation>(domain, limit));
   }
   if (json["operationType"] == "SpaceRepetition") {
     if (!json.contains("domain")) {
@@ -152,7 +158,7 @@ auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std:
       return std::nullopt;
     }
     const auto domain = glm::vec3{json["domain"]["x"], json["domain"]["y"], json["domain"]["z"]};
-    result = std::make_unique<WarpOperationNode>(std::make_unique<SpaceRepetitionOperation>(domain));
+    result = std::make_unique<WarpOperationCSGNode>(std::make_unique<SpaceRepetitionOperation>(domain));
   }
   if (json["operationType"] == "SpaceStretch") {
     if (!json.contains("multiplier")) {
@@ -160,7 +166,7 @@ auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std:
       return std::nullopt;
     }
     const auto multiplier = glm::vec3{json["multiplier"]["x"], json["multiplier"]["y"], json["multiplier"]["z"]};
-    result = std::make_unique<WarpOperationNode>(std::make_unique<SpaceStretchOperation>(multiplier));
+    result = std::make_unique<WarpOperationCSGNode>(std::make_unique<SpaceStretchOperation>(multiplier));
   }
   if (result == nullptr) {
     spdlog::error("Invalid warp operation type: "s + json.dump(2));
@@ -259,5 +265,48 @@ auto CSGTree::ShapeNodeFromJson(const nlohmann::json &json) -> std::optional<std
     spdlog::error("Invalid shape type: "s + json.dump(2));
     return std::nullopt;
   }
+  return result;
+}
+
+template <typename F> void createRawData(const CSGNode &node, CSGTree::Raw &result, F &&appendNode, uint32_t &nodeCnt) {
+  if (node.isLeaf()) {
+    return;
+  } else if (node.isBinary()) {
+    const auto &opNode = reinterpret_cast<const OperationCSGNode &>(node);
+    const auto index = nodeCnt - 1;
+    const auto &rightChild = opNode.getRightChild();
+    const auto &leftChild = opNode.getLeftChild();
+    const auto rightChildIndex = appendNode(rightChild);
+    createRawData(rightChild, result, appendNode, nodeCnt);
+    const auto leftChildIndex = appendNode(leftChild);
+    createRawData(leftChild, result, appendNode, nodeCnt);
+    const auto childrenIndices = rightChildIndex << 16u | leftChildIndex;
+    result.treeData[index * 3 + 2] = childrenIndices;
+  } else {
+    const auto &opNode = reinterpret_cast<const WarpOperationCSGNode &>(node);
+    const auto index = nodeCnt - 1;
+    const auto &child = opNode.getChild();
+    const auto childIndex = appendNode(child);
+    createRawData(child, result, appendNode, nodeCnt);
+    result.treeData[index * 3 + 2] = childIndex;
+  }
+}
+
+auto CSGTree::raw(std::size_t nodeOffset, std::size_t paramOffset) const -> CSGTree::Raw {
+  Raw result{};
+  uint32_t nodeCnt = nodeOffset;
+  auto appendData = [](auto &paramData, const auto &parameters) {
+    paramData.insert(paramData.end(), parameters.begin(), parameters.end());
+  };
+  auto appendNode = [&appendData, &paramOffset, &result, &nodeCnt](const auto &node) -> uint32_t {
+    const auto treeData = std::array<uint32_t, 3>{node.getCSGData().rawTypeInfo(), static_cast<unsigned int>(paramOffset), 0};
+    const auto parameters = node.getCSGData().rawParameters();
+    appendData(result.treeData, treeData);
+    appendData(result.paramData, parameters);
+    paramOffset += parameters.size();
+    return nodeCnt++;
+  };
+  appendNode(*root);
+  createRawData(*root, result, appendNode, nodeCnt);
   return result;
 }
