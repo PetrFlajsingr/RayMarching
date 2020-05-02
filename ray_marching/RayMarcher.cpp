@@ -80,6 +80,8 @@ auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
     scopedProgram->set("relaxationParameter", relaxationParameter);
   }
 
+  scene->updateAndBind(5, 6);
+
   buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 4);
   materialManager.updateSSBO();
   materialManager.bindBuffer(materialBinding);
@@ -97,6 +99,7 @@ auto RayMarcher::show(Tex tex) -> void {
   ScopedShaderProgramUsage scopedProgram{renderProgram};
   ge::gl::glViewport(0, 0, textureSize.first, textureSize.second);
   quadVAO.bind();
+  auto asHeatMap = false;
   switch (tex) {
   case Tex::Render:
     renderTexture->bind(0);
@@ -106,10 +109,11 @@ auto RayMarcher::show(Tex tex) -> void {
     break;
   case Tex::StepCount:
     stepCountTexture->bind(0);
+    asHeatMap = true;
     break;
   }
+  scopedProgram->set("asHeatMap", asHeatMap);
   scopedProgram->set("enableFXAA", aaType == AntiAliasing::FXAA);
-
   ge::gl::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 auto RayMarcher::getComputeDispatchSize() -> std::pair<unsigned int, unsigned int> {

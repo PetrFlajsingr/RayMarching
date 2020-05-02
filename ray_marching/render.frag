@@ -13,6 +13,7 @@ in vec2 v_rgbSE;
 in vec2 v_rgbM;
 
 uniform bool enableFXAA;
+uniform bool asHeatMap;
 
 // https://github.com/mattdesl/glsl-fxaa
 #ifndef FXAA_REDUCE_MIN
@@ -72,11 +73,49 @@ vec2 v_rgbM) {
     return color;
 }
 
+vec3 intensityToHeatMap1(float intensity) {
+    float aR = 0;   float aG = 0; float aB=1;// RGB for our 1st color (blue in this case).
+    float bR = 1; float bG = 0; float bB=0;// RGB for our 2nd color (red in this case).
+    const float r   = float((bR - aR) * intensity + aR);// Evaluated as -255*value + 255.
+    const float g = float((bG - aG) * intensity + aG);// Evaluates as 0.
+    const float b  = float((bB - aB) * intensity + aB);// Evaluates as 255*value + 0.
+    return vec3(r, g, b);
+}
+vec3 intensityToHeatMap2(float intensity) {
+    const int NUM_COLORS = 4;
+    const vec3 color[NUM_COLORS] = vec3[NUM_COLORS](vec3(0, 0, 1), vec3(0, 1, 0), vec3(1, 1, 0), vec3(1, 0, 0));
+
+    int idx1;
+    int idx2;
+    float fractBetween = 0;
+
+    if (intensity <= 0)      { idx1 = idx2 = 0; }// accounts for an input <=0
+    else if (intensity >= 1)  { idx1 = idx2 = NUM_COLORS-1; }// accounts for an input >=0
+    else
+    {
+        intensity = intensity * (NUM_COLORS-1);// Will multiply intensity by 3.
+        idx1  = int(floor(intensity));
+        idx2  = idx1+1;// ... and before this index (inclusive).
+        fractBetween = intensity - float(idx1);// Distance between the two indexes (0-1).
+    }
+
+    const float r = (color[idx2][0] - color[idx1][0])*fractBetween + color[idx1][0];
+    const float g = (color[idx2][1] - color[idx1][1])*fractBetween + color[idx1][1];
+    const float b = (color[idx2][2] - color[idx1][2])*fractBetween + color[idx1][2];
+    return vec3(r, g, b);
+}
+
+
+
 void main()
 {
     if (enableFXAA) {
         color = fxaa(tex, texCoord, vec2(1288, 691), v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
     } else {
-        color = texture(tex, texCoord);
+        if (asHeatMap) {
+            color = vec4(intensityToHeatMap2(texture(tex, texCoord).r), 1);
+        } else {
+            color = texture(tex, texCoord);
+        }
     }
 }

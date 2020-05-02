@@ -76,6 +76,21 @@ layout (std430, binding=4) buffer PhysicsSpheres {
     vec4 physicsSpheres[];
 };
 
+struct CSGNode {
+    uint type;// 0 operation, 1 warp operation, 2 shape
+    uint paramOffset;
+    uint leftChildIndex;
+    uint rightChildIndex;
+};
+
+layout (std430, binding=5) buffer CSGTree {
+    CSGNode csgTree[];
+};
+
+layout (std430, binding=6) buffer CSGParams {
+    float csgParams[];
+};
+
 subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
 subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);
 subroutine vec3 shadowIntensityCalc(vec3 diffuse, float specular, float shadow);
@@ -453,7 +468,9 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
             shadingRay.origin = ray.origin + ray.direction * travelDistance;
             shadingRay.direction = ray.direction;
             const vec3 normal = calcNormal(shadingRay.origin);
-            const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+            const ShadingResult shadingResult = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]);
+            const vec3 color = shadingResult.color.rgb;
+            result.rmSteps += shadingResult.rmSteps;
             result.color = blend(result.color, vec4(color, 1));
             result.distance = travelDistance;
             return result;
@@ -479,7 +496,9 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
                 shadingRay.origin = ray.origin + ray.direction * travelDistance;
                 shadingRay.direction = ray.direction;
                 const vec3 normal = calcNormal(shadingRay.origin);
-                const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+                const ShadingResult shadingResult = shadingWithoutShadow(shadingRay, normal, lightDir, materials[result.material]);
+                const vec3 color = shadingResult.color.rgb;
+                result.rmSteps += shadingResult.rmSteps;
                 result.color = blend(result.color, vec4(color.rgb * a, a));
             }
         }
@@ -540,9 +559,11 @@ IntersectionResult castEdgeAARayOpti(Ray ray, float distanceFactor) {
             shadingRay.origin = ray.origin + ray.direction * travelDistance;
             shadingRay.direction = ray.direction;
             const vec3 normal = calcNormal(shadingRay.origin);
-            const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+            const ShadingResult shadingResult = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]);
+            const vec3 color = shadingResult.color.rgb;
             result.color = blend(result.color, vec4(color, 1));
             result.distance = travelDistance;
+            result.rmSteps += shadingResult.rmSteps;
             return result;
         } else if (travelDistance > maxDrawDistance) {
             result.material = -1;
@@ -566,7 +587,9 @@ IntersectionResult castEdgeAARayOpti(Ray ray, float distanceFactor) {
                 shadingRay.origin = ray.origin + ray.direction * travelDistance;
                 shadingRay.direction = ray.direction;
                 const vec3 normal = calcNormal(shadingRay.origin);
-                const vec3 color = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]).color.rgb;
+                const ShadingResult shadingResult = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]);
+                const vec3 color = shadingResult.color.rgb;
+                result.rmSteps += shadingResult.rmSteps;
                 result.color = blend(result.color, vec4(color.rgb * a, a));
             }
         }
@@ -845,6 +868,7 @@ void main() {
     ray.origin = cameraPosition;
     ray.direction = getCameraRayDir(uv, cameraPosition, cameraFront);
     vec4 resColor = vec4(0);
+    int totalSteps = 0;
     float count = 0.0;
     for (float aaY = 0.0; aaY < AA_size; aaY++) {
         for (float aaX = 0.0; aaX < AA_size; aaX++) {
@@ -852,11 +876,13 @@ void main() {
             ray.direction = getCameraRayDir(uv, cameraPosition, cameraFront);
             renderResult = render(ray);
             resColor += renderResult.color;
+            totalSteps += renderResult.rmSteps;
             count += 1.0;
         }
     }
     resColor /= count;
     renderResult.color = resColor;
+    renderResult.rmSteps = int(totalSteps / count);
 
     renderResult.color = vec4(pow(renderResult.color.xyz, vec3(0.4545)), renderResult.color.w);
     vec2 q = vec2(texCoord) / vec2(resolution.xy);
@@ -864,8 +890,7 @@ void main() {
 
     float logStepColor = logNormalize(renderResult.rmSteps, 0, stepLimit, 0, 1) + time * 0.0000001;
     float logDepth = logNormalize(renderResult.fragmentDepth, 0, maxDrawDistance, 0, 1);
-    float stepColor = renderResult.rmSteps / float(64);
-    //renderResult.color += stepColor * vec4(1, 0, 0, 0);
+    float stepColor = renderResult.rmSteps / stepLimit+ time * 0.0000001;
 
     imageStore(renderTexture, texCoord, renderResult.color);
     imageStore(stepCountTexture, texCoord, vec4(logStepColor, 0, 0, 0));
