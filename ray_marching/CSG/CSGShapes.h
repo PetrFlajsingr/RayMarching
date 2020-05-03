@@ -17,6 +17,10 @@ public:
   glm::vec3 position;
   [[nodiscard]] virtual auto getName() const -> std::string = 0;
   [[nodiscard]] virtual auto distance(const glm::vec3 &camPos) const -> float = 0;
+  int materialIndex = 0;
+
+protected:
+  [[nodiscard]] auto getMaterialFlag() const -> uint32_t;
 };
 
 struct BoxShape : public Shape {

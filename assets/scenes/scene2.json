@@ -6,7 +6,7 @@
       "csg": {
         "nodeType": "Operation",
         "operationType": "Union",
-        "leftOperand": {
+        "rightOperand": {
           "nodeType": "Shape",
           "shapeType": "Sphere",
           "position": {
@@ -16,7 +16,7 @@
           },
           "radius": 200
         },
-        "rightOperand": {
+        "leftOperand": {
           "nodeType": "Operation",
           "operationType": "Substraction",
           "leftOperand": {

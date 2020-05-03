@@ -4,20 +4,7 @@
     {
       "id": "ground",
       "csg": {
-        "nodeType": "WarpOperation",
-        "operationType": "LimitedSpaceRepetition",
-        "domain": {
-          "x": 500,
-          "y": 1000,
-          "z": 500
-        },
-        "limit": {
-          "x": 10,
-          "y": 0,
-          "z": 10
-        },
-        "operand": {
-          "nodeType": "Operation",
+        "nodeType": "Operation",
           "operationType": "Blend",
           "k": 250,
           "leftOperand": {
@@ -84,6 +71,5 @@
           }
         }
       }
-    }
   ]
 }

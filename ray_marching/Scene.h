@@ -30,7 +30,7 @@ public:
 
   [[nodiscard]] auto raw() const -> CSGTree::Raw;
 
-  void updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation);
+  void updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation, GLuint postOrderBindLocation);
 
 private:
   mutable std::unordered_map<ObjectId, std::unique_ptr<SceneObject>> objects;
@@ -41,6 +41,7 @@ private:
 
   std::shared_ptr<ge::gl::Buffer> ssboTree;
   std::shared_ptr<ge::gl::Buffer> ssboParams;
+  std::shared_ptr<ge::gl::Buffer> ssboPostOrder;
 
   std::shared_ptr<ge::gl::Buffer> treeBuffer;
   std::shared_ptr<ge::gl::Buffer> paramBuffer;

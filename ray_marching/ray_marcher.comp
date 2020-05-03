@@ -43,14 +43,101 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const float fPersp = 2;
     return normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
 }
+
+float getFloatCSGParam(uint paramOffset) {
+    return csgParams[paramOffset];
+}
+vec3 getVec3CSGParam(uint paramOffset) {
+    return vec3(csgParams[paramOffset], csgParams[paramOffset + 1], csgParams[paramOffset + 2]);
+}
+vec4 getVec4CSGParam(uint paramOffset) {
+    return vec4(csgParams[paramOffset], csgParams[paramOffset + 1], csgParams[paramOffset + 2], csgParams[paramOffset + 3]);
+}
+
+layout (std430, binding=7) buffer PostOrderStack {
+    uint postOrderStack[];
+};
+struct SSBOStack {
+    int top;
+};
+SSBOStack initSSBOStack() {
+    SSBOStack result;
+    result.top = int(postOrderStack[0] - 1);
+    return result;
+}
+    #define SSBO_STACK_TOP(stack) postOrderStack[1 + stack.top]
+    #define SSBO_STACK_POP(stack) stack.top--
+    #define SSBO_STACK_EMPTY(stack) bool(stack.top < 0)
+
+float distToShape(vec3 camPos, CSGNode node) {
+    const uint paramOffset = PARAM_OFFSET(node);
+    switch (SHAPE_INDEX(node)) {
+        case 0:
+        return sdBox(camPos - getVec3CSGParam(paramOffset), getVec3CSGParam(paramOffset + 3));
+        case 1:
+        return sdSphere(camPos - getVec3CSGParam(paramOffset), getFloatCSGParam(paramOffset + 3));
+        case 2:
+        return sdPlane(camPos - getVec3CSGParam(paramOffset), getVec4CSGParam(paramOffset + 3));
+    }
+    return FLT_MAX;
+}
+float applyOperation(CSGNode node, float leftOperand, float rightOperand) {
+    switch (OPERATION_INDEX(node)) {
+        case 0:
+        return opUnion(leftOperand, rightOperand);
+        case 1:
+        return opSubstraction(leftOperand, rightOperand);
+        case 2:
+        return opBlend(leftOperand, rightOperand, getFloatCSGParam(PARAM_OFFSET(node)));
+    }
+    return FLT_MAX;
+}
+
+
+MapResult mapCSG(vec3 camPos) {
+    MapResult result;
+
+    SSBOStack postStack = initSSBOStack();
+
+    FloatStack valueStack = initFloatStack();
+    float minShapeDist = FLT_MAX;
+    int materialIndex = 0;
+    while (!SSBO_STACK_EMPTY(postStack)) {
+const uint nodeIndex = SSBO_STACK_TOP(postStack);
+SSBO_STACK_POP(postStack);
+CSGNode node = csgTree[nodeIndex];
+// TODO: check BB of node
+// TODO: if distance above threshold
+// TODO: skip subtrees
+// TODO: else continue
+if (IS_SHAPE(node)) {
+    const float distance = distToShape(camPos, node);
+    const int shapeMaterial = SHAPE_MATERIAL(node);
+    materialIndex = materialIndex * int(minShapeDist > distance) + shapeMaterial * int(minShapeDist <= distance);
+    minShapeDist = min(minShapeDist, distance);
+    STACK_PUSH(valueStack, distance);
+} else {
+    const float op2 = STACK_TOP(valueStack);
+    STACK_POP(valueStack);
+    const float op1 = STACK_TOP(valueStack);
+    STACK_POP(valueStack);
+    const float distance = applyOperation(node, op1, op2);
+    STACK_PUSH(valueStack, distance);
+}
+}
+result.materialIndex = materialIndex;
+result.distance = STACK_TOP(valueStack);
+return result;
+}
+
+
 /**
  * Calculate distance of a point to the scene.
  */
 MapResult map(vec3 camPos) {
-    const vec3 origPos = camPos;
+    return mapCSG(camPos);
+    /*const vec3 origPos = camPos;
     MapResult result;
-
-
 
     float minSphereDist = FLT_MAX;
     for (int i = 0; i < physicsSphereCount; i++) {
@@ -80,7 +167,7 @@ MapResult map(vec3 camPos) {
     int(origPos.x > 0 && origPos.z > 0) * 3)
     + int(minSphereDist <= result.distance) * 4;
 
-    return result;
+    return result;*/
 }
 
 /**

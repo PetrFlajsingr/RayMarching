@@ -73,7 +73,7 @@ auto main() -> int {
     ifstream >> sceneJson;
     sceneManager.loadFromJson(sceneJson);
   }
-  auto mainScene = sceneManager.getScene("scene3");
+  auto mainScene = sceneManager.getScene("scene1");
   PhysicsSimulator simulation{};
 
   float time = 0;

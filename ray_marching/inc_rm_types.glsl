@@ -59,6 +59,54 @@ struct CSGNode {
     uint childIndices;
 };
 
+const uint leftChildMask = 0x00FF;
+const uint rightChildMask = 0xFF00;
+const uint rightChildShift = 16;
+const uint nodeCategoryMask = 0xC0000000;
+const uint nodeMaterialMask = 0x3C000000;
+const uint nodeMaterialShift = 26;
+const uint nodeTypeMask = 0x3FFFFFF;
+
+const uint shapeCategory = 0x0;
+const uint binaryOpCategory = 0x40000000;
+const uint warpOpCategory = 0x80000000;
+const uint opCategory = binaryOpCategory | warpOpCategory;
+
+#define IS_SHAPE(node) bool((node.categoryType & nodeCategoryMask) == shapeCategory)
+#define IS_BINARY_OP(node) bool((node.categoryType & nodeCategoryMask) == binaryOpCategory)
+#define IS_WARP_OP(node) bool((node.categoryType & nodeCategoryMask) == warpOpCategory)
+#define IS_OP(node) bool((node.categoryType & nodeCategoryMask) != shapeCategory)
+#define SHAPE_INDEX(node) (node.categoryType & nodeTypeMask)
+#define OPERATION_INDEX(node) (node.categoryType & nodeTypeMask)
+#define PARAM_OFFSET(node) node.paramOffset
+#define SHAPE_MATERIAL(node) int((node.categoryType & nodeMaterialMask) >> nodeMaterialShift)
+
+#define STACK_SIZE 10
+
+struct UintStack {
+    uint data[STACK_SIZE];
+    int top;
+};
+struct FloatStack {
+    float data[STACK_SIZE];
+    int top;
+};
+UintStack initUintStack() {
+    UintStack result;
+    result.top = -1;
+    return result;
+}
+FloatStack initFloatStack() {
+    FloatStack result;
+    result.top = -1;
+    return result;
+}
+    #define STACK_PUSH(stack, value) { ++stack.top; stack.data[stack.top] = value; }
+    #define STACK_TOP(stack) stack.data[stack.top]
+    #define STACK_POP(stack) --stack.top
+    #define STACK_EMPTY(stack) stack.top < 0
+
+
 subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
 subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);
 subroutine vec3 shadowIntensityCalc(vec3 diffuse, float specular, float shadow);

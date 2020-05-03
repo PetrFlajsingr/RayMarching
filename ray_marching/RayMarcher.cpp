@@ -80,7 +80,7 @@ auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
     ge::gl::glUniform1f(uniformLocations.relaxationParameter, relaxationParameter);
   }
 
-  scene->updateAndBind(5, 6);
+  scene->updateAndBind(5, 6, 7);
 
   buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 4);
   materialManager.updateSSBO();

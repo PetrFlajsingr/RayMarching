@@ -150,6 +150,7 @@ public:
      */
     std::vector<uint32_t> treeData;
     std::vector<float> paramData;
+    std::vector<uint32_t> postOrderTraversal;
   };
 
   explicit CSGTree(std::string name);

@@ -71,7 +71,7 @@ auto Scene::operator=(Scene &&other) noexcept -> Scene & {
   paramBuffer = std::move(other.paramBuffer);
   return *this;
 }
-void Scene::updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation) {
+void Scene::updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation, GLuint postOrderBindLocation) {
   if (hasChanged) {
     auto setBufferData = [](auto &buffer, auto &data) {
       using DataType = typename std::decay_t<decltype(data)>::value_type;
@@ -81,21 +81,25 @@ void Scene::updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation) {
         buffer->setData(data);
       }
     };
-    const auto rawTreeData = std::vector<uint8_t>{};
-    const auto rawParamData = std::vector<float>{};
-    setBufferData(ssboTree, rawTreeData);
-    setBufferData(ssboParams, rawParamData);
+    const auto rawData = raw();
+    setBufferData(ssboTree, rawData.treeData);
+    setBufferData(ssboParams, rawData.paramData);
+    setBufferData(ssboPostOrder, rawData.postOrderTraversal);
     hasChanged = false;
   }
   ssboTree->bindBase(GL_SHADER_STORAGE_BUFFER, treeBindLocation);
   ssboParams->bindBase(GL_SHADER_STORAGE_BUFFER, paramsBindLocation);
+  ssboPostOrder->bindBase(GL_SHADER_STORAGE_BUFFER, postOrderBindLocation);
 }
 auto Scene::raw() const -> CSGTree::Raw {
   CSGTree::Raw result;
+  // TODO: fix for multiple objects
   for (auto &[id, object] : objects) {
     const auto rawObject = object->raw(result.treeData.size() / 3, result.paramData.size());
     result.treeData.insert(result.treeData.end(), rawObject.treeData.begin(), rawObject.treeData.end());
     result.paramData.insert(result.paramData.end(), rawObject.paramData.begin(), rawObject.paramData.end());
+    result.postOrderTraversal.insert(result.postOrderTraversal.end(), rawObject.postOrderTraversal.begin(),
+                                     rawObject.postOrderTraversal.end());
   }
   return result;
 }

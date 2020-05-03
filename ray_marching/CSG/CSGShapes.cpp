@@ -15,7 +15,7 @@ auto BoxShape::src() const -> std::string {
 }
 auto BoxShape::distance(const glm::vec3 &camPos) const -> float { return sdfForShape<BoxShape>()(camPos - position, dimensions); }
 auto BoxShape::rawTypeInfo() const -> uint32_t {
-  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>() | getMaterialFlag();
 }
 auto BoxShape::rawParameters() const -> std::vector<float> {
   return std::vector<float>{position.x, position.y, position.z, dimensions.x, dimensions.y, dimensions.z};
@@ -32,7 +32,7 @@ auto SphereShape::distance(const glm::vec3 &camPos) const -> float {
   return sdfForShape<SphereShape>()(camPos - position, radius);
 }
 auto SphereShape::rawTypeInfo() const -> uint32_t {
-  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>() | getMaterialFlag();
 }
 auto SphereShape::rawParameters() const -> std::vector<float> {
   return std::vector<float>{position.x, position.y, position.z, radius};
@@ -50,8 +50,12 @@ auto PlaneShape::src() const -> std::string {
 }
 auto PlaneShape::distance(const glm::vec3 &camPos) const -> float { return sdfForShape<PlaneShape>()(camPos - position, normal); }
 auto PlaneShape::rawTypeInfo() const -> uint32_t {
-  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+  return flagForShape<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>() | getMaterialFlag();
 }
 auto PlaneShape::rawParameters() const -> std::vector<float> {
   return std::vector<float>{position.x, position.y, position.z, normal.x, normal.y, normal.z, normal.w};
+}
+auto Shape::getMaterialFlag() const -> uint32_t {
+  constexpr uint32_t materialShift = 26;
+  return uint32_t(materialIndex) << materialShift;
 }
