@@ -63,7 +63,6 @@ auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
   scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
   scopedProgram->set("time", time);
   scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  // scopedProgram->set("enableEdgeAntiAliasing", aaType == AntiAliasing::EdgeAA);
   scopedProgram->set("maxReflections", maxReflections);
   scopedProgram->set("AA_size", static_cast<float>(aaSize));
   scopedProgram->set("physicsSphereCount", physicsSphereCount);
@@ -74,6 +73,7 @@ auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
   const auto cameraFront = scene->getCamera().Front;
   scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
   scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
+  scopedProgram->set("logStepCount", logStepCount);
 
   if (useOptimisedMarching) {
     scopedProgram->set("pixelRadius", pixelRadius);
@@ -134,16 +134,15 @@ auto RayMarcher::setAASize(int aaSize) -> void { RayMarcher::aaSize = aaSize; }
 
 auto RayMarcher::setMaxReflections(int maxReflections) -> void { RayMarcher::maxReflections = maxReflections; }
 auto RayMarcher::reloadShader() -> void {
-  auto tmpShader =
-      useOptimisedMarching
-          ? loadShader(GL_COMPUTE_SHADER, "ray_marcher",
-                       "#define CAST_RAY(ray, distanceFactor) castRayOpti(ray, distanceFactor)\n"
-                       "#define CAST_RAY_EDGEAA(ray, distanceFactor) castEdgeAARayOpti(ray, distanceFactor)",
-                       "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils", "inc_rm_types")
-          : loadShader(GL_COMPUTE_SHADER, "ray_marcher",
-                       "#define CAST_RAY(ray, distanceFactor) castRay(ray, distanceFactor)\n"
-                       "#define CAST_RAY_EDGEAA(ray, distanceFactor) castEdgeAARay(ray, distanceFactor)",
-                       "inc_fractals", "inc_signed_distance_functions", "inc_CSG_operations", "inc_utils", "inc_rm_types");
+  const auto *const defines = useOptimisedMarching
+                                  ? "#define CAST_RAY(ray, distanceFactor) castRayOpti(ray, distanceFactor)\n"
+                                    "#define CAST_RAY_EDGEAA(ray, distanceFactor) castEdgeAARayOpti(ray, distanceFactor)"
+                                  : "#define CAST_RAY(ray, distanceFactor) castRay(ray, distanceFactor)\n"
+                                    "#define CAST_RAY_EDGEAA(ray, distanceFactor) castEdgeAARay(ray, distanceFactor)";
+
+  auto tmpShader = loadShader(GL_COMPUTE_SHADER, "ray_marcher", defines, "inc_fractals", "inc_signed_distance_functions",
+                              "inc_CSG_operations", "inc_utils", "inc_rm_uniforms", "inc_rm_types");
+
   auto tmpProgram = std::make_shared<ge::gl::Program>(tmpShader);
   if (tmpProgram->getLinkStatus()) {
     csProgram = tmpProgram;
@@ -183,3 +182,4 @@ void RayMarcher::setUseOptimisedMarching(bool useOptimisedMarching) {
 }
 void RayMarcher::setRelaxationParameter(float relaxationParameter) { RayMarcher::relaxationParameter = relaxationParameter; }
 void RayMarcher::setPixelRadius(float pixelRadius) { RayMarcher::pixelRadius = pixelRadius; }
+void RayMarcher::setLogStepCount(bool logStepCount) { RayMarcher::logStepCount = logStepCount; }

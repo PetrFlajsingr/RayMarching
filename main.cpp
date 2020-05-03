@@ -74,7 +74,6 @@ auto main() -> int {
     sceneManager.loadFromJson(sceneJson);
   }
   auto mainScene = sceneManager.getScene("scene3");
-  mainScene->raw();
   PhysicsSimulator simulation{};
 
   float time = 0;
@@ -225,6 +224,7 @@ auto main() -> int {
       rayMarcher.setUseOptimisedMarching(ui.getRenderSettingsPanel().isUseOptimisedRayMarching());
       rayMarcher.setPixelRadius(ui.getRenderSettingsPanel().getPixelRadius());
       rayMarcher.setRelaxationParameter(ui.getRenderSettingsPanel().getRelaxationParameter());
+      rayMarcher.setLogStepCount(ui.getRenderSettingsPanel().isLogStepCount());
       rayMarcher.render(mainScene);
       rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
       ui.onFrame();

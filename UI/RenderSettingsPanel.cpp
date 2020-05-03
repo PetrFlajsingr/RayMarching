@@ -61,6 +61,9 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     }
     ImGui::EndCombo();
   }
+  if (getSelectedTextureType() == ray_march::Tex::StepCount) {
+    ImGui::Checkbox("Log steps", &logStepCount);
+  }
   ImGui::SliderInt("Max ray steps", &rayStepLimit, 1, 2048);
   ImGui::SliderFloat("Max draw distance", &maxDrawDistance, 1.0f, 100000.f);
   ImGui::SliderFloat("Time scaling", &timeScale, 0.f, 1.f);
@@ -129,3 +132,4 @@ auto ui::RenderSettingsPanel::getLightPosition() const -> const glm::vec3 & { re
 auto ui::RenderSettingsPanel::isUseOptimisedRayMarching() const -> bool { return useOptimisedRayMarching; }
 auto ui::RenderSettingsPanel::getRelaxationParameter() const -> float { return relaxationParameter; }
 auto ui::RenderSettingsPanel::getPixelRadius() const -> float { return pixelRadius; }
+auto ui::RenderSettingsPanel::isLogStepCount() const -> bool { return logStepCount; }

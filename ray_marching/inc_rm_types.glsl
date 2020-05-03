@@ -57,3 +57,7 @@ struct CSGNode {
     uint paramOffset;
     uint childIndices;
 };
+
+subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
+subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);
+subroutine vec3 shadowIntensityCalc(vec3 diffuse, float specular, float shadow);

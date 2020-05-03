@@ -41,6 +41,7 @@ public:
 
   void setRelaxationParameter(float relaxationParameter);
   void setPixelRadius(float pixelRadius);
+  void setLogStepCount(bool logStepCount);
 
   [[nodiscard]] auto isUseOptimisedMarching() const -> bool;
   void setUseOptimisedMarching(bool useOptimisedMarching);
@@ -84,6 +85,7 @@ private:
   float pixelRadius = 0.00001f;
 
   bool useOptimisedMarching = false;
+  bool logStepCount = true;
 
   static inline constexpr unsigned int materialBinding = 3;
 

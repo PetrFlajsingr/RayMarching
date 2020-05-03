@@ -28,37 +28,6 @@ layout (std430, binding=6) buffer CSGParams {
     float csgParams[];
 };
 
-subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
-subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);
-subroutine vec3 shadowIntensityCalc(vec3 diffuse, float specular, float shadow);
-
-
-layout (location=0) subroutine uniform shadowCalc calculateShadow;
-layout (location=1) subroutine uniform ambientOcclusionCalc calculateAmbientOcclusion;
-layout (location=2) subroutine uniform shadowIntensityCalc calculateShadowIntensity;
-
-uniform int physicsSphereCount;
-
-uniform bool enableEdgeAA;
-uniform ivec2 resolution;
-uniform int stepLimit;
-uniform int shadowStepLimit;
-
-uniform float time;
-uniform float maxDrawDistance;
-
-uniform vec3 cameraPosition;
-uniform vec3 cameraFront;
-
-uniform vec3 lightPos;
-
-uniform int maxReflections;
-uniform float AA_size;
-
-uniform float relaxationParameter;
-uniform float pixelRadius;
-
-
 /**
  * Calculate backroung color based on a ray.
  */
@@ -74,20 +43,20 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
     const float fPersp = 2;
     return normalize(coord.x * camRight + coord.y * camUp + camForward * fPersp);
 }
-
-
 /**
  * Calculate distance of a point to the scene.
  */
 MapResult map(vec3 camPos) {
+    const vec3 origPos = camPos;
     MapResult result;
+
+
 
     float minSphereDist = FLT_MAX;
     for (int i = 0; i < physicsSphereCount; i++) {
         const float sphereDist = sdSphere(camPos - physicsSpheres[i].xyz, 10.0);
         minSphereDist = min(minSphereDist, sphereDist);
     }
-    const vec3 origPos = camPos;
 
     result.distance = opUnion(
     sdSphere(camPos - vec3(0.0, 3000.0 + cos(time) * 1000, 500.0), 200.0), opSubstraction(
@@ -433,7 +402,7 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
                 shadingRay.origin = ray.origin + ray.direction * travelDistance;
                 shadingRay.direction = ray.direction;
                 const vec3 normal = calcNormal(shadingRay.origin);
-                const ShadingResult shadingResult = shadingWithoutShadow(shadingRay, normal, lightDir, materials[result.material]);
+                const ShadingResult shadingResult = shadingWithShadow(shadingRay, normal, lightDir, materials[result.material]);
                 const vec3 color = shadingResult.color.rgb;
                 result.rmSteps += shadingResult.rmSteps;
                 result.color = blend(result.color, vec4(color.rgb * a, a));
@@ -827,10 +796,10 @@ void main() {
 
     float logStepColor = logNormalize(renderResult.rmSteps, 0, stepLimit, 0, 1) + time * 0.0000001;
     float logDepth = logNormalize(renderResult.fragmentDepth, 0, maxDrawDistance, 0, 1);
-    float stepColor = renderResult.rmSteps / stepLimit+ time * 0.0000001;
+    float stepColor = float(renderResult.rmSteps) / stepLimit + time * 0.0000001;
 
     imageStore(renderTexture, texCoord, renderResult.color);
-    imageStore(stepCountTexture, texCoord, vec4(logStepColor, 0, 0, 0));
+    imageStore(stepCountTexture, texCoord, vec4(logStepCount ? logStepColor : stepColor, 0, 0, 0));
     imageStore(depthTexture, texCoord, vec4(logDepth, 0, 0, 0));
 }
 /**

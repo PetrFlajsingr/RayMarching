@@ -32,6 +32,7 @@ public:
   [[nodiscard]] auto isUseOptimisedRayMarching() const -> bool;
   [[nodiscard]] auto getRelaxationParameter() const -> float;
   [[nodiscard]] auto getPixelRadius() const -> float;
+  [[nodiscard]] auto isLogStepCount() const -> bool;
 
 private:
   const char *currentItem;
@@ -53,6 +54,7 @@ private:
   std::function<void()> onReloadShaderClicked;
   bool useOptimisedRayMarching = false;
   bool tmpUseOptimisedRayMarching = false;
+  bool logStepCount = false;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H
