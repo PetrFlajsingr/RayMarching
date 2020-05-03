@@ -59,25 +59,25 @@ auto RayMarcher::unBindTextures() -> void {
 auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
   ScopedShaderProgramUsage scopedProgram{*csProgram};
   bindTextures();
-  scopedProgram->set("stepLimit", rayStepLimit);
-  scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
-  scopedProgram->set("time", time);
-  scopedProgram->set("maxDrawDistance", maxDrawDistance);
-  scopedProgram->set("maxReflections", maxReflections);
-  scopedProgram->set("AA_size", static_cast<float>(aaSize));
-  scopedProgram->set("physicsSphereCount", physicsSphereCount);
-  scopedProgram->set("enableEdgeAA", aaType == AntiAliasing::EdgeAA);
-  scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
   const auto cameraPosition = scene->getCamera().Position;
-  scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   const auto cameraFront = scene->getCamera().Front;
-  scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
-  scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
-  scopedProgram->set("logStepCount", logStepCount);
+  ge::gl::glUniform1i(uniformLocations.stepLimit, rayStepLimit);
+  ge::gl::glUniform1i(uniformLocations.shadowStepLimit, shadowRayStepLimit);
+  ge::gl::glUniform1f(uniformLocations.time, time);
+  ge::gl::glUniform1f(uniformLocations.maxDrawDistance, maxDrawDistance);
+  ge::gl::glUniform1i(uniformLocations.maxReflections, maxReflections);
+  ge::gl::glUniform1f(uniformLocations.AA_size, static_cast<float>(aaSize));
+  ge::gl::glUniform1i(uniformLocations.physicsSphereCount, physicsSphereCount);
+  ge::gl::glUniform1i(uniformLocations.enableEdgeAA, aaType == AntiAliasing::EdgeAA);
+  ge::gl::glUniform2i(uniformLocations.resolution, textureSize.first, textureSize.second);
+  ge::gl::glUniform3f(uniformLocations.cameraPosition, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+  ge::gl::glUniform3f(uniformLocations.cameraFront, cameraFront.x, cameraFront.y, cameraFront.z);
+  ge::gl::glUniform3f(uniformLocations.lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
+  ge::gl::glUniform1i(uniformLocations.logStepCount, logStepCount);
 
   if (useOptimisedMarching) {
-    scopedProgram->set("pixelRadius", pixelRadius);
-    scopedProgram->set("relaxationParameter", relaxationParameter);
+    ge::gl::glUniform1f(uniformLocations.pixelRadius, pixelRadius);
+    ge::gl::glUniform1f(uniformLocations.relaxationParameter, relaxationParameter);
   }
 
   scene->updateAndBind(5, 6);
@@ -165,6 +165,23 @@ auto RayMarcher::reloadShader() -> void {
     aoSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "calcAO");
     aoSubroutineLocation =
         ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateAmbientOcclusion");
+    uniformLocations.stepLimit = csProgram->getUniformLocation("stepLimit");
+    uniformLocations.shadowStepLimit = csProgram->getUniformLocation("shadowStepLimit");
+    uniformLocations.time = csProgram->getUniformLocation("time");
+    uniformLocations.maxDrawDistance = csProgram->getUniformLocation("maxDrawDistance");
+    uniformLocations.maxReflections = csProgram->getUniformLocation("maxReflections");
+    uniformLocations.AA_size = csProgram->getUniformLocation("AA_size");
+    uniformLocations.physicsSphereCount = csProgram->getUniformLocation("physicsSphereCount");
+    uniformLocations.enableEdgeAA = csProgram->getUniformLocation("enableEdgeAA");
+    uniformLocations.resolution = csProgram->getUniformLocation("resolution");
+    uniformLocations.cameraPosition = csProgram->getUniformLocation("cameraPosition");
+    uniformLocations.cameraFront = csProgram->getUniformLocation("cameraFront");
+    uniformLocations.lightPos = csProgram->getUniformLocation("lightPos");
+    uniformLocations.logStepCount = csProgram->getUniformLocation("logStepCount");
+    if (useOptimisedMarching) {
+      uniformLocations.pixelRadius = csProgram->getUniformLocation("pixelRadius");
+      uniformLocations.relaxationParameter = csProgram->getUniformLocation("relaxationParameter");
+    }
   } else {
     spdlog::error("Shader loading failed");
   }

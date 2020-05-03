@@ -533,6 +533,7 @@ RenderResult renderMarching(Ray ray) {
         switch (materialType) {
             case MatNormal:{
                 result.color += vec4((colorModifier * intersection.color).rgb, 0);
+                result.intersected = intersected;
                 return result;
             }
             case MatScatter:{
@@ -545,6 +546,7 @@ RenderResult renderMarching(Ray ray) {
                     vec3 visibility = castScatterRay(ray, materials[intersection.material]);
                     result.color += vec4((colorModifier * subSurfaceShading(ray.origin, normal, lightDir, originalRayDirection, visibility)).rgb, 0);
                 }
+                result.intersected = intersected;
                 return result;
             }
             case MatReflective:{
@@ -554,6 +556,7 @@ RenderResult renderMarching(Ray ray) {
                 colorModifier *= materials[intersection.material].reflectivity;;
                 followUpRayCount++;
                 if (followUpRayCount == followUpRayLimit) {
+                    result.intersected = intersected;
                     return result;
                 }
                 intersection = CAST_RAY(ray, distanceFactor);
@@ -575,6 +578,7 @@ RenderResult renderMarching(Ray ray) {
                 followUpRayCount++;
 
                 if (followUpRayCount == followUpRayLimit) {
+                    result.intersected = intersected;
                     return result;
                 }
                 // pro unreadable optimisation, actually adds 10 fps in refraction only environment
@@ -586,8 +590,8 @@ RenderResult renderMarching(Ray ray) {
                 const int isRefraction = int(!isReflected);
                 const int sign = -isRefraction + isReflection;
                 ray.direction = isReflection * reflection + isRefraction * refraction;
-                ray.origin += -sign * ray.direction;
-                distanceFactor =  distanceFactor * sign;
+                ray.origin += /*sign * */ray.direction;
+                distanceFactor = distanceFactor * sign;
 
                 refractionRatio = isRefraction * (1.0 / refractionRatio) + isReflection * refractionRatio;
 
@@ -605,10 +609,6 @@ RenderResult renderMarching(Ray ray) {
                 intersection = CAST_RAY(ray, distanceFactor);
                 break;
             }
-            default : {
-                result.color = vec4(1);
-                return result;
-            }
         }
         intersected = intersection.distance >= 0;
         if (colorModifier < COLOR_EPSILON) {
@@ -622,6 +622,7 @@ RenderResult renderMarching(Ray ray) {
         result.color += colorModifier * vec4(backgroundColor(ray), 0.0);
         #endif
     }
+    result.intersected = intersected;
     return result;
 }
 
@@ -652,6 +653,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
             switch (materialType) {
                 case MatNormal:{
                     result.color += vec4((colorModifier * intersection.color).rgb, 0);
+                    result.intersected = intersected;
                     return result;
                 }
                 case MatScatter:{
@@ -664,6 +666,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
                         vec3 visibility = castScatterRay(ray, materials[intersection.material]);
                         result.color += vec4((colorModifier * subSurfaceShading(ray.origin, normal, lightDir, originalRayDirection, visibility)).rgb, 0);
                     }
+                    result.intersected = intersected;
                     return result;
                 }
                 case MatReflective:{
@@ -673,6 +676,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
                     colorModifier *= materials[intersection.material].reflectivity;;
                     followUpRayCount++;
                     if (followUpRayCount == followUpRayLimit) {
+                        result.intersected = intersected;
                         return result;
                     }
                     intersection = CAST_RAY_EDGEAA(ray, distanceFactor);
@@ -695,6 +699,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
                     followUpRayCount++;
 
                     if (followUpRayCount == followUpRayLimit) {
+                        result.intersected = intersected;
                         return result;
                     }
                     // pro unreadable optimisation, actually adds 10 fps in refraction only environment
@@ -725,10 +730,6 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
                     intersection = CAST_RAY_EDGEAA(ray, distanceFactor);
                     break;
                 }
-                default : {
-                    result.color = vec4(1);
-                    return result;
-                }
             }
             intersected = intersection.distance >= 0;
             if (colorModifier < COLOR_EPSILON) {
@@ -741,6 +742,7 @@ RenderResult renderMarchingEdgeAA(Ray ray) {
     } else {
         result.color = intersection.color;
     }
+    result.intersected = intersected;
     return result;
 }
 
@@ -751,7 +753,9 @@ RenderResult render(Ray ray) {
     } else {
         result = renderMarching(ray);
     }
-    result.color.rgb *= calculateAmbientOcclusion(result.endPos, result.normal);
+    if (result.intersected) {
+        result.color.rgb *= calculateAmbientOcclusion(result.endPos, result.normal);
+    }
     return result;
 }
 

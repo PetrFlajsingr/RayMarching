@@ -18,6 +18,7 @@ struct RenderResult {
     vec3 endPos;
     float fragmentDepth;
     int rmSteps;
+    bool intersected;
 };
 struct IntersectionResult {
     float distance;

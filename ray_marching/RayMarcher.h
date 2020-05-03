@@ -105,6 +105,24 @@ private:
   GLuint shadowSubroutineLocation;
   GLuint aoSubroutineLocation;
   GLuint shadowIntensitySubroutineLocation;
+
+  struct {
+    GLuint stepLimit;
+    GLuint shadowStepLimit;
+    GLuint time;
+    GLuint maxDrawDistance;
+    GLuint maxReflections;
+    GLuint AA_size;
+    GLuint physicsSphereCount;
+    GLuint enableEdgeAA;
+    GLuint resolution;
+    GLuint cameraPosition;
+    GLuint cameraFront;
+    GLuint lightPos;
+    GLuint logStepCount;
+    GLuint pixelRadius;
+    GLuint relaxationParameter;
+  } uniformLocations;
 };
 } // namespace ray_march
 
