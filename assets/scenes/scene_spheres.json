@@ -1,0 +1,28 @@
+{
+  "name": "spheres",
+  "objects": [
+    {
+      "id": "ground",
+      "material": "Sphere",
+      "csg": {
+        "nodeType": "WarpOperation",
+        "operationType": "SpaceRepetition",
+        "domain": {
+          "x": 100,
+          "y": 1000,
+          "z": 500
+        },
+        "operand": {
+          "nodeType": "Shape",
+          "shapeType": "Sphere",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "radius": 40
+        }
+      }
+    }
+  ]
+}

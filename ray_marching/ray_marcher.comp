@@ -93,9 +93,30 @@ float applyOperation(CSGNode node, float leftOperand, float rightOperand) {
     }
     return FLT_MAX;
 }
+vec3 applyWarpOperation(CSGNode node, vec3 camPos) {
+    switch (OPERATION_INDEX(node)) {
+        case 0:
+        return opRep(camPos, getVec3CSGParam(PARAM_OFFSET(node)));
+        case 1:
+        return opRepLim(camPos, getVec3CSGParam(PARAM_OFFSET(node)), getVec3CSGParam(PARAM_OFFSET(node) + 3));
+        case 2:
+        return opStretch(camPos, getVec3CSGParam(PARAM_OFFSET(node)));
+    }
+    return vec3(FLT_MAX);
+}
+
+    #define VEC3_STACK STACK_TYPE_NAME(vec3, 3)
+STACK(vec3, 3);
+MAKE_STACK_INIT(VEC3_STACK);
+
+#define FLOAT_STACK STACK_TYPE_NAME(float, 10)
+STACK(float, 10);
+MAKE_STACK_INIT(FLOAT_STACK);
+
 
 SSBOStack postStack = initSSBOStack();
-FloatStack valueStack = initFloatStack();
+VEC3_STACK coordStack = STACK_INIT(VEC3_STACK);
+FLOAT_STACK valueStack = STACK_INIT(FLOAT_STACK);
 
 MapResult mapCSG(vec3 camPos) {
     MapResult result;
@@ -108,23 +129,25 @@ MapResult mapCSG(vec3 camPos) {
 const uint nodeIndex = SSBO_STACK_TOP(postStack);
 SSBO_STACK_POP(postStack);
 const CSGNode node = csgTree[nodeIndex];
-if (IS_SHAPE(node)) {
+if (IS_COORD_LOAD(nodeIndex)) {
+    camPos = STACK_TOP(coordStack);
+    STACK_POP(coordStack);
+} else if (IS_SHAPE(node)) {
     const float distance = distToShape(camPos, node);
     const int shapeMaterial = SHAPE_MATERIAL(node);
     materialIndex = materialIndex * int(minShapeDist < distance) + shapeMaterial * int(minShapeDist >= distance);
     minShapeDist = min(minShapeDist, distance);
     STACK_PUSH(valueStack, distance);
-} else {
-    // TODO: check BB of opreation
-    // TODO: if distance above threshold
-    // TODO: skip subtrees
-    // TODO: else continue
+} else if (IS_BINARY_OP(node)){
     const float op2 = STACK_TOP(valueStack);
     STACK_POP(valueStack);
     const float op1 = STACK_TOP(valueStack);
     STACK_POP(valueStack);
     const float distance = applyOperation(node, op1, op2);
     STACK_PUSH(valueStack, distance);
+} else /* if (IS_WARP_OP(node))*/ {
+    STACK_PUSH(coordStack, camPos);
+    camPos = applyWarpOperation(node, camPos);
 }
 }
 

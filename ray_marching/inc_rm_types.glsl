@@ -76,6 +76,7 @@ const uint opCategory = binaryOpCategory | warpOpCategory;
 #define IS_BINARY_OP(node) bool((node.categoryType & nodeCategoryMask) == binaryOpCategory)
 #define IS_WARP_OP(node) bool((node.categoryType & nodeCategoryMask) == warpOpCategory)
 #define IS_OP(node) bool((node.categoryType & nodeCategoryMask) != shapeCategory)
+#define IS_COORD_LOAD(nodeIndex) bool(nodeIndex == 0xFFFFFFFF)
 #define SHAPE_INDEX(node) (node.categoryType & nodeTypeMask)
 #define OPERATION_INDEX(node) (node.categoryType & nodeTypeMask)
 #define PARAM_OFFSET(node) node.paramOffset
@@ -83,6 +84,24 @@ const uint opCategory = binaryOpCategory | warpOpCategory;
 
 #define STACK_SIZE 20
 
+#define STACK_TYPE_NAME(type, size) Stack##type##size
+#define STACK(type, size) struct STACK_TYPE_NAME(type, size) { type data[size]; int top; }
+#define MAKE_STACK_INIT(typename)       \
+typename initStack_##typename()            \
+{ \
+ typename result;                     \
+ result.top = -1;                    \
+ return result;                     \
+ }
+
+#define STACK_INIT(typename) initStack_##typename##()
+
+#define STACK_PUSH(stack, value) { ++stack.top; stack.data[stack.top] = value; }
+#define STACK_TOP(stack) stack.data[stack.top]
+#define STACK_POP(stack) --stack.top
+#define STACK_EMPTY(stack) bool(stack.top < 0)
+#define STACK_RESET(stack) stack.top = -1
+/*
 struct UintStack {
     uint data[STACK_SIZE];
     int top;
@@ -100,12 +119,8 @@ FloatStack initFloatStack() {
     FloatStack result;
     result.top = -1;
     return result;
-}
-    #define STACK_PUSH(stack, value) { ++stack.top; stack.data[stack.top] = value; }
-    #define STACK_TOP(stack) stack.data[stack.top]
-    #define STACK_POP(stack) --stack.top
-    #define STACK_EMPTY(stack) bool(stack.top < 0)
-    #define STACK_RESET(stack) stack.top = -1
+}*/
+
 
 subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
 subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);
