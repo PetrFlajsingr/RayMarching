@@ -3,6 +3,7 @@
   "objects": [
     {
       "id": "sphere",
+      "material": "Mat1",
       "csg": {
         "nodeType": "Operation",
         "operationType": "Union",

@@ -12,6 +12,7 @@
 #include <SDL2CPP/MainLoop.h>
 #include <SDL2CPP/Window.h>
 #include <SDL_video.h>
+#include <argparse.hpp>
 #include <error_handling/exceptions.h>
 #include <fstream>
 #include <geGL/DebugMessage.h>
@@ -40,14 +41,26 @@ auto getDisplaySize() -> std::pair<unsigned int, unsigned int> {
   return {w, h};
 }
 
-auto loadMaterials(MaterialManager &materialManager) -> void {
-  auto materialFileStream = std::ifstream{"/home/petr/CLionProjects/RayMarching/assets/materials.json"};
+auto loadMaterials(MaterialManager &materialManager, const std::string &assetsPath) -> void {
+  auto materialFileStream = std::ifstream{assetsPath + "/materials.json"};
   auto materialJson = nlohmann::json{};
   materialFileStream >> materialJson;
   materialManager.loadFromJson(materialJson);
 }
 
-auto main() -> int {
+auto main(int argc, char **argv) -> int {
+  argparse::ArgumentParser argParser("Ray marching");
+  argParser.add_argument("-assets").help("path to assets folder").required();
+  argParser.add_argument("-shaders").help("path to shaders folder").required();
+  try {
+    argParser.parse_args(argc, argv);
+  } catch (const std::runtime_error &err) {
+    std::cout << err.what() << std::endl;
+    std::cout << argParser;
+    return 0;
+  }
+  const std::string shaderPath = argParser.get<std::string>("-shaders");
+  const std::string assetsPath = argParser.get<std::string>("-assets");
 
   spdlog::set_level(spdlog::level::debug);
   auto mainLoop = std::make_shared<sdl2cpp::MainLoop>();
@@ -64,16 +77,17 @@ auto main() -> int {
   ge::gl::setHighDebugMessage();
   ge::gl::glClearColor(0, 0, 0, 1);
 
-  setShaderLocation("/home/petr/CLionProjects/RayMarching/ray_marching");
+  setShaderLocation(shaderPath);
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
+  loadMaterials(rayMarcher.getMaterialManager(), assetsPath);
   SceneManager sceneManager;
   for (auto i : MakeRange::range('1', '3')) {
-    std::ifstream ifstream{"/home/petr/CLionProjects/RayMarching/assets/scenes/scene"s + i + ".json"};
+    std::ifstream ifstream{assetsPath + "/scenes/scene"s + i + ".json"};
     nlohmann::json sceneJson;
     ifstream >> sceneJson;
-    sceneManager.loadFromJson(sceneJson);
+    sceneManager.loadFromJson(sceneJson, rayMarcher.getMaterialManager());
   }
-  auto mainScene = sceneManager.getScene("scene1");
+  auto mainScene = sceneManager.getScene("scene2");
   PhysicsSimulator simulation{};
 
   float time = 0;
@@ -151,15 +165,16 @@ auto main() -> int {
   glm::vec3 lastCamPos = mainScene->getCamera().Position;
   ui.getRenderSettingsPanel().setOnReloadShaderClicked([&rayMarcher] { rayMarcher.reloadShader(); });
 
-  loadMaterials(rayMarcher.getMaterialManager());
-
   mainScene->getCamera().Position = glm::vec3{0, 400, 0};
   ui.onFrame();
   mainLoop->setIdleCallback([&]() {
     ge::gl::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     std::chrono::microseconds simTime;
     if (ui.getScenePanel().isChoiceChanged()) {
-      simulation.setScene(ui.getScenePanel().getSelectedScene());
+      mainScene = ui.getScenePanel().getSelectedScene();
+    }
+    if (ui.getScenePanel().isChoiceChanged()) {
+      simulation.setScene(mainScene);
     }
     {
       const auto begin = std::chrono::steady_clock::now();

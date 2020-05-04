@@ -7,7 +7,8 @@
 #include <fstream>
 #include <imgui/imgui.h>
 
-ui::ScenePanel::ScenePanel(SceneManager &sceneManager) : sceneManager(sceneManager) {}
+ui::ScenePanel::ScenePanel(SceneManager &sceneManager, const MaterialManager &materialManager)
+    : sceneManager(sceneManager), materialManager(materialManager) {}
 
 void ui::ScenePanel::onFrame() {
   checkAndLoadScenes();
@@ -39,7 +40,7 @@ void ui::ScenePanel::onFrame() {
       nlohmann::json json;
       std::ifstream ifstream{filePathName};
       ifstream >> json;
-      sceneManager.loadFromJson(json);
+      sceneManager.loadFromJson(json, materialManager);
     }
     igfd::ImGuiFileDialog::Instance()->CloseDialog("ChooseFileDlgKey");
   }

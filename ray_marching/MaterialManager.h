@@ -13,11 +13,12 @@ class MaterialManager {
   static inline constexpr std::size_t maxMats = 100;
 
 public:
-  MaterialManager() : buffer(maxMats * Material::paddedSize) {}
+  MaterialManager();
   auto loadFromJson(const nlohmann::json &json) -> void;
   auto addMaterial(Material &&material) -> void;
   [[nodiscard]] auto getMaterial(const std::string &name) -> Material &;
   [[nodiscard]] auto getMaterial(const std::string &name) const -> const Material &;
+  [[nodiscard]] auto getMaterialIndex(const std::string &name) const -> int;
   auto updateSSBO() -> void;
   [[nodiscard]] auto getMaterialBuffer() const -> const ge::gl::Buffer &;
   auto bindBuffer(unsigned int binding) -> void;

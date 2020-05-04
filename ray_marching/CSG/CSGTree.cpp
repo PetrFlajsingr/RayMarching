@@ -97,16 +97,18 @@ auto WarpOperationCSGNode::getCSGData() -> CSGRawData & { return getOperation();
 auto WarpOperationCSGNode::getCSGData() const -> const CSGRawData & { return getOperation(); }
 auto WarpOperationCSGNode::getChild() const -> const CSGNode & { return *child; }
 
-auto CSGTree::FromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGTree>> {
+auto CSGTree::FromJson(const nlohmann::json &json, const MaterialManager &materialManager)
+    -> std::optional<std::unique_ptr<CSGTree>> {
   using namespace std::string_literals;
-  if (!json.contains("id") || !json.contains("csg")) {
+  if (!json.contains("id") || !json.contains("csg") || !json.contains("material")) {
     spdlog::error("Invalid CSG object: "s + json.dump(2));
     return std::nullopt;
   }
+  const int materialIndex = materialManager.getMaterialIndex(json["material"]);
 
   auto tree = std::make_unique<CSGTree>(std::string(json["id"]));
   const auto csgJson = json["csg"];
-  auto root = NodeFromJson(csgJson);
+  auto root = NodeFromJson(csgJson, materialIndex);
   if (!root.has_value()) {
     return std::nullopt;
   }
@@ -114,7 +116,7 @@ auto CSGTree::FromJson(const nlohmann::json &json) -> std::optional<std::unique_
   return tree;
 }
 
-auto CSGTree::NodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGNode>> {
+auto CSGTree::NodeFromJson(const nlohmann::json &json, int materialIndex) -> std::optional<std::unique_ptr<CSGNode>> {
   using namespace std::string_literals;
   if (!json.contains("nodeType")) {
     spdlog::error("Invalid CSG object: "s + json.dump(2));
@@ -127,16 +129,17 @@ auto CSGTree::NodeFromJson(const nlohmann::json &json) -> std::optional<std::uni
   }
   switch (nodeType.value()) {
   case NodeType::WarpOperation:
-    return WarpNodeFromJson(json);
+    return WarpNodeFromJson(json, materialIndex);
   case NodeType::Operation:
-    return OperationNodeFromJson(json);
+    return OperationNodeFromJson(json, materialIndex);
   case NodeType::Shape:
-    return ShapeNodeFromJson(json);
+    return ShapeNodeFromJson(json, materialIndex);
   }
   return std::nullopt;
 }
 
-auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<WarpOperationCSGNode>> {
+auto CSGTree::WarpNodeFromJson(const nlohmann::json &json, int materialIndex)
+    -> std::optional<std::unique_ptr<WarpOperationCSGNode>> {
   using namespace std::string_literals;
   if (!json.contains("operationType")) {
     spdlog::error("Invalid warp operation: "s + json.dump(2));
@@ -176,7 +179,7 @@ auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std:
     spdlog::error("Missing operand for operation: "s + json.dump(2));
     return std::nullopt;
   }
-  auto child = NodeFromJson(json["operand"]);
+  auto child = NodeFromJson(json["operand"], materialIndex);
   if (!child.has_value()) {
     return std::nullopt;
   }
@@ -184,7 +187,8 @@ auto CSGTree::WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std:
   return result;
 }
 
-auto CSGTree::OperationNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<OperationCSGNode>> {
+auto CSGTree::OperationNodeFromJson(const nlohmann::json &json, int materialIndex)
+    -> std::optional<std::unique_ptr<OperationCSGNode>> {
   using namespace std::string_literals;
   if (!json.contains("operationType")) {
     spdlog::error("Invalid warp operation: "s + json.dump(2));
@@ -212,11 +216,11 @@ auto CSGTree::OperationNodeFromJson(const nlohmann::json &json) -> std::optional
     spdlog::error("Missing operands for operation: "s + json.dump(2));
     return std::nullopt;
   }
-  auto leftChild = NodeFromJson(json["leftOperand"]);
+  auto leftChild = NodeFromJson(json["leftOperand"], materialIndex);
   if (!leftChild.has_value()) {
     return std::nullopt;
   }
-  auto rightChild = NodeFromJson(json["rightOperand"]);
+  auto rightChild = NodeFromJson(json["rightOperand"], materialIndex);
   if (!rightChild.has_value()) {
     return std::nullopt;
   }
@@ -225,7 +229,7 @@ auto CSGTree::OperationNodeFromJson(const nlohmann::json &json) -> std::optional
   return result;
 }
 
-auto CSGTree::ShapeNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<ShapeCSGNode>> {
+auto CSGTree::ShapeNodeFromJson(const nlohmann::json &json, int materialIndex) -> std::optional<std::unique_ptr<ShapeCSGNode>> {
   using namespace std::string_literals;
   if (!json.contains("shapeType")) {
     spdlog::error("Invalid warp operation: "s + json.dump(2));
@@ -265,6 +269,7 @@ auto CSGTree::ShapeNodeFromJson(const nlohmann::json &json) -> std::optional<std
     spdlog::error("Invalid shape type: "s + json.dump(2));
     return std::nullopt;
   }
+  result->getShape().materialIndex = materialIndex;
   return result;
 }
 

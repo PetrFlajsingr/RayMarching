@@ -10,7 +10,7 @@
 ui::UI::UI(sdl2cpp::Window &window, [[maybe_unused]] sdl2cpp::MainLoop &mainLoop, const std::string &glslVersion,
            MaterialManager &materialManager, Camera &camera, SceneManager &sceneManager)
     : ctx(ImGui::CreateContext()), io(ImGui::GetIO()), cameraPanel(camera), materialPanel(materialManager),
-      scenePanel(sceneManager), window(window) {
+      scenePanel(sceneManager, materialManager), window(window) {
   IMGUI_CHECKVERSION();
   ImGui::StyleColorsDark();
   ImGui_ImplSDL2_InitForOpenGL(window.getWindow(), window.getContext("rendering"));

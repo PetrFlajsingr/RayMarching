@@ -10,7 +10,7 @@
 namespace ui {
 class ScenePanel : public Panel {
 public:
-  explicit ScenePanel(SceneManager &sceneManager);
+  explicit ScenePanel(SceneManager &sceneManager, const MaterialManager &materialManager);
   void onFrame() override;
   [[nodiscard]] auto isChoiceChanged() const -> bool;
 
@@ -18,6 +18,7 @@ public:
 
 private:
   SceneManager &sceneManager;
+  const MaterialManager &materialManager;
   char const *currentScene = "";
   std::shared_ptr<Scene> selectedScene = nullptr;
   std::vector<std::string> scenes;

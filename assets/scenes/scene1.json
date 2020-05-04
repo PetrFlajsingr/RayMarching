@@ -3,18 +3,19 @@
   "objects": [
     {
       "id": "ground",
+      "material": "Mat1",
       "csg": {
         "nodeType": "Operation",
+        "operationType": "Blend",
+        "k": 250,
+        "leftOperand": {
+          "nodeType": "Operation",
           "operationType": "Blend",
-          "k": 250,
+          "k": 100,
           "leftOperand": {
-            "nodeType": "Operation",
-            "operationType": "Blend",
-            "k": 100,
-            "leftOperand": {
-              "nodeType": "Shape",
-              "shapeType": "Box",
-              "position": {
+            "nodeType": "Shape",
+            "shapeType": "Box",
+            "position": {
                 "x": 0,
                 "y": -15,
                 "z": 0
@@ -70,6 +71,6 @@
             }
           }
         }
-      }
+    }
   ]
 }

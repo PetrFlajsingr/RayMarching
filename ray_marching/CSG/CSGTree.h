@@ -5,6 +5,7 @@
 #ifndef RAYMARCHING_CSGTREE_H
 #define RAYMARCHING_CSGTREE_H
 
+#include "../MaterialManager.h"
 #include "CSGOperations.h"
 #include "CSGShapes.h"
 #include <functional>
@@ -154,7 +155,8 @@ public:
   };
 
   explicit CSGTree(std::string name);
-  [[nodiscard]] static auto FromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGTree>>;
+  [[nodiscard]] static auto FromJson(const nlohmann::json &json, const MaterialManager &materialManager)
+      -> std::optional<std::unique_ptr<CSGTree>>;
 
   std::unique_ptr<CSGNode> root = nullptr;
 
@@ -167,10 +169,12 @@ public:
   std::string name;
 
 private:
-  static auto NodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<CSGNode>>;
-  static auto WarpNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<WarpOperationCSGNode>>;
-  static auto OperationNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<OperationCSGNode>>;
-  static auto ShapeNodeFromJson(const nlohmann::json &json) -> std::optional<std::unique_ptr<ShapeCSGNode>>;
+  static auto NodeFromJson(const nlohmann::json &json, int materialIndex) -> std::optional<std::unique_ptr<CSGNode>>;
+  static auto WarpNodeFromJson(const nlohmann::json &json, int materialIndex)
+      -> std::optional<std::unique_ptr<WarpOperationCSGNode>>;
+  static auto OperationNodeFromJson(const nlohmann::json &json, int materialIndex)
+      -> std::optional<std::unique_ptr<OperationCSGNode>>;
+  static auto ShapeNodeFromJson(const nlohmann::json &json, int materialIndex) -> std::optional<std::unique_ptr<ShapeCSGNode>>;
 };
 
 template <typename F> auto csgPreorder(CSGNode &node, F &&callable) -> void {

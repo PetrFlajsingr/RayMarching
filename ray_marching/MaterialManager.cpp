@@ -69,3 +69,14 @@ auto MaterialManager::loadFromJson(const nlohmann::json &json) -> void {
     addMaterial(std::move(material));
   }
 }
+MaterialManager::MaterialManager() : buffer(maxMats * Material::paddedSize) {}
+auto MaterialManager::getMaterialIndex(const std::string &name) const -> int {
+  int cnt = 0;
+  for (auto &material : materialsInOrder) {
+    if (material->getName() == name) {
+      break;
+    }
+    ++cnt;
+  }
+  return cnt;
+}

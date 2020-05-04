@@ -81,7 +81,7 @@ const uint opCategory = binaryOpCategory | warpOpCategory;
 #define PARAM_OFFSET(node) node.paramOffset
 #define SHAPE_MATERIAL(node) int((node.categoryType & nodeMaterialMask) >> nodeMaterialShift)
 
-#define STACK_SIZE 10
+#define STACK_SIZE 20
 
 struct UintStack {
     uint data[STACK_SIZE];
@@ -104,8 +104,8 @@ FloatStack initFloatStack() {
     #define STACK_PUSH(stack, value) { ++stack.top; stack.data[stack.top] = value; }
     #define STACK_TOP(stack) stack.data[stack.top]
     #define STACK_POP(stack) --stack.top
-    #define STACK_EMPTY(stack) stack.top < 0
-
+    #define STACK_EMPTY(stack) bool(stack.top < 0)
+    #define STACK_RESET(stack) stack.top = -1
 
 subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);
 subroutine float ambientOcclusionCalc(vec3 pos, vec3 nor);

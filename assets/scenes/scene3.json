@@ -3,6 +3,7 @@
   "objects": [
     {
       "id": "ground",
+      "material": "Mat2",
       "csg": {
         "nodeType": "WarpOperation",
         "operationType": "LimitedSpaceRepetition",
@@ -87,6 +88,7 @@
     },
     {
       "id": "sphere",
+      "material": "Mat3",
       "csg": {
         "nodeType": "Operation",
         "operationType": "Union",

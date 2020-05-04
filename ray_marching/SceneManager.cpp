@@ -11,7 +11,7 @@ auto SceneManager::addScene(Scene &&scene) -> void {
 }
 auto SceneManager::getScene(const std::string &name) -> std::shared_ptr<Scene> & { return scenes[name]; }
 auto SceneManager::getScene(const std::string &name) const -> std::shared_ptr<const Scene> { return scenes[name]; }
-auto SceneManager::loadFromJson(const nlohmann::json &json) -> void {
+auto SceneManager::loadFromJson(const nlohmann::json &json, const MaterialManager &materialManager) -> void {
   using namespace std::string_literals;
   if (!json.contains("name") || !json.contains("objects")) {
     spdlog::error("Invalid scene: "s + json.dump(2));
@@ -19,7 +19,7 @@ auto SceneManager::loadFromJson(const nlohmann::json &json) -> void {
   }
   Scene scene{json["name"], Camera{PerspectiveProjection{0, 0, 0, 0}}};
   for (const auto &item : json["objects"]) {
-    auto object = Scene::SceneObject::FromJson(item);
+    auto object = Scene::SceneObject::FromJson(item, materialManager);
     if (object.has_value()) {
       scene.addObject(object.value()->name, std::move(object.value()));
     }

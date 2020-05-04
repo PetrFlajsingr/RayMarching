@@ -43,6 +43,7 @@ download_project(PROJ magic_enum
         )
 include_directories(${magic_enum_SOURCE_DIR}/include)
 
+
 download_project(PROJ utilities
         GIT_REPOSITORY https://github.com/PetrFlajsingr/Utilities.git
         GIT_TAG master
