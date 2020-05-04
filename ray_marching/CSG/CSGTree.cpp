@@ -296,11 +296,12 @@ template <typename F>
     return reversePreoder;
   } else {
     const auto &opNode = reinterpret_cast<const WarpOperationCSGNode &>(node);
-    std::vector<uint32_t> reversePreoder{index};
+    std::vector<uint32_t> reversePreoder{worldCoordResetFlag};
     const auto &child = opNode.getChild();
     const auto childIndex = appendNode(child);
     const auto subtreeReversePreorder = createRawData(child, result, appendNode, nodeCnt);
     reversePreoder.insert(reversePreoder.end(), subtreeReversePreorder.begin(), subtreeReversePreorder.end());
+    reversePreoder.emplace_back(index);
     result.treeData[index * 3 + 2] = childIndex;
     return reversePreoder;
   }

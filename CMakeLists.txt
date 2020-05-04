@@ -71,7 +71,7 @@ endif ()
 
 
 add_executable(RayMarching main.cpp ${utilities_SRC_LIST} ${imgui_SRC_LIST}
-        UI/FPSPanel.cpp UI/UI.cpp FPSLimiter.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp UI/CameraPanel.cpp UI/KeyboardHandler.cpp UI/MaterialPanel.cpp
+        UI/FPSPanel.cpp UI/UI.cpp UI/GPUPanel.cpp UI/Panel.cpp UI/RenderSettingsPanel.cpp UI/CameraPanel.cpp UI/KeyboardHandler.cpp UI/MaterialPanel.cpp
         ray_marching/Scene.cpp ray_marching/Material.cpp ray_marching/MaterialManager.cpp simulation/PhysicsObject.cpp
         common/gl_utils.cpp common/GlslShaderLoader.cpp common/gl_utils.cpp
         include/ImGuiFileDialog/ImGuiFileDialog.cpp
