@@ -95,7 +95,6 @@ float applyOperation(CSGNode node, float leftOperand, float rightOperand) {
 }
 
 SSBOStack postStack = initSSBOStack();
-
 FloatStack valueStack = initFloatStack();
 
 MapResult mapCSG(vec3 camPos) {
@@ -108,11 +107,11 @@ MapResult mapCSG(vec3 camPos) {
     while (!SSBO_STACK_EMPTY(postStack)) {
 const uint nodeIndex = SSBO_STACK_TOP(postStack);
 SSBO_STACK_POP(postStack);
-CSGNode node = csgTree[nodeIndex];
+const CSGNode node = csgTree[nodeIndex];
 if (IS_SHAPE(node)) {
     const float distance = distToShape(camPos, node);
     const int shapeMaterial = SHAPE_MATERIAL(node);
-    materialIndex = materialIndex * int(minShapeDist > distance) + shapeMaterial * int(minShapeDist <= distance);
+    materialIndex = materialIndex * int(minShapeDist < distance) + shapeMaterial * int(minShapeDist >= distance);
     minShapeDist = min(minShapeDist, distance);
     STACK_PUSH(valueStack, distance);
 } else {
@@ -128,8 +127,19 @@ if (IS_SHAPE(node)) {
     STACK_PUSH(valueStack, distance);
 }
 }
+
+float minSphereDist = FLT_MAX;
+for (int i = 0; i < physicsSphereCount; i++) {
+    const float sphereDist = sdSphere(camPos - physicsSpheres[i].xyz, 10.0);
+    minSphereDist = min(minSphereDist, sphereDist);
+}
+
 result.materialIndex = materialIndex;
 result.distance = STACK_TOP(valueStack);
+
+result.materialIndex = int(minSphereDist <= result.distance) * 4 + int(minSphereDist > result.distance) * materialIndex;
+result.distance = min(minSphereDist, result.distance);
+
 return result;
 }
 

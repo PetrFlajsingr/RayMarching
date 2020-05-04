@@ -57,5 +57,6 @@ auto PlaneShape::rawParameters() const -> std::vector<float> {
 }
 auto Shape::getMaterialFlag() const -> uint32_t {
   constexpr uint32_t materialShift = 26;
-  return uint32_t(materialIndex) << materialShift;
+  const auto result = static_cast<uint32_t>(materialIndex) << materialShift;
+  return result;
 }

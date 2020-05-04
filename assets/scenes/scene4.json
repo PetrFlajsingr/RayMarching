@@ -9,7 +9,7 @@
         "shapeType": "Sphere",
         "position": {
           "x": 0,
-          "y": 4000,
+          "y": 1000,
           "z": 0
         },
         "radius": 110
@@ -17,7 +17,7 @@
     },
     {
       "id": "ground",
-      "material": "Mat1",
+      "material": "Mat2",
       "csg": {
         "nodeType": "Shape",
         "shapeType": "Box",
@@ -30,6 +30,24 @@
           "x": 100000,
           "y": 50,
           "z": 100000
+        }
+      }
+    },
+    {
+      "id": "hihihi",
+      "material": "Mat3",
+      "csg": {
+        "nodeType": "Shape",
+        "shapeType": "Box",
+        "position": {
+          "x": 1000,
+          "y": 500,
+          "z": 0
+        },
+        "dimensions": {
+          "x": 100,
+          "y": 100,
+          "z": 100
         }
       }
     }

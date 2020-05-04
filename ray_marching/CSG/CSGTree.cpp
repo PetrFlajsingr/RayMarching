@@ -105,6 +105,7 @@ auto CSGTree::FromJson(const nlohmann::json &json, const MaterialManager &materi
     return std::nullopt;
   }
   const int materialIndex = materialManager.getMaterialIndex(json["material"]);
+  spdlog::debug(std::string{json["material"]});
 
   auto tree = std::make_unique<CSGTree>(std::string(json["id"]));
   const auto csgJson = json["csg"];
@@ -273,36 +274,35 @@ auto CSGTree::ShapeNodeFromJson(const nlohmann::json &json, int materialIndex) -
   return result;
 }
 
-template <typename F> void createRawData(const CSGNode &node, CSGTree::Raw &result, F &&appendNode, uint32_t &nodeCnt) {
+constexpr uint32_t worldCoordResetFlag = 0xFFFFFFFF;
+template <typename F>
+[[nodiscard]] std::vector<uint32_t> createRawData(const CSGNode &node, CSGTree::Raw &result, F &&appendNode, uint32_t &nodeCnt) {
+  const auto index = nodeCnt - 1;
   if (node.isLeaf()) {
-    return;
+    return {index};
   } else if (node.isBinary()) {
     const auto &opNode = reinterpret_cast<const OperationCSGNode &>(node);
-    const auto index = nodeCnt - 1;
+    std::vector<uint32_t> reversePreoder{index};
     const auto &rightChild = opNode.getRightChild();
     const auto &leftChild = opNode.getLeftChild();
     const auto rightChildIndex = appendNode(rightChild);
-    createRawData(rightChild, result, appendNode, nodeCnt);
+    const auto rightSubtreeReversePreorder = createRawData(rightChild, result, appendNode, nodeCnt);
+    reversePreoder.insert(reversePreoder.end(), rightSubtreeReversePreorder.begin(), rightSubtreeReversePreorder.end());
     const auto leftChildIndex = appendNode(leftChild);
-    createRawData(leftChild, result, appendNode, nodeCnt);
+    const auto leftSubtreeReversePreorder = createRawData(leftChild, result, appendNode, nodeCnt);
+    reversePreoder.insert(reversePreoder.end(), leftSubtreeReversePreorder.begin(), leftSubtreeReversePreorder.end());
     const auto childrenIndices = rightChildIndex << 16u | leftChildIndex;
     result.treeData[index * 3 + 2] = childrenIndices;
+    return reversePreoder;
   } else {
     const auto &opNode = reinterpret_cast<const WarpOperationCSGNode &>(node);
-    const auto index = nodeCnt - 1;
+    std::vector<uint32_t> reversePreoder{index};
     const auto &child = opNode.getChild();
     const auto childIndex = appendNode(child);
-    createRawData(child, result, appendNode, nodeCnt);
+    const auto subtreeReversePreorder = createRawData(child, result, appendNode, nodeCnt);
+    reversePreoder.insert(reversePreoder.end(), subtreeReversePreorder.begin(), subtreeReversePreorder.end());
     result.treeData[index * 3 + 2] = childIndex;
-  }
-}
-
-void createPostOrderIndices(CSGTree::Raw &raw, std::size_t nodeOffset) {
-  constexpr std::size_t step = 3;
-  raw.postOrderTraversal.clear();
-  raw.postOrderTraversal.emplace_back(raw.treeData.size() / step);
-  for (int i = 0; i < static_cast<int>(raw.treeData.size() / step); ++i) {
-    raw.postOrderTraversal.emplace_back(i + nodeOffset);
+    return reversePreoder;
   }
 }
 
@@ -321,7 +321,9 @@ auto CSGTree::raw(std::size_t nodeOffset, std::size_t paramOffset) const -> CSGT
     return nodeCnt++;
   };
   appendNode(*root);
-  createRawData(*root, result, appendNode, nodeCnt);
-  createPostOrderIndices(result, nodeOffset);
+  const auto reversePreorder = createRawData(*root, result, appendNode, nodeCnt);
+  std::vector<uint32_t> tmp;
+  result.postOrderTraversal = {static_cast<uint32_t>(reversePreorder.size())};
+  result.postOrderTraversal.insert(result.postOrderTraversal.begin() + 1, reversePreorder.begin(), reversePreorder.end());
   return result;
 }
