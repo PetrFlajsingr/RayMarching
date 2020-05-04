@@ -1,0 +1,37 @@
+{
+  "name": "scene4",
+  "objects": [
+    {
+      "id": "sphere",
+      "material": "Mat1",
+      "csg": {
+        "nodeType": "Shape",
+        "shapeType": "Sphere",
+        "position": {
+          "x": 0,
+          "y": 4000,
+          "z": 0
+        },
+        "radius": 110
+      }
+    },
+    {
+      "id": "ground",
+      "material": "Mat1",
+      "csg": {
+        "nodeType": "Shape",
+        "shapeType": "Box",
+        "position": {
+          "x": 0,
+          "y": -10,
+          "z": 0
+        },
+        "dimensions": {
+          "x": 100000,
+          "y": 50,
+          "z": 100000
+        }
+      }
+    }
+  ]
+}

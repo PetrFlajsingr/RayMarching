@@ -297,13 +297,12 @@ template <typename F> void createRawData(const CSGNode &node, CSGTree::Raw &resu
   }
 }
 
-void createPostOrderIndices(CSGTree::Raw &raw) {
+void createPostOrderIndices(CSGTree::Raw &raw, std::size_t nodeOffset) {
   constexpr std::size_t step = 3;
   raw.postOrderTraversal.clear();
   raw.postOrderTraversal.emplace_back(raw.treeData.size() / step);
-  // for (int i = raw.treeData.size() / step - 1; i >= 0;  --i) {
-  for (int i = 0; i < raw.treeData.size() / step; ++i) {
-    raw.postOrderTraversal.emplace_back(i);
+  for (int i = 0; i < static_cast<int>(raw.treeData.size() / step); ++i) {
+    raw.postOrderTraversal.emplace_back(i + nodeOffset);
   }
 }
 
@@ -323,6 +322,6 @@ auto CSGTree::raw(std::size_t nodeOffset, std::size_t paramOffset) const -> CSGT
   };
   appendNode(*root);
   createRawData(*root, result, appendNode, nodeCnt);
-  createPostOrderIndices(result);
+  createPostOrderIndices(result, nodeOffset);
   return result;
 }

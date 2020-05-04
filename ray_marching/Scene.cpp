@@ -3,6 +3,7 @@
 //
 
 #include "Scene.h"
+#include "types/Range.h"
 
 Scene::Scene(std::string name, Camera &&camera)
     : name(std::move(name)), camera(std::move(camera)), ssboTree(nullptr), ssboParams(nullptr) {}
@@ -93,13 +94,40 @@ void Scene::updateAndBind(GLuint treeBindLocation, GLuint paramsBindLocation, GL
 }
 auto Scene::raw() const -> CSGTree::Raw {
   CSGTree::Raw result;
-  // TODO: fix for multiple objects
+  result.treeData.resize((objects.size() - 1) * 3);
+  result.postOrderTraversal.resize(1);
+  result.postOrderTraversal[0] = 0;
+
+  const auto objectCount = objects.size();
+  int currentConnectNodeIndex = objectCount - 2;
+  auto getConnectNodeRawData = [](uint32_t leftChildIndex, uint32_t rightChildIndex) -> std::array<uint32_t, 3> {
+    return {flagForOperation<OperationUnion>() | rawCategory<OperationUnion>(), 0, rightChildIndex << 16u | leftChildIndex};
+  };
   for (auto &[id, object] : objects) {
+    const auto rightChildIndex = result.treeData.size() / 3;
     const auto rawObject = object->raw(result.treeData.size() / 3, result.paramData.size());
+    const auto leftChildIndex = (result.treeData.size() + rawObject.treeData.size()) / 3;
+    if (objectCount > 1 && currentConnectNodeIndex >= 0) {
+      const auto connectionNodeRaw = getConnectNodeRawData(leftChildIndex, rightChildIndex);
+
+      result.treeData[currentConnectNodeIndex * 3] = connectionNodeRaw[0];
+      result.treeData[currentConnectNodeIndex * 3 + 1] = connectionNodeRaw[1];
+      result.treeData[currentConnectNodeIndex * 3 + 2] = connectionNodeRaw[2];
+    }
+
     result.treeData.insert(result.treeData.end(), rawObject.treeData.begin(), rawObject.treeData.end());
     result.paramData.insert(result.paramData.end(), rawObject.paramData.begin(), rawObject.paramData.end());
-    result.postOrderTraversal.insert(result.postOrderTraversal.end(), rawObject.postOrderTraversal.begin(),
+    result.postOrderTraversal[0] += rawObject.postOrderTraversal[0];
+    result.postOrderTraversal.insert(result.postOrderTraversal.end(), rawObject.postOrderTraversal.begin() + 1,
                                      rawObject.postOrderTraversal.end());
+
+    --currentConnectNodeIndex;
+  }
+  if (objectCount > 1) {
+    auto additionalNodesRange = MakeRange::range<uint32_t>(0, objectCount - 2);
+    result.postOrderTraversal[0] += objectCount - 1;
+    result.postOrderTraversal.insert(result.postOrderTraversal.begin() + 1, additionalNodesRange.begin(),
+                                     additionalNodesRange.end());
   }
   return result;
 }

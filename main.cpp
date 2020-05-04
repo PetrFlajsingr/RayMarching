@@ -81,13 +81,13 @@ auto main(int argc, char **argv) -> int {
   ray_march::RayMarcher rayMarcher{{screenWidth, screenHeight}};
   loadMaterials(rayMarcher.getMaterialManager(), assetsPath);
   SceneManager sceneManager;
-  for (auto i : MakeRange::range('1', '3')) {
+  for (auto i : MakeRange::range('1', '4')) {
     std::ifstream ifstream{assetsPath + "/scenes/scene"s + i + ".json"};
     nlohmann::json sceneJson;
     ifstream >> sceneJson;
     sceneManager.loadFromJson(sceneJson, rayMarcher.getMaterialManager());
   }
-  auto mainScene = sceneManager.getScene("scene2");
+  auto mainScene = sceneManager.getScene("scene4");
   PhysicsSimulator simulation{};
 
   float time = 0;
