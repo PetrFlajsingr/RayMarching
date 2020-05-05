@@ -3,7 +3,7 @@
   "objects": [
     {
       "id": "ground",
-      "material": "Mat2",
+      "material": "Mat1",
       "csg": {
         "nodeType": "WarpOperation",
         "operationType": "LimitedSpaceRepetition",
