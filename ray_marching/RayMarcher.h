@@ -54,12 +54,17 @@ public:
   ge::gl::Buffer buffer{1000 * sizeof(int)};
 
 private:
-  std::shared_ptr<ge::gl::Program> csProgram;
+  auto renderSingleStage(const std::shared_ptr<Scene> &scene) -> void;
+  auto render2Stage(const std::shared_ptr<Scene> &scene) -> void;
+  std::shared_ptr<ge::gl::Program> singleStageProgram;
+  std::shared_ptr<ge::gl::Program> stage1Program;
+  std::shared_ptr<ge::gl::Program> stage2Program;
   ge::gl::Program renderProgram;
 
   std::shared_ptr<ge::gl::Texture> renderTexture;
   std::shared_ptr<ge::gl::Texture> stepCountTexture;
   std::shared_ptr<ge::gl::Texture> depthTexture;
+  std::shared_ptr<ge::gl::Texture> distanceTexture;
 
   static constexpr int renderTextureBinding = 0;
   static constexpr int stepCountTextureBinding = 1;
@@ -99,12 +104,16 @@ private:
   AntiAliasing aaType = AntiAliasing::Disabled;
   int aaSize;
 
-  std::array<GLuint, 4> shadowSubroutineIndices;
-  std::array<GLuint, 2> aoSubroutineIndices;
-  std::array<GLuint, 4> shadowIntensitySubroutineIndices;
-  GLuint shadowSubroutineLocation;
-  GLuint aoSubroutineLocation;
-  GLuint shadowIntensitySubroutineLocation;
+  struct {
+    std::array<GLuint, 4> shadowSubroutineIndices;
+    std::array<GLuint, 2> aoSubroutineIndices;
+    std::array<GLuint, 4> shadowIntensitySubroutineIndices;
+  } singleStageSubroutines;
+  struct {
+    std::array<GLuint, 4> shadowSubroutineIndices;
+    std::array<GLuint, 2> aoSubroutineIndices;
+    std::array<GLuint, 4> shadowIntensitySubroutineIndices;
+  } stage2Subroutines;
 
   struct {
     GLuint stepLimit;
@@ -122,7 +131,28 @@ private:
     GLuint logStepCount;
     GLuint pixelRadius;
     GLuint relaxationParameter;
-  } uniformLocations;
+  } singleStageUniformLocations;
+
+  struct {
+
+  } stage1UniformLocations;
+  struct {
+    GLuint stepLimit;
+    GLuint shadowStepLimit;
+    GLuint time;
+    GLuint maxDrawDistance;
+    GLuint maxReflections;
+    GLuint AA_size;
+    GLuint physicsSphereCount;
+    GLuint enableEdgeAA;
+    GLuint resolution;
+    GLuint cameraPosition;
+    GLuint cameraFront;
+    GLuint lightPos;
+    GLuint logStepCount;
+    GLuint pixelRadius;
+    GLuint relaxationParameter;
+  } stage2UniformLocations;
 };
 } // namespace ray_march
 
