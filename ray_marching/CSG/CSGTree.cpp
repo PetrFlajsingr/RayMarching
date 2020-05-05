@@ -105,7 +105,6 @@ auto CSGTree::FromJson(const nlohmann::json &json, const MaterialManager &materi
     return std::nullopt;
   }
   const int materialIndex = materialManager.getMaterialIndex(json["material"]);
-  spdlog::debug(std::string{json["material"]});
 
   auto tree = std::make_unique<CSGTree>(std::string(json["id"]));
   const auto csgJson = json["csg"];

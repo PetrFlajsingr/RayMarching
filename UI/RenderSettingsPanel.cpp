@@ -25,6 +25,10 @@ ui::RenderSettingsPanel::RenderSettingsPanel() {
 
 auto ui::RenderSettingsPanel::onFrame() -> void {
   ImGui::Begin("Render settings");
+  const auto startStopButtonText = isPaused_ ? "Resume" : "Pause";
+  if (ImGui::Button(startStopButtonText)) {
+    isPaused_ = !isPaused_;
+  }
   if (ImGui::Button("Reload shader")) {
     onReloadShaderClicked();
   }
@@ -133,3 +137,4 @@ auto ui::RenderSettingsPanel::isUseOptimisedRayMarching() const -> bool { return
 auto ui::RenderSettingsPanel::getRelaxationParameter() const -> float { return relaxationParameter; }
 auto ui::RenderSettingsPanel::getPixelRadius() const -> float { return pixelRadius; }
 auto ui::RenderSettingsPanel::isLogStepCount() const -> bool { return logStepCount; }
+auto ui::RenderSettingsPanel::isPaused() const -> bool { return isPaused_; }

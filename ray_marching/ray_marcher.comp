@@ -82,6 +82,7 @@ float distToShape(vec3 camPos, CSGNode node) {
     }
     return FLT_MAX;
 }
+
 float applyOperation(CSGNode node, float leftOperand, float rightOperand) {
     switch (OPERATION_INDEX(node)) {
         case 0:

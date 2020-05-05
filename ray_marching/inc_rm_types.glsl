@@ -101,25 +101,6 @@ typename initStack_##typename()            \
 #define STACK_POP(stack) --stack.top
 #define STACK_EMPTY(stack) bool(stack.top < 0)
 #define STACK_RESET(stack) stack.top = -1
-/*
-struct UintStack {
-    uint data[STACK_SIZE];
-    int top;
-};
-struct FloatStack {
-    float data[STACK_SIZE];
-    int top;
-};
-UintStack initUintStack() {
-    UintStack result;
-    result.top = -1;
-    return result;
-}
-FloatStack initFloatStack() {
-    FloatStack result;
-    result.top = -1;
-    return result;
-}*/
 
 
 subroutine ShadowResult shadowCalc(Ray ray, vec3 lightDir, vec3 normal);

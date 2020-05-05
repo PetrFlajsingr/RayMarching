@@ -33,6 +33,7 @@ public:
   [[nodiscard]] auto getRelaxationParameter() const -> float;
   [[nodiscard]] auto getPixelRadius() const -> float;
   [[nodiscard]] auto isLogStepCount() const -> bool;
+  [[nodiscard]] auto isPaused() const -> bool;
 
 private:
   const char *currentItem;
@@ -55,6 +56,7 @@ private:
   bool useOptimisedRayMarching = false;
   bool tmpUseOptimisedRayMarching = false;
   bool logStepCount = false;
+  bool isPaused_ = false;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

@@ -8,9 +8,9 @@
         "nodeType": "WarpOperation",
         "operationType": "SpaceRepetition",
         "domain": {
-          "x": 100,
+          "x": 1000,
           "y": 1000,
-          "z": 500
+          "z": 1000
         },
         "operand": {
           "nodeType": "Shape",
@@ -20,7 +20,7 @@
             "y": 0,
             "z": 0
           },
-          "radius": 40
+          "radius": 100
         }
       }
     }

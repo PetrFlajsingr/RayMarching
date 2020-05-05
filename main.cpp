@@ -230,21 +230,23 @@ auto main(int argc, char **argv) -> int {
     std::chrono::microseconds renderTime;
     {
       const auto begin = std::chrono::steady_clock::now();
-      rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
-      rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
-      rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
-      rayMarcher.setTime(time);
-      rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
-      rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
-      rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
-      rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
-      rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
-      rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
-      rayMarcher.setUseOptimisedMarching(ui.getRenderSettingsPanel().isUseOptimisedRayMarching());
-      rayMarcher.setPixelRadius(ui.getRenderSettingsPanel().getPixelRadius());
-      rayMarcher.setRelaxationParameter(ui.getRenderSettingsPanel().getRelaxationParameter());
-      rayMarcher.setLogStepCount(ui.getRenderSettingsPanel().isLogStepCount());
-      rayMarcher.render(mainScene);
+      if (!ui.getRenderSettingsPanel().isPaused()) {
+        rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
+        rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
+        rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
+        rayMarcher.setTime(time);
+        rayMarcher.setAmbientOcclusionEnabled(ui.getRenderSettingsPanel().isAmbientOcclusionEnabled());
+        rayMarcher.setAntiaAliasingType(ui.getRenderSettingsPanel().getAAType());
+        rayMarcher.setShadowType(ui.getRenderSettingsPanel().getShadowType());
+        rayMarcher.setAASize(ui.getRenderSettingsPanel().getAA());
+        rayMarcher.setMaxReflections(ui.getRenderSettingsPanel().getMaxReflections());
+        rayMarcher.setLightPosition(ui.getRenderSettingsPanel().getLightPosition());
+        rayMarcher.setUseOptimisedMarching(ui.getRenderSettingsPanel().isUseOptimisedRayMarching());
+        rayMarcher.setPixelRadius(ui.getRenderSettingsPanel().getPixelRadius());
+        rayMarcher.setRelaxationParameter(ui.getRenderSettingsPanel().getRelaxationParameter());
+        rayMarcher.setLogStepCount(ui.getRenderSettingsPanel().isLogStepCount());
+        rayMarcher.render(mainScene);
+      }
       rayMarcher.show(ui.getRenderSettingsPanel().getSelectedTextureType());
       ui.onFrame();
       window->swap();
