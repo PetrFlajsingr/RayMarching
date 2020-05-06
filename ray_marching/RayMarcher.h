@@ -42,6 +42,7 @@ public:
   void setRelaxationParameter(float relaxationParameter);
   void setPixelRadius(float pixelRadius);
   void setLogStepCount(bool logStepCount);
+  void setUse2Stage(bool use2Stage);
 
   [[nodiscard]] auto isUseOptimisedMarching() const -> bool;
   void setUseOptimisedMarching(bool useOptimisedMarching);
@@ -70,9 +71,11 @@ private:
   static constexpr int stepCountTextureBinding = 1;
   static constexpr int depthTextureBinding = 2;
 
+  static constexpr int pixelStep = 9;
+
   auto setTextureInterpolation() -> void;
-  auto bindTextures() -> void;
-  auto unBindTextures() -> void;
+  auto bindTextures(bool useDistanceTexture) -> void;
+  auto unBindTextures(bool useDistanceTexture) -> void;
 
   auto getComputeDispatchSize() -> std::pair<unsigned int, unsigned int>;
 
@@ -91,6 +94,8 @@ private:
 
   bool useOptimisedMarching = false;
   bool logStepCount = true;
+
+  bool use2Stage = false;
 
   static inline constexpr unsigned int materialBinding = 3;
 
@@ -134,8 +139,15 @@ private:
   } singleStageUniformLocations;
 
   struct {
-
+    GLuint pixelRadius;
+    GLuint maxDrawDistance;
+    GLuint relaxationParameter;
+    GLuint resolution;
+    GLuint stepLimit;
+    GLuint cameraPosition;
+    GLuint cameraFront;
   } stage1UniformLocations;
+
   struct {
     GLuint stepLimit;
     GLuint shadowStepLimit;

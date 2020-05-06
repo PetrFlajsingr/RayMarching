@@ -3,8 +3,8 @@ layout (local_size_x = 8, local_size_y = 8) in;
 layout (r32f, binding = 0) uniform image2D stepCountTexture;
 layout (r32f, binding = 1) uniform image2D distanceTexture;
 
-
-uniform uint pixelStep;
+#define PIXEL_STEP 9
+#define PIXEL_OFFSET int(PIXEL_STEP / 2)
 uniform float pixelRadius;
 uniform float relaxationParameter;
 uniform ivec2 resolution;
@@ -13,7 +13,7 @@ uniform int stepLimit;
 uniform vec3 cameraPosition;
 uniform vec3 cameraFront;
 
-const float macroPixelRadius = pixelRadius * (pixelStep + 1);
+const float macroPixelRadius = pixelRadius * (PIXEL_STEP + 1);
 
 
 layout (std430, binding=0) buffer CSGTree {
@@ -173,6 +173,57 @@ vec2 rayMarch(Ray ray) {
     return vec2(candidate_t * 0.95, float(i));
 }
 
+Ray[5] rays;
+vec2 rayMarchMulti() {
+    float travelDistance = 0;
+
+    float candidate_error = FLT_MAX;
+    float candidate_t = 0;
+    float previousDistance = 0;
+    float stepLength = 0;
+    float omega = relaxationParameter;
+    int i;
+    for (i = 0; i < stepLimit; i++) {
+        const vec3 rayPos = rays[2].origin + travelDistance * rays[2].direction;
+        const float distance_ = mapCSG(rayPos);
+        const bool sorFail = omega > 1 && (distance_ + previousDistance) < stepLength;
+        float maxRayDistance = 0;
+        for (int i = 0; i < 2; ++i) {
+            const vec3 secondaryRayPos = rays[i].origin + travelDistance * rays[i].direction;
+            const float d = distance(rayPos, secondaryRayPos);
+            maxRayDistance = max(maxRayDistance, d);
+        }
+        for (int i = 3; i < 5; ++i) {
+            const vec3 secondaryRayPos = rays[i].origin + travelDistance * rays[i].direction;
+            const float d = distance(rayPos, secondaryRayPos);
+            maxRayDistance = max(maxRayDistance, d);
+        }
+
+        if (sorFail) {
+            stepLength -= omega * stepLength;
+            omega = 1;
+        } else {
+            stepLength = distance_ * omega;
+        }
+
+        previousDistance = distance_;
+        const float error = distance_ / travelDistance;
+
+        if (!sorFail && error < candidate_error) {
+            candidate_t = travelDistance;
+        }
+
+
+        travelDistance += stepLength;
+        if (!sorFail && travelDistance > maxDrawDistance) {
+            return vec2(-1, float(i));
+        } else if (!sorFail && distance_ <= maxRayDistance + pixelRadius * travelDistance) {
+            break;
+        }
+    }
+    return vec2(travelDistance * 0.96, float(i));
+}
+
 vec2 normalizeScreenCoords(vec2 screenCoord) {
     vec2 result = 2.0 * (screenCoord/resolution.xy - 0.5);
     result.x *= resolution.x/float(resolution.y);
@@ -186,24 +237,37 @@ vec3 getCameraRayDir(vec2 coord, vec3 camPos, vec3 camForward) {
 }
 
 void main() {
-    const uint pixelOffset = pixelStep / 2;
-    if (gl_GlobalInvocationID.x * pixelStep > resolution.x + pixelStep - pixelOffset || gl_GlobalInvocationID.y * pixelStep > resolution.y + pixelStep - pixelOffset) {
+    const uint pixelOffset = PIXEL_STEP / 2;
+    if (gl_GlobalInvocationID.x * PIXEL_STEP > resolution.x + PIXEL_STEP - pixelOffset || gl_GlobalInvocationID.y * PIXEL_STEP > resolution.y + PIXEL_STEP - pixelOffset) {
         return;
     }
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
-    const ivec2 globalTexCoord = ivec2(gl_GlobalInvocationID.x * pixelStep + pixelOffset, gl_GlobalInvocationID.y * pixelStep + pixelOffset);
-    vec2 screenCoord = vec2(gl_GlobalInvocationID.x * pixelStep + pixelOffset, gl_GlobalInvocationID.y * pixelStep + pixelOffset);
+    const ivec2 globalTexCoord = ivec2(gl_GlobalInvocationID.x * PIXEL_STEP + pixelOffset, gl_GlobalInvocationID.y * PIXEL_STEP + pixelOffset);
+    vec2 screenCoord = vec2(gl_GlobalInvocationID.x * PIXEL_STEP + pixelOffset, gl_GlobalInvocationID.y * PIXEL_STEP + pixelOffset);
     vec2 uv = normalizeScreenCoords(screenCoord);
 
+    Ray mainRay;
+    mainRay.origin = cameraPosition;
+    mainRay.direction = getCameraRayDir(uv, cameraPosition, cameraFront);
+    rays[2] = mainRay;
+    int cnt = 0;
+    for (int y = -PIXEL_OFFSET; y < PIXEL_STEP; y += PIXEL_STEP - 1) {
+        for (int x = -PIXEL_OFFSET; x < PIXEL_STEP; x += PIXEL_STEP - 1) {
+            Ray ray;
+            ray.origin = cameraPosition;
+            vec2 uv = normalizeScreenCoords(screenCoord + vec2(x, y));
+            ray.direction = getCameraRayDir(uv, cameraPosition, cameraFront);
+            rays[cnt] = ray;
+            ++cnt;
+        }
+        ++cnt;
+    }
 
-    Ray ray;
-    ray.origin = cameraPosition;
-    ray.direction = getCameraRayDir(uv, cameraPosition, cameraFront);
-    vec2 distanceAndStepCount = rayMarch(ray);
+    vec2 distanceAndStepCount = rayMarchMulti();
 
     imageStore(distanceTexture, texCoord, vec4(distanceAndStepCount.x, 0, 0, 0));
-    for (int y = -1; y < 2; ++y) {
-        for (int x = -1; x < 2; ++x) {
+    for (int y = -PIXEL_OFFSET; y < PIXEL_STEP; ++y) {
+        for (int x = -PIXEL_OFFSET; x < PIXEL_STEP; ++x) {
             imageStore(stepCountTexture, globalTexCoord + ivec2(x, y), vec4(distanceAndStepCount.y, 0, 0, 0));
         }
     }

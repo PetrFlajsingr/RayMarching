@@ -232,6 +232,7 @@ auto main(int argc, char **argv) -> int {
       const auto begin = std::chrono::steady_clock::now();
       if (!ui.getRenderSettingsPanel().isPaused()) {
         rayMarcher.setRayStepLimit(ui.getRenderSettingsPanel().getRayStepLimit());
+        rayMarcher.setUse2Stage(ui.getRenderSettingsPanel().isUse2Stage());
         rayMarcher.setShadowRayStepLimit(ui.getRenderSettingsPanel().getShadowRayStepLimit());
         rayMarcher.setMaxDrawDistance(ui.getRenderSettingsPanel().getMaxDrawDistance());
         rayMarcher.setTime(time);

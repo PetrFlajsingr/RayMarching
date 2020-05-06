@@ -31,6 +31,7 @@ layout (std430, binding=7) buffer CSGParams {
 
 int previousSteps = 0;
 float offsetDistance = 0;
+float maxDrawDistanceWithOffset = maxDrawDistance;
 /**
  * Calculate backroung color based on a ray.
  */
@@ -374,7 +375,7 @@ IntersectionResult castRay(Ray ray, float distanceFactor) {
         #endif
         if (res.distance < EPSILON) {
             break;
-        } else if (travelDistance > maxDrawDistance) {
+        } else if (travelDistance > maxDrawDistanceWithOffset) {
             result.material = -1;
             result.distance = -1.0;
             #if ENABLE_FOG==1
@@ -449,7 +450,7 @@ IntersectionResult castRayOpti(Ray ray, float distanceFactor) {
         #endif
         if (!sorFail && error < pixelRadius) {
             break;
-        } else if (travelDistance > maxDrawDistance) {
+        } else if (travelDistance > maxDrawDistanceWithOffset) {
             result.material = -1;
             result.distance = -1.0;
             #if ENABLE_FOG==1
@@ -507,7 +508,7 @@ IntersectionResult castEdgeAARay(Ray ray, float distanceFactor) {
             result.color = blend(result.color, vec4(color, 1));
             result.distance = travelDistance;
             return result;
-        } else if (travelDistance > maxDrawDistance) {
+        } else if (travelDistance > maxDrawDistanceWithOffset) {
             result.material = -1;
             result.distance = -1.0;
             Ray shadingRay;
@@ -598,7 +599,7 @@ IntersectionResult castEdgeAARayOpti(Ray ray, float distanceFactor) {
             result.distance = travelDistance;
             result.rmSteps += shadingResult.rmSteps;
             return result;
-        } else if (travelDistance > maxDrawDistance) {
+        } else if (travelDistance > maxDrawDistanceWithOffset) {
             result.material = -1;
             result.distance = -1.0;
             Ray shadingRay;
@@ -899,7 +900,7 @@ void main() {
     const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
 
     previousSteps = int(imageLoad(stepCountTexture, texCoord).x);
-    offsetDistance = imageLoad(distanceTexture, texCoord / 3).x;
+    offsetDistance = imageLoad(distanceTexture, texCoord / 9).x;
 
     RenderResult renderResult;
 
@@ -909,7 +910,9 @@ void main() {
     ray.origin = cameraPosition;
     ray.direction = getCameraRayDir(uv, cameraPosition, cameraFront);
     ray.origin += ray.direction * offsetDistance;
+
     if (offsetDistance >= 0 && offsetDistance < maxDrawDistance) {
+        maxDrawDistanceWithOffset -= offsetDistance;
         vec4 resColor = vec4(0);
         int totalSteps = 0;
         float count = 0.0;
@@ -927,7 +930,7 @@ void main() {
         renderResult.color = resColor;
         renderResult.rmSteps = int(totalSteps / count);
     } else {
-        renderResult.color = vec4(1, 0, 0, 1);vec4(backgroundColor(ray), 1);
+        renderResult.color = vec4(backgroundColor(ray), 1);
         renderResult.rmSteps = previousSteps;
         renderResult.fragmentDepth = offsetDistance;
     }

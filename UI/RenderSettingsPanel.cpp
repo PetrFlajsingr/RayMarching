@@ -25,7 +25,7 @@ ui::RenderSettingsPanel::RenderSettingsPanel() {
 
 auto ui::RenderSettingsPanel::onFrame() -> void {
   ImGui::Begin("Render settings");
-  const auto startStopButtonText = isPaused_ ? "Resume" : "Pause";
+  const auto *const startStopButtonText = isPaused_ ? "Resume" : "Pause";
   if (ImGui::Button(startStopButtonText)) {
     isPaused_ = !isPaused_;
   }
@@ -33,6 +33,7 @@ auto ui::RenderSettingsPanel::onFrame() -> void {
     onReloadShaderClicked();
   }
   ImGui::Checkbox("Optimised ray marching", &tmpUseOptimisedRayMarching);
+  ImGui::Checkbox("Two stage algorithm", &use2Stage);
   if (useOptimisedRayMarching) {
     ImGui::SliderFloat("Relaxation parameter", &relaxationParameter, 1.0f, 2.f);
     ImGui::SliderFloat("Pixel radius", &pixelRadius, 0.000001f, 0.001f, "%e");
@@ -138,3 +139,4 @@ auto ui::RenderSettingsPanel::getRelaxationParameter() const -> float { return r
 auto ui::RenderSettingsPanel::getPixelRadius() const -> float { return pixelRadius; }
 auto ui::RenderSettingsPanel::isLogStepCount() const -> bool { return logStepCount; }
 auto ui::RenderSettingsPanel::isPaused() const -> bool { return isPaused_; }
+auto ui::RenderSettingsPanel::isUse2Stage() const -> bool { return use2Stage; }

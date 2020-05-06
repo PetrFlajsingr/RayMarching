@@ -34,6 +34,7 @@ public:
   [[nodiscard]] auto getPixelRadius() const -> float;
   [[nodiscard]] auto isLogStepCount() const -> bool;
   [[nodiscard]] auto isPaused() const -> bool;
+  [[nodiscard]] auto isUse2Stage() const -> bool;
 
 private:
   const char *currentItem;
@@ -57,6 +58,7 @@ private:
   bool tmpUseOptimisedRayMarching = false;
   bool logStepCount = false;
   bool isPaused_ = false;
+  bool use2Stage = false;
 };
 } // namespace ui
 #endif // RAYMARCHING_RENDERSETTINGSPANEL_H

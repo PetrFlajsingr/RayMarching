@@ -15,8 +15,8 @@ RayMarcher::RayMarcher(const TextureSize &textureSize)
       renderTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second)),
       stepCountTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second)),
       depthTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second)),
-      distanceTexture(
-          std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first / 3 + 1, textureSize.second / 3 + 1)),
+      distanceTexture(std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first / pixelStep + 1,
+                                                        textureSize.second / pixelStep + 1)),
       quadVertices({
           -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
           1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
@@ -34,8 +34,8 @@ auto RayMarcher::changeRenderSize(const TextureSize &textureSize) -> void {
   renderTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_RGBA32F, 0, textureSize.first, textureSize.second);
   stepCountTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second);
   depthTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first, textureSize.second);
-  distanceTexture =
-      std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first / 3 + 3, textureSize.second / 3 + 1);
+  distanceTexture = std::make_shared<ge::gl::Texture>(GL_TEXTURE_2D, GL_R32F, 0, textureSize.first / pixelStep + 1,
+                                                      textureSize.second / pixelStep + 1);
   setTextureInterpolation();
   RayMarcher::textureSize = textureSize;
 }
@@ -51,100 +51,103 @@ auto RayMarcher::setTextureInterpolation() -> void {
   distanceTexture->texParameteri(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
-auto RayMarcher::bindTextures() -> void {
+auto RayMarcher::bindTextures(bool useDistanceTexture) -> void {
   renderTexture->bindImage(renderTextureBinding);
   stepCountTexture->bindImage(stepCountTextureBinding);
   depthTexture->bindImage(depthTextureBinding);
-  distanceTexture->bindImage(3);
+  if (useDistanceTexture) {
+    distanceTexture->bindImage(3);
+  }
 }
 
-auto RayMarcher::unBindTextures() -> void {
+auto RayMarcher::unBindTextures(bool useDistanceTexture) -> void {
   renderTexture->unbind(renderTextureBinding);
   stepCountTexture->unbind(stepCountTextureBinding);
   depthTexture->unbind(depthTextureBinding);
-  distanceTexture->unbind(3);
+  if (useDistanceTexture) {
+    distanceTexture->unbind(3);
+  }
 }
 auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
-  {
-    ScopedShaderProgramUsage scopedProgram{*stage1Program};
-    scopedProgram->set("pixelStep", 3u);
-    scopedProgram->set("pixelRadius", pixelRadius);
-    scopedProgram->set("maxDrawDistance", maxDrawDistance);
-    scopedProgram->set("relaxationParameter", relaxationParameter);
-    scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
-    scopedProgram->set("stepLimit", rayStepLimit);
-    const auto cameraPosition = scene->getCamera().Position;
-    const auto cameraFront = scene->getCamera().Front;
-    scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
-    scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
-    scene->updateAndBind(0, 1, 2);
-    const auto dispatchX = (textureSize.first / 3 + 1) / 8;
-    const auto dispatchY = (textureSize.second / 3 + 1) / 8;
-    stepCountTexture->bindImage(0);
-    distanceTexture->bindImage(1);
-    ge::gl::glDispatchCompute(dispatchX, dispatchY, 1);
-    ge::gl::glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT);
-  }
-  {
-    ScopedShaderProgramUsage scopedProgram{*stage2Program};
-    bindTextures();
-    const auto cameraPosition = scene->getCamera().Position;
-    const auto cameraFront = scene->getCamera().Front;
-    scopedProgram->set("stepLimit", rayStepLimit);
-    scopedProgram->set("shadowStepLimit", shadowRayStepLimit);
-    scopedProgram->set("time", time);
-    scopedProgram->set("maxDrawDistance", maxDrawDistance);
-    scopedProgram->set("maxReflections", maxReflections);
-    scopedProgram->set("AA_size", static_cast<float>(aaSize));
-    scopedProgram->set("physicsSphereCount", physicsSphereCount);
-    scopedProgram->set("enableEdgeAA", aaType == AntiAliasing::EdgeAA);
-    scopedProgram->set2i("resolution", textureSize.first, textureSize.second);
-    scopedProgram->set3f("cameraPosition", cameraPosition.x, cameraPosition.y, cameraPosition.z);
-    scopedProgram->set3f("cameraFront", cameraFront.x, cameraFront.y, cameraFront.z);
-    scopedProgram->set3f("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
-    scopedProgram->set("logStepCount", logStepCount);
-
-    if (useOptimisedMarching) {
-      scopedProgram->set("pixelRadius", pixelRadius);
-      scopedProgram->set("relaxationParameter", relaxationParameter);
+  if (use2Stage) {
+    {
+      const auto cameraPosition = scene->getCamera().Position;
+      const auto cameraFront = scene->getCamera().Front;
+      ScopedShaderProgramUsage scopedProgram{*stage1Program};
+      ge::gl::glUniform1f(stage1UniformLocations.pixelRadius, pixelRadius);
+      ge::gl::glUniform1f(stage1UniformLocations.maxDrawDistance, maxDrawDistance);
+      ge::gl::glUniform1f(stage1UniformLocations.relaxationParameter, relaxationParameter);
+      ge::gl::glUniform1i(stage1UniformLocations.stepLimit, rayStepLimit);
+      ge::gl::glUniform2i(stage1UniformLocations.resolution, textureSize.first, textureSize.second);
+      ge::gl::glUniform3f(stage1UniformLocations.cameraPosition, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+      ge::gl::glUniform3f(stage1UniformLocations.cameraFront, cameraFront.x, cameraFront.y, cameraFront.z);
+      scene->updateAndBind(0, 1, 2);
+      const auto dispatchX = (textureSize.first / 3 + 1) / 8;
+      const auto dispatchY = (textureSize.second / 3 + 1) / 8;
+      stepCountTexture->bindImage(0);
+      distanceTexture->bindImage(1);
+      ge::gl::glDispatchCompute(dispatchX, dispatchY, 1);
+      ge::gl::glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT);
     }
+    {
+      ScopedShaderProgramUsage scopedProgram{*stage2Program};
+      bindTextures(true);
+      const auto cameraPosition = scene->getCamera().Position;
+      const auto cameraFront = scene->getCamera().Front;
+      ge::gl::glUniform1i(stage2UniformLocations.stepLimit, rayStepLimit);
+      ge::gl::glUniform1i(stage2UniformLocations.shadowStepLimit, shadowRayStepLimit);
+      ge::gl::glUniform1f(stage2UniformLocations.time, time);
+      ge::gl::glUniform1f(stage2UniformLocations.maxDrawDistance, maxDrawDistance);
+      ge::gl::glUniform1i(stage2UniformLocations.maxReflections, maxReflections);
+      ge::gl::glUniform1f(stage2UniformLocations.AA_size, static_cast<float>(aaSize));
+      ge::gl::glUniform1i(stage2UniformLocations.physicsSphereCount, physicsSphereCount);
+      ge::gl::glUniform1i(stage2UniformLocations.enableEdgeAA, aaType == AntiAliasing::EdgeAA);
+      ge::gl::glUniform2i(stage2UniformLocations.resolution, textureSize.first, textureSize.second);
+      ge::gl::glUniform3f(stage2UniformLocations.cameraPosition, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+      ge::gl::glUniform3f(stage2UniformLocations.cameraFront, cameraFront.x, cameraFront.y, cameraFront.z);
+      ge::gl::glUniform3f(stage2UniformLocations.lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
+      ge::gl::glUniform1i(stage2UniformLocations.logStepCount, logStepCount);
+      if (useOptimisedMarching) {
+        ge::gl::glUniform1f(stage2UniformLocations.pixelRadius, pixelRadius);
+        ge::gl::glUniform1f(stage2UniformLocations.relaxationParameter, relaxationParameter);
+      }
 
-    scene->updateAndBind(6, 7, 8);
+      scene->updateAndBind(6, 7, 8);
 
-    buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 5);
-    materialManager.updateSSBO();
-    materialManager.bindBuffer(4);
-    const auto [dispatchX, dispatchY] = getComputeDispatchSize();
-    const std::array<GLuint, 3> subroutineIndices{
-        stage2Subroutines.shadowSubroutineIndices[static_cast<int>(shadowType)],
-        ambientOcclusionEnabled ? stage2Subroutines.aoSubroutineIndices[1] : stage2Subroutines.aoSubroutineIndices[0],
-        stage2Subroutines.shadowIntensitySubroutineIndices[static_cast<int>(shadowType)]};
-    ge::gl::glUniformSubroutinesuiv(GL_COMPUTE_SHADER, subroutineIndices.size(), subroutineIndices.data());
-    ge::gl::glDispatchCompute(dispatchX, dispatchY, 1);
-    unBindTextures();
-  }
+      buffer.bindBase(GL_SHADER_STORAGE_BUFFER, 5);
+      materialManager.updateSSBO();
+      materialManager.bindBuffer(4);
+      const auto [dispatchX, dispatchY] = getComputeDispatchSize();
+      const std::array<GLuint, 3> subroutineIndices{
+          stage2Subroutines.shadowSubroutineIndices[static_cast<int>(shadowType)],
+          ambientOcclusionEnabled ? stage2Subroutines.aoSubroutineIndices[1] : stage2Subroutines.aoSubroutineIndices[0],
+          stage2Subroutines.shadowIntensitySubroutineIndices[static_cast<int>(shadowType)]};
+      ge::gl::glUniformSubroutinesuiv(GL_COMPUTE_SHADER, subroutineIndices.size(), subroutineIndices.data());
+      ge::gl::glDispatchCompute(dispatchX, dispatchY, 1);
+      unBindTextures(true);
+    }
+  } else {
 
-  /*  ScopedShaderProgramUsage scopedProgram{*csProgram};
-    bindTextures();
+    ScopedShaderProgramUsage scopedProgram{*singleStageProgram};
+    bindTextures(false);
     const auto cameraPosition = scene->getCamera().Position;
     const auto cameraFront = scene->getCamera().Front;
-    ge::gl::glUniform1i(uniformLocations.stepLimit, rayStepLimit);
-    ge::gl::glUniform1i(uniformLocations.shadowStepLimit, shadowRayStepLimit);
-    ge::gl::glUniform1f(uniformLocations.time, time);
-    ge::gl::glUniform1f(uniformLocations.maxDrawDistance, maxDrawDistance);
-    ge::gl::glUniform1i(uniformLocations.maxReflections, maxReflections);
-    ge::gl::glUniform1f(uniformLocations.AA_size, static_cast<float>(aaSize));
-    ge::gl::glUniform1i(uniformLocations.physicsSphereCount, physicsSphereCount);
-    ge::gl::glUniform1i(uniformLocations.enableEdgeAA, aaType == AntiAliasing::EdgeAA);
-    ge::gl::glUniform2i(uniformLocations.resolution, textureSize.first, textureSize.second);
-    ge::gl::glUniform3f(uniformLocations.cameraPosition, cameraPosition.x, cameraPosition.y, cameraPosition.z);
-    ge::gl::glUniform3f(uniformLocations.cameraFront, cameraFront.x, cameraFront.y, cameraFront.z);
-    ge::gl::glUniform3f(uniformLocations.lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
-    ge::gl::glUniform1i(uniformLocations.logStepCount, logStepCount);
-
+    ge::gl::glUniform1i(singleStageUniformLocations.stepLimit, rayStepLimit);
+    ge::gl::glUniform1i(singleStageUniformLocations.shadowStepLimit, shadowRayStepLimit);
+    ge::gl::glUniform1f(singleStageUniformLocations.time, time);
+    ge::gl::glUniform1f(singleStageUniformLocations.maxDrawDistance, maxDrawDistance);
+    ge::gl::glUniform1i(singleStageUniformLocations.maxReflections, maxReflections);
+    ge::gl::glUniform1f(singleStageUniformLocations.AA_size, static_cast<float>(aaSize));
+    ge::gl::glUniform1i(singleStageUniformLocations.physicsSphereCount, physicsSphereCount);
+    ge::gl::glUniform1i(singleStageUniformLocations.enableEdgeAA, aaType == AntiAliasing::EdgeAA);
+    ge::gl::glUniform2i(singleStageUniformLocations.resolution, textureSize.first, textureSize.second);
+    ge::gl::glUniform3f(singleStageUniformLocations.cameraPosition, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    ge::gl::glUniform3f(singleStageUniformLocations.cameraFront, cameraFront.x, cameraFront.y, cameraFront.z);
+    ge::gl::glUniform3f(singleStageUniformLocations.lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
+    ge::gl::glUniform1i(singleStageUniformLocations.logStepCount, logStepCount);
     if (useOptimisedMarching) {
-      ge::gl::glUniform1f(uniformLocations.pixelRadius, pixelRadius);
-      ge::gl::glUniform1f(uniformLocations.relaxationParameter, relaxationParameter);
+      ge::gl::glUniform1f(singleStageUniformLocations.pixelRadius, pixelRadius);
+      ge::gl::glUniform1f(singleStageUniformLocations.relaxationParameter, relaxationParameter);
     }
 
     scene->updateAndBind(5, 6, 7);
@@ -153,13 +156,14 @@ auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
     materialManager.updateSSBO();
     materialManager.bindBuffer(materialBinding);
     const auto [dispatchX, dispatchY] = getComputeDispatchSize();
-    const std::array<GLuint, 3> subroutineIndices{shadowSubroutineIndices[static_cast<int>(shadowType)],
-                                                  ambientOcclusionEnabled ? aoSubroutineIndices[1] : aoSubroutineIndices[0],
-                                                  shadowIntensitySubroutineIndices[static_cast<int>(shadowType)]};
+    const std::array<GLuint, 3> subroutineIndices{
+        singleStageSubroutines.shadowSubroutineIndices[static_cast<int>(shadowType)],
+        ambientOcclusionEnabled ? singleStageSubroutines.aoSubroutineIndices[1] : singleStageSubroutines.aoSubroutineIndices[0],
+        singleStageSubroutines.shadowIntensitySubroutineIndices[static_cast<int>(shadowType)]};
     ge::gl::glUniformSubroutinesuiv(GL_COMPUTE_SHADER, subroutineIndices.size(), subroutineIndices.data());
     ge::gl::glDispatchCompute(dispatchX, dispatchY, 1);
-    // scopedProgram->dispatch(dispatchX, dispatchY);
-    unBindTextures();*/
+    unBindTextures(false);
+  }
 }
 
 auto RayMarcher::render2Stage(const std::shared_ptr<Scene> &scene) -> void {}
@@ -259,6 +263,13 @@ auto RayMarcher::reloadShader() -> void {
   if (singleStageProgram->getLinkStatus() && stage2Program->getLinkStatus() && stage1Program->getLinkStatus()) {
     prepSubroutineIndices(stage2Program, stage2Subroutines, stage2UniformLocations);
     prepSubroutineIndices(singleStageProgram, singleStageSubroutines, singleStageUniformLocations);
+    stage1UniformLocations.pixelRadius = stage1Program->getUniformLocation("pixelRadius");
+    stage1UniformLocations.maxDrawDistance = stage1Program->getUniformLocation("maxDrawDistance");
+    stage1UniformLocations.relaxationParameter = stage1Program->getUniformLocation("relaxationParameter");
+    stage1UniformLocations.resolution = stage1Program->getUniformLocation("resolution");
+    stage1UniformLocations.stepLimit = stage1Program->getUniformLocation("stepLimit");
+    stage1UniformLocations.cameraPosition = stage1Program->getUniformLocation("cameraPosition");
+    stage1UniformLocations.cameraFront = stage1Program->getUniformLocation("cameraFront");
   } else {
     spdlog::error("Shader loading failed");
   }
@@ -277,3 +288,4 @@ void RayMarcher::setUseOptimisedMarching(bool useOptimisedMarching) {
 void RayMarcher::setRelaxationParameter(float relaxationParameter) { RayMarcher::relaxationParameter = relaxationParameter; }
 void RayMarcher::setPixelRadius(float pixelRadius) { RayMarcher::pixelRadius = pixelRadius; }
 void RayMarcher::setLogStepCount(bool logStepCount) { RayMarcher::logStepCount = logStepCount; }
+void RayMarcher::setUse2Stage(bool use2Stage) { RayMarcher::use2Stage = use2Stage; }
