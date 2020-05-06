@@ -19,7 +19,7 @@
         },
         "leftOperand": {
           "nodeType": "Operation",
-          "operationType": "Substraction",
+          "operationType": "Subtraction",
           "leftOperand": {
             "nodeType": "Shape",
             "shapeType": "Box",

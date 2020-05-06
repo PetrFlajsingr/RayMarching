@@ -54,7 +54,8 @@ public:
   ge::gl::Buffer buffer{1000 * sizeof(int)};
 
 private:
-  std::shared_ptr<ge::gl::Program> csProgram;
+  std::shared_ptr<ge::gl::Program> csProgramNotOptimised;
+  std::shared_ptr<ge::gl::Program> csProgramOptimised;
   ge::gl::Program renderProgram;
 
   std::shared_ptr<ge::gl::Texture> renderTexture;

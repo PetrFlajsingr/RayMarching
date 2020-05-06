@@ -91,6 +91,8 @@ float applyOperation(CSGNode node, float leftOperand, float rightOperand) {
         return opSubstraction(leftOperand, rightOperand);
         case 2:
         return opBlend(leftOperand, rightOperand, getFloatCSGParam(PARAM_OFFSET(node)));
+        case 3:
+        return opIntersection(leftOperand, rightOperand);
     }
     return FLT_MAX;
 }
@@ -121,6 +123,12 @@ FLOAT_STACK valueStack = STACK_INIT(FLOAT_STACK);
 
 MapResult mapCSG(vec3 camPos) {
     MapResult result;
+    const float distance = mengerSponge(camPos / 30, 12).x;
+    //const float distance = sierpinski(camPos / 30).y;
+    //const float distance = apollonian(camPos / 30, 1);
+    //result.distance = distance;
+    //result.materialIndex = 0;
+    //return result;
     STACK_RESET(valueStack);
     SSBO_STACK_RESET(postStack);
 

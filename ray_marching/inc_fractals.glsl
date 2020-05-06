@@ -1,9 +1,9 @@
-vec4 mengerSponge(vec3 p) {
+vec4 mengerSponge(vec3 p, int iterations) {
     float d = sdBox(p, vec3(1.0));
     vec4 res = vec4(d, 1.0, 0.0, 0.0);
 
     float s = 1.0;
-    for (int m = 0; m < 4; m++) {
+    for (int m = 0; m < iterations; m++) {
         const vec3 a = mod(p*s, 2.0)-1.0;
         s *= 3.0;
         const vec3 r = abs(1.0 - 3.0 * abs(a));
@@ -99,4 +99,29 @@ vec2 sierpinski(vec3 p)
     }
 
     return vec2((sqrt(dm)-1.0)/r, a/s);
+}
+
+
+vec4 apollonian_orb;
+
+float apollonian(vec3 p, float s)
+{
+    float scale = 1.0;
+
+    apollonian_orb = vec4(1000.0);
+
+    for (int i=0; i<8;i++)
+    {
+        p = -1.0 + 2.0*fract(0.5*p+0.5);
+
+        float r2 = dot(p, p);
+
+        apollonian_orb = min(apollonian_orb, vec4(abs(p), r2));
+
+        float k = s/r2;
+        p     *= k;
+        scale *= k;
+    }
+
+    return 0.25*abs(p.y)/scale;
 }

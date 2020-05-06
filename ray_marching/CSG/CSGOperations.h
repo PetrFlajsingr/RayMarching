@@ -91,6 +91,16 @@ struct OperationBlend : public BinaryOperation {
   [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
 };
 
+struct OperationIntersection : public BinaryOperation {
+  explicit OperationIntersection();
+  [[nodiscard]] auto src() const -> std::string override;
+  [[nodiscard]] auto eval(float d1, float d2) const -> float override;
+  [[nodiscard]] auto getName() const -> std::string override;
+
+  [[nodiscard]] auto rawTypeInfo() const -> uint32_t override;
+  [[nodiscard]] auto rawParameters() const -> std::vector<float> override;
+};
+
 template <C_Operation T> constexpr auto flagForOperation() -> uint8_t {
   if constexpr (std::is_same_v<T, OperationUnion>) {
     return 0b0;
@@ -98,6 +108,8 @@ template <C_Operation T> constexpr auto flagForOperation() -> uint8_t {
     return flagForOperation<OperationUnion>() + 0b00000001;
   } else if constexpr (std::is_same_v<T, OperationBlend>) {
     return flagForOperation<OperationSubstraction>() + 0b00000001;
+  } else if constexpr (std::is_same_v<T, OperationIntersection>) {
+    return flagForOperation<OperationBlend>() + 0b00000001;
   }
 }
 
@@ -118,6 +130,8 @@ template <C_Operation T> constexpr auto fncForOp() {
     return csg_op::opMinus;
   } else if constexpr (std::is_same_v<T, OperationBlend>) {
     return csg_op::opBlend;
+  } else if constexpr (std::is_same_v<T, OperationIntersection>) {
+    return csg_op::opIntersection;
   }
 }
 

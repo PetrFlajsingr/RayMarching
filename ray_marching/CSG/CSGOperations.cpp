@@ -76,3 +76,14 @@ auto LimitedSpaceRepetitionOperation::rawTypeInfo() const -> uint32_t {
 auto LimitedSpaceRepetitionOperation::rawParameters() const -> std::vector<float> {
   return std::vector<float>{domain.x, domain.y, domain.z, limit.x, limit.y, limit.z};
 }
+OperationIntersection::OperationIntersection() {}
+auto OperationIntersection::src() const -> std::string {
+  using namespace std::string_literals;
+  return "opIntersection(\n{}, {})";
+}
+auto OperationIntersection::eval(float d1, float d2) const -> float { return fncForOp<OperationIntersection>()(d1, d2); }
+auto OperationIntersection::getName() const -> std::string { return "intersection"; }
+auto OperationIntersection::rawTypeInfo() const -> uint32_t {
+  return flagForOperation<std::decay_t<decltype(*this)>>() | rawCategory<std::decay_t<decltype(*this)>>();
+}
+auto OperationIntersection::rawParameters() const -> std::vector<float> { return {}; }

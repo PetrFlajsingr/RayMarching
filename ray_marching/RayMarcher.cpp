@@ -57,7 +57,7 @@ auto RayMarcher::unBindTextures() -> void {
   depthTexture->unbind(depthTextureBinding);
 }
 auto RayMarcher::render(const std::shared_ptr<Scene> &scene) -> void {
-  ScopedShaderProgramUsage scopedProgram{*csProgram};
+  ScopedShaderProgramUsage scopedProgram{*csProgramNotOptimised};
   bindTextures();
   const auto cameraPosition = scene->getCamera().Position;
   const auto cameraFront = scene->getCamera().Front;
@@ -145,42 +145,43 @@ auto RayMarcher::reloadShader() -> void {
 
   auto tmpProgram = std::make_shared<ge::gl::Program>(tmpShader);
   if (tmpProgram->getLinkStatus()) {
-    csProgram = tmpProgram;
-    shadowSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noShadow");
-    shadowSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "rayShadow");
-    shadowSubroutineIndices[2] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadow");
-    shadowSubroutineIndices[3] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadow");
-    shadowSubroutineLocation = ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateShadow");
+    csProgramNotOptimised = tmpProgram;
+    shadowSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "noShadow");
+    shadowSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "rayShadow");
+    shadowSubroutineIndices[2] = ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "softShadow");
+    shadowSubroutineIndices[3] = ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "hardShadow");
+    shadowSubroutineLocation =
+        ge::gl::glGetSubroutineUniformLocation(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "calculateShadow");
     shadowIntensitySubroutineIndices[0] =
-        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noShadowIntensity");
+        ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "noShadowIntensity");
     shadowIntensitySubroutineIndices[1] =
-        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "rayShadowIntensity");
+        ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "rayShadowIntensity");
     shadowIntensitySubroutineIndices[2] =
-        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "softShadowIntensity");
+        ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "softShadowIntensity");
     shadowIntensitySubroutineIndices[3] =
-        ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "hardShadowIntensity");
+        ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "hardShadowIntensity");
     shadowIntensitySubroutineLocation =
-        ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateShadowIntensity");
-    aoSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "noAO");
-    aoSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgram->getId(), GL_COMPUTE_SHADER, "calcAO");
+        ge::gl::glGetSubroutineUniformLocation(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "calculateShadowIntensity");
+    aoSubroutineIndices[0] = ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "noAO");
+    aoSubroutineIndices[1] = ge::gl::glGetSubroutineIndex(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "calcAO");
     aoSubroutineLocation =
-        ge::gl::glGetSubroutineUniformLocation(csProgram->getId(), GL_COMPUTE_SHADER, "calculateAmbientOcclusion");
-    uniformLocations.stepLimit = csProgram->getUniformLocation("stepLimit");
-    uniformLocations.shadowStepLimit = csProgram->getUniformLocation("shadowStepLimit");
-    uniformLocations.time = csProgram->getUniformLocation("time");
-    uniformLocations.maxDrawDistance = csProgram->getUniformLocation("maxDrawDistance");
-    uniformLocations.maxReflections = csProgram->getUniformLocation("maxReflections");
-    uniformLocations.AA_size = csProgram->getUniformLocation("AA_size");
-    uniformLocations.physicsSphereCount = csProgram->getUniformLocation("physicsSphereCount");
-    uniformLocations.enableEdgeAA = csProgram->getUniformLocation("enableEdgeAA");
-    uniformLocations.resolution = csProgram->getUniformLocation("resolution");
-    uniformLocations.cameraPosition = csProgram->getUniformLocation("cameraPosition");
-    uniformLocations.cameraFront = csProgram->getUniformLocation("cameraFront");
-    uniformLocations.lightPos = csProgram->getUniformLocation("lightPos");
-    uniformLocations.logStepCount = csProgram->getUniformLocation("logStepCount");
+        ge::gl::glGetSubroutineUniformLocation(csProgramNotOptimised->getId(), GL_COMPUTE_SHADER, "calculateAmbientOcclusion");
+    uniformLocations.stepLimit = csProgramNotOptimised->getUniformLocation("stepLimit");
+    uniformLocations.shadowStepLimit = csProgramNotOptimised->getUniformLocation("shadowStepLimit");
+    uniformLocations.time = csProgramNotOptimised->getUniformLocation("time");
+    uniformLocations.maxDrawDistance = csProgramNotOptimised->getUniformLocation("maxDrawDistance");
+    uniformLocations.maxReflections = csProgramNotOptimised->getUniformLocation("maxReflections");
+    uniformLocations.AA_size = csProgramNotOptimised->getUniformLocation("AA_size");
+    uniformLocations.physicsSphereCount = csProgramNotOptimised->getUniformLocation("physicsSphereCount");
+    uniformLocations.enableEdgeAA = csProgramNotOptimised->getUniformLocation("enableEdgeAA");
+    uniformLocations.resolution = csProgramNotOptimised->getUniformLocation("resolution");
+    uniformLocations.cameraPosition = csProgramNotOptimised->getUniformLocation("cameraPosition");
+    uniformLocations.cameraFront = csProgramNotOptimised->getUniformLocation("cameraFront");
+    uniformLocations.lightPos = csProgramNotOptimised->getUniformLocation("lightPos");
+    uniformLocations.logStepCount = csProgramNotOptimised->getUniformLocation("logStepCount");
     if (useOptimisedMarching) {
-      uniformLocations.pixelRadius = csProgram->getUniformLocation("pixelRadius");
-      uniformLocations.relaxationParameter = csProgram->getUniformLocation("relaxationParameter");
+      uniformLocations.pixelRadius = csProgramNotOptimised->getUniformLocation("pixelRadius");
+      uniformLocations.relaxationParameter = csProgramNotOptimised->getUniformLocation("relaxationParameter");
     }
   } else {
     spdlog::error("Shader loading failed");

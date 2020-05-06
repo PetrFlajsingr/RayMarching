@@ -192,14 +192,18 @@ auto CSGTree::OperationNodeFromJson(const nlohmann::json &json, int materialInde
   using namespace std::string_literals;
   if (!json.contains("operationType")) {
     spdlog::error("Invalid warp operation: "s + json.dump(2));
+
     return std::nullopt;
   }
   auto result = std::unique_ptr<OperationCSGNode>{nullptr};
   if (json["operationType"] == "Union") {
     result = std::make_unique<OperationCSGNode>(std::make_unique<OperationUnion>());
   }
-  if (json["operationType"] == "Substraction") {
+  if (json["operationType"] == "Subtraction") {
     result = std::make_unique<OperationCSGNode>(std::make_unique<OperationSubstraction>());
+  }
+  if (json["operationType"] == "Intersection") {
+    result = std::make_unique<OperationCSGNode>(std::make_unique<OperationIntersection>());
   }
   if (json["operationType"] == "Blend") {
     if (!json.contains("k")) {

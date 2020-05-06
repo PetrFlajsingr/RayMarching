@@ -43,6 +43,12 @@ download_project(PROJ magic_enum
         )
 include_directories(${magic_enum_SOURCE_DIR}/include)
 
+download_project(PROJ imgui_gegl
+        GIT_REPOSITORY https://github.com/PetrFlajsingr/imgui_for_gegl.git
+        GIT_TAG master
+        )
+include_directories(${imgui_gegl_SOURCE_DIR})
+
 
 download_project(PROJ utilities
         GIT_REPOSITORY https://github.com/PetrFlajsingr/Utilities.git
@@ -50,7 +56,7 @@ download_project(PROJ utilities
         )
 include_directories(${utilities_SOURCE_DIR})
 file(GLOB_RECURSE utilities_SRC_LIST "${utilities_SOURCE_DIR}/*.cpp")
-file(GLOB_RECURSE imgui_SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/include/imgui/*.cpp")
+file(GLOB_RECURSE imgui_SRC_LIST "${imgui_gegl_SOURCE_DIR}/imgui/*.cpp")
 
 
 set(SDL2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/SDL2/lib/cmake/SDL2)

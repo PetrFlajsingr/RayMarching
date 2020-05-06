@@ -7,10 +7,10 @@
 
 #include <error_handling/exceptions.h>
 #include <geGL/geGL.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <utility>
 #include <various/StringUtils.h>
-
 enum class ShaderType { Vertex, TesselationControl, TesselationEvaluation, Geometry, Fragment, Compute, Include };
 auto glEnumToShaderType(GLenum type) -> ShaderType;
 using ShaderPtr = std::shared_ptr<ge::gl::Shader>;
@@ -39,6 +39,7 @@ auto loadShaderFile(std::string_view name, ShaderType type) -> std::string;
 
 template <typename... IncPaths> inline auto loadShader(GLenum type, const std::string &shaderPath, const std::string &defines,
                                                        const IncPaths &... incPaths) -> ShaderPtr {
+  spdlog::warn("Compiling shader: {}, THIS MAY TAKE A WHILE!!!", shaderPath);
   using namespace std::string_literals;
   const auto shaderType = glEnumToShaderType(type);
   auto mainShaderSrc = loadShaderFile(shaderPath, shaderType);

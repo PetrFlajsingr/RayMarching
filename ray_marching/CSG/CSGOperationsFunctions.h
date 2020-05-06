@@ -10,7 +10,9 @@
 namespace csg_op {
 inline auto opMinus(float d1, float d2) -> float { return glm::max(-d1, d2); }
 
-inline auto opUnion(float d1, float d2) -> float { return (d1 < d2) ? d1 : d2; }
+inline auto opUnion(float d1, float d2) -> float { return glm::min(d1, d2); }
+
+inline auto opIntersection(float d1, float d2) -> float { return glm::max(d1, d2); }
 
 inline auto sminCubic(float a, float b, float k) -> float {
   const auto h = glm::max(k - glm::abs(a - b), 0.0f);

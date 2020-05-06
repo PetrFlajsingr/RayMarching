@@ -1,0 +1,55 @@
+{
+  "name": "mirror",
+  "objects": [
+    {
+      "id": "csg",
+      "material": "Mat2",
+      "csg": {
+        "nodeType": "Operation",
+        "operationType": "Union",
+        "leftOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Box",
+          "position": {
+            "x": -2000,
+            "y": 0,
+            "z": 0
+          },
+          "dimensions": {
+            "x": 100,
+            "y": 1000,
+            "z": 1000
+          }
+        },
+        "rightOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Box",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 0
+          },
+          "dimensions": {
+            "x": 100,
+            "y": 1000,
+            "z": 1000
+          }
+        }
+      }
+    },
+    {
+      "id": "csg0",
+      "material": "Mat1",
+      "csg": {
+        "nodeType": "Shape",
+        "shapeType": "Sphere",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "radius": 150
+      }
+    }
+  ]
+}

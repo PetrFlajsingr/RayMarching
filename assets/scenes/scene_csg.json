@@ -1,0 +1,177 @@
+{
+  "name": "csg_demo",
+  "objects": [
+    {
+      "id": "csg",
+      "material": "Mat1",
+      "csg": {
+        "nodeType": "Operation",
+        "operationType": "Subtraction",
+        "leftOperand": {
+          "nodeType": "Operation",
+          "operationType": "Intersection",
+          "leftOperand": {
+            "nodeType": "Shape",
+            "shapeType": "Box",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "dimensions": {
+              "x": 80,
+              "y": 80,
+              "z": 80
+            }
+          },
+          "rightOperand": {
+            "nodeType": "Shape",
+            "shapeType": "Sphere",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "radius": 100
+          }
+        },
+        "rightOperand": {
+          "nodeType": "Operation",
+          "operationType": "Union",
+          "leftOperand": {
+            "nodeType": "Shape",
+            "shapeType": "Box",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "dimensions": {
+              "x": 50,
+              "y": 50,
+              "z": 100
+            }
+          },
+          "rightOperand": {
+            "nodeType": "Operation",
+            "operationType": "Union",
+            "leftOperand": {
+              "nodeType": "Shape",
+              "shapeType": "Box",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "dimensions": {
+                "x": 50,
+                "y": 100,
+                "z": 50
+              }
+            },
+            "rightOperand": {
+              "nodeType": "Shape",
+              "shapeType": "Box",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "dimensions": {
+                "x": 100,
+                "y": 50,
+                "z": 50
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "csg0",
+      "material": "Mat1",
+      "csg": {
+        "nodeType": "Operation",
+        "operationType": "Union",
+        "leftOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Box",
+          "position": {
+            "x": -400,
+            "y": 0,
+            "z": 0
+          },
+          "dimensions": {
+            "x": 50,
+            "y": 50,
+            "z": 100
+          }
+        },
+        "rightOperand": {
+          "nodeType": "Operation",
+          "operationType": "Union",
+          "leftOperand": {
+            "nodeType": "Shape",
+            "shapeType": "Box",
+            "position": {
+              "x": -400,
+              "y": 0,
+              "z": 0
+            },
+            "dimensions": {
+              "x": 50,
+              "y": 100,
+              "z": 50
+            }
+          },
+          "rightOperand": {
+            "nodeType": "Shape",
+            "shapeType": "Box",
+            "position": {
+              "x": -400,
+              "y": 0,
+              "z": 0
+            },
+            "dimensions": {
+              "x": 100,
+              "y": 50,
+              "z": 50
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "csg1",
+      "material": "Mat1",
+      "csg": {
+        "nodeType": "Operation",
+        "operationType": "Intersection",
+        "leftOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Box",
+          "position": {
+            "x": 400,
+            "y": 0,
+            "z": 0
+          },
+          "dimensions": {
+            "x": 80,
+            "y": 80,
+            "z": 80
+          }
+        },
+        "rightOperand": {
+          "nodeType": "Shape",
+          "shapeType": "Sphere",
+          "position": {
+            "x": 400,
+            "y": 0,
+            "z": 0
+          },
+          "radius": 100
+        }
+      }
+    }
+  ]
+}
