@@ -1,5 +1,11 @@
 # RayMarching
 
-http://www2.compute.dtu.dk/pubdb/views/edoc_download.php/6392/pdf/imm6392.pdf
+GPU rendering of SDF CSG trees with shadows, reflections and refraction.
 
-http://www.diva-portal.org/smash/get/diva2:1059684/FULLTEXT01.pdf
+![Menger fractal](imgs/render.png "Reflection & refraction & shadows")
+
+
+![Menger fractal](imgs/shadows.png "Hard & soft shadows")
+
+
+![Menger fractal](imgs/menger.png "Menger")
